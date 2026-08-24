@@ -7,6 +7,18 @@ export default function MarketAnalysisLayout() {
       <Stack.Screen name="industry" options={{title: '업종 선택'}} />
       <Stack.Screen name="region" options={{title: '지역 선택'}} />
       <Stack.Screen name="result" options={{title: '분석 결과'}} />
+      <Stack.Screen
+        name="location-recommend"
+        options={{title: '보유 장소 선택'}}
+      />
+      <Stack.Screen
+        name="location-recommend-result"
+        options={{title: '업종 추천 순위'}}
+      />
+      <Stack.Screen
+        name="suitability"
+        options={{title: '적합성 분석'}}
+      />
     </Stack>
   );
 }
