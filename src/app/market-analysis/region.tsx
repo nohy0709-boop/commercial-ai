@@ -1,44 +1,78 @@
 import type { Industry, Region } from '@/data/mockMarketAnalysisData';
+import { ALL_REGIONS } from '@/data/mockMarketAnalysisData';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const REGIONS: Region[] = ['성수동', '건대입구', '왕십리'];
 
 export default function RegionSelectionScreen() {
   const router = useRouter();
-  // 이전 화면(industry.tsx)에서 router.push할 때 넘겨준 값을 여기서 읽습니다.
   const {industry} = useLocalSearchParams<{industry: Industry}>();
+  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
+
+  const toggleRegion = (region: Region) => {
+    setSelectedRegions(prev =>
+      prev.includes(region) ? prev.filter(r => r !== region) : [...prev, region],
+    );
+  };
+
+  const handleAnalyze = () => {
+    if (selectedRegions.length === 0) {
+      return;
+    }
+    router.push({
+      pathname: '/market-analysis/region-result',
+      params: {industry, regions: selectedRegions.join(',')},
+    });
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>{`'${industry}' 업종의 지역을 선택해주세요`}</Text>
+      <Text style={styles.header}>
+        {`'${industry}' 업종을 분석할 지역을 선택해주세요 (여러 개 가능)`}
+      </Text>
 
       <FlatList
-        data={REGIONS}
+        data={ALL_REGIONS}
         keyExtractor={item => item}
-        renderItem={({item}) => (
-          <TouchableOpacity
-            style={styles.item}
-            activeOpacity={0.7}
-            onPress={() =>
-              router.push({
-                pathname: '/market-analysis/result',
-                params: {industry, region: item},
-              })
-            }>
-            <Text style={styles.itemText}>{item}</Text>
-          </TouchableOpacity>
-        )}
+        renderItem={({item}) => {
+          const selected = selectedRegions.includes(item);
+          return (
+            <TouchableOpacity
+              style={[styles.item, selected && styles.itemSelected]}
+              activeOpacity={0.7}
+              onPress={() => toggleRegion(item)}>
+              <Text style={[styles.itemText, selected && styles.itemTextSelected]}>
+                {item}
+              </Text>
+              {selected && <Text style={styles.checkMark}>✓</Text>}
+            </TouchableOpacity>
+          );
+        }}
       />
+
+      <TouchableOpacity
+        style={[
+          styles.analyzeButton,
+          selectedRegions.length === 0 && styles.analyzeButtonDisabled,
+        ]}
+        activeOpacity={0.7}
+        disabled={selectedRegions.length === 0}
+        onPress={handleAnalyze}>
+        <Text style={styles.analyzeButtonText}>
+          {`선택한 ${selectedRegions.length}개 지역 분석하기`}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {flex: 1, padding: 20, backgroundColor: '#FFFFFF'},
-  header: {fontSize: 20, fontWeight: '700', marginTop: 12, marginBottom: 20},
+  header: {fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 20},
   item: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E0E0E0',
     borderRadius: 12,
@@ -47,5 +81,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#F8F9FA',
   },
+  itemSelected: {
+    borderColor: '#1D4ED8',
+    backgroundColor: '#EAF2FF',
+  },
   itemText: {fontSize: 16, fontWeight: '600', color: '#1A1A1A'},
+  itemTextSelected: {color: '#1D4ED8'},
+  checkMark: {fontSize: 16, fontWeight: '700', color: '#1D4ED8'},
+  analyzeButton: {
+    marginTop: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#1D4ED8',
+    alignItems: 'center',
+  },
+  analyzeButtonDisabled: {
+    backgroundColor: '#C6D3EE',
+  },
+  analyzeButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
 });

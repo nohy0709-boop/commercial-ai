@@ -1,28 +1,27 @@
-import type { Region } from '@/data/mockMarketAnalysisData';
-import { ALL_INDUSTRIES, getRankedResults } from '@/data/mockMarketAnalysisData';
+import type { Industry, Region } from '@/data/mockMarketAnalysisData';
+import { getRankedResults } from '@/data/mockMarketAnalysisData';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-export default function LocationRecommendResultScreen() {
-  const {regions} = useLocalSearchParams<{regions: string}>();
+export default function RegionResultScreen() {
+  const {industry, regions} = useLocalSearchParams<{
+    industry: Industry;
+    regions: string;
+  }>();
   const selectedRegions = regions.split(',') as Region[];
-
-  // 선택한 모든 장소 x 모든 업종의 전체 조합을 만들어서 점수 순으로 정렬합니다.
-  const combos = selectedRegions.flatMap(region =>
-    ALL_INDUSTRIES.map(industry => ({industry, region})),
-  );
+  const combos = selectedRegions.map(region => ({industry, region}));
   const results = getRankedResults(combos);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>선택한 장소 업종 추천 순위</Text>
+      <Text style={styles.title}>{`'${industry}' 지역별 적합도 순위`}</Text>
 
       {results.map((item, index) => (
-        <View key={`${item.region}-${item.industry}`} style={styles.card}>
+        <View key={item.region} style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.rank}>{`${index + 1}위`}</Text>
-            <Text style={styles.name}>{`${item.region} · ${item.industry}`}</Text>
+            <Text style={styles.name}>{item.region}</Text>
             <Text style={styles.score}>{`${item.suitabilityScore}점`}</Text>
           </View>
           <Text style={styles.metaLine}>
