@@ -53,8 +53,13 @@ export default function HomeScreen() {
           />
         </ThemedView>
         <Link href="/market-analysis" asChild>
-          <TouchableOpacity style={styles.marketAnalysisButton}>
+          <TouchableOpacity style={styles.actionButton}>
             <ThemedText type="code">장기 상권 분석 바로가기</ThemedText>
+          </TouchableOpacity>
+        </Link>
+        <Link href="/short-term-analysis" asChild>
+          <TouchableOpacity style={styles.actionButton}>
+            <ThemedText type="code">단기 상권 분석 바로가기</ThemedText>
           </TouchableOpacity>
         </Link>
         {Platform.OS === 'web' && <WebBadge />}
@@ -97,7 +102,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
   },
-  marketAnalysisButton: {
+  actionButton: {
     marginTop: 16,
     paddingVertical: 10,
     paddingHorizontal: 16,

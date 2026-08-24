@@ -1,45 +1,42 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type MenuKey = 'industryToLocation' | 'locationToIndustry' | 'suitability';
+type MenuKey = 'fieldToEvent' | 'eventAnalysis' | 'suitability';
 
 const MENU_ITEMS: {key: MenuKey; title: string; description: string}[] = [
   {
-    key: 'industryToLocation',
-    title: '업종 기반 입지 추천',
-    description: '원하는 업종을 고르면 어울리는 지역을 추천해드려요',
+    key: 'fieldToEvent',
+    title: '운영 분야 기반 행사/지역 추천',
+    description: '운영하려는 분야를 고르면 어울리는 행사를 추천해드려요',
   },
   {
-    key: 'locationToIndustry',
-    title: '보유 장소 기반 업종 추천',
-    description: '보유하신 장소에 어울리는 업종을 추천해드려요',
+    key: 'eventAnalysis',
+    title: '특정 행사/지역 기반 상권 분석',
+    description: '행사나 지역을 고르면 주변 상권을 분석해드려요',
   },
   {
     key: 'suitability',
-    title: '업종+입지 적합성 분석',
-    description: '선택한 업종과 입지의 적합도를 분석해드려요',
+    title: '운영 분야 + 행사 적합성 분석',
+    description: '선택한 분야와 행사의 적합도를 분석해드려요',
   },
 ];
 
-export default function MarketAnalysisMainScreen() {
+export default function ShortTermMainScreen() {
   const router = useRouter();
 
   const handlePress = (key: MenuKey) => {
-    if (key === 'industryToLocation') {
-      router.push('/market-analysis/industry');
+    if (key === 'fieldToEvent') {
+      router.push('/short-term-analysis/field');
       return;
     }
-    if (key === 'locationToIndustry') {
-      router.push('/market-analysis/location-recommend');
-      return;
-    }
-    router.push('/market-analysis/suitability');
+    // 다음 단계에서 구현 예정
+    Alert.alert('준비 중', '해당 기능은 아직 준비 중입니다.');
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>장기 상권 분석</Text>
+      <Text style={styles.header}>단기 상권 분석</Text>
 
       {MENU_ITEMS.map(item => (
         <TouchableOpacity

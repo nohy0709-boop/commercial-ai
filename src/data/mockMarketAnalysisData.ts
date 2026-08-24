@@ -5,15 +5,19 @@ export type CompetitionLevel = '낮음' | '보통' | '높음';
 export interface MarketAnalysisResult {
   industry: Industry;
   region: Region;
-  floatingPopulation: string;
-  competitorCount: number;
-  estimatedRevenue: string;
-  mainAgeGroup: string;
-  competitionLevel: CompetitionLevel;
-  suitabilityScore: number;
-  recommendationReasons: string[];
+  floatingPopulation: string; // 유동인구
+  competitorCount: number; // 경쟁업체 수
+  estimatedRevenue: string; // 추정매출
+  mainAgeGroup: string; // 주요 연령층
+  competitionLevel: CompetitionLevel; // 경쟁도
+  suitabilityScore: number; // 적합도 점수 (0~100)
+  recommendationReasons: string[]; // 추천 이유
 }
 
+/**
+ * key 형식: "업종-지역" 예) "카페-성수동"
+ * 백엔드 연동 전까지 사용할 더미(mock) 데이터입니다.
+ */
 const mockMarketAnalysisData: Record<string, MarketAnalysisResult> = {
   '카페-성수동': {
     industry: '카페',
@@ -186,6 +190,12 @@ const mockMarketAnalysisData: Record<string, MarketAnalysisResult> = {
   },
 };
 
+const ALL_INDUSTRIES: Industry[] = ['카페', '음식점', '베이커리', '편의점'];
+
+/**
+ * 업종 + 지역 조합으로 분석 결과 하나를 조회합니다.
+ * ("업종 기반 입지 추천" 흐름에서 사용)
+ */
 export function getMarketAnalysisResult(
   industry: Industry,
   region: Region,
@@ -208,4 +218,20 @@ export function getMarketAnalysisResult(
     suitabilityScore: 0,
     recommendationReasons: ['아직 분석 데이터가 준비되지 않은 조합입니다.'],
   };
+}
+
+/**
+ * 특정 지역에 대해, 모든 업종의 분석 결과를 적합도 점수 높은 순으로 정렬해 반환합니다.
+ * ("보유 장소 기반 업종 추천" 흐름에서 사용)
+ *
+ * 새로운 mock 데이터를 따로 만들지 않고, 기존 업종별 데이터를 재사용해서
+ * 순위만 다시 매기는 방식입니다. 실제 API 연동 시에도 이 함수의 내부 구현만
+ * 서버에서 순위 계산된 데이터를 받아오는 방식으로 바꾸면 됩니다.
+ */
+export function getIndustryRecommendationsForRegion(
+  region: Region,
+): MarketAnalysisResult[] {
+  return ALL_INDUSTRIES
+    .map(industry => getMarketAnalysisResult(industry, region))
+    .sort((a, b) => b.suitabilityScore - a.suitabilityScore);
 }
