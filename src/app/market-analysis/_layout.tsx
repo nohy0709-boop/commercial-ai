@@ -17,6 +17,10 @@ export default function MarketAnalysisLayout() {
         options={{title: '업종 추천 순위'}}
       />
       <Stack.Screen name="suitability" options={{title: '적합성 분석'}} />
+      <Stack.Screen
+        name="suitability-region"
+        options={{title: '지역 선택'}}
+      />
     </Stack>
   );
 }
