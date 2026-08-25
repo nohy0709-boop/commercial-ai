@@ -1,10 +1,24 @@
+import { COLORS } from '@/constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-type MenuKey = 'industryToLocation' | 'locationToIndustry' | 'suitability';
+type MenuKey =
+  | 'industryToLocation'
+  | 'locationToIndustry'
+  | 'suitability';
 
-const MENU_ITEMS: {key: MenuKey; title: string; description: string}[] = [
+const MENU_ITEMS: {
+  key: MenuKey;
+  title: string;
+  description: string;
+}[] = [
   {
     key: 'industryToLocation',
     title: '업종 기반 입지 추천',
@@ -30,25 +44,43 @@ export default function MarketAnalysisMainScreen() {
       router.push('/market-analysis/industry');
       return;
     }
+
     if (key === 'locationToIndustry') {
       router.push('/market-analysis/location-recommend');
       return;
     }
+
     router.push('/market-analysis/suitability');
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>장기 상권 분석</Text>
+      <LinearGradient
+        colors={['#AEE8F7', '#E8F8D7', '#CFE801']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.headerBackground}
+      >
+        <Text style={styles.header}>장기 상권 분석</Text>
+        <Text style={styles.subHeader}>
+          원하는 분석 방법을 선택해주세요
+        </Text>
+      </LinearGradient>
 
       {MENU_ITEMS.map(item => (
         <TouchableOpacity
           key={item.key}
           style={styles.card}
           activeOpacity={0.7}
-          onPress={() => handlePress(item.key)}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardDescription}>{item.description}</Text>
+          onPress={() => handlePress(item.key)}
+        >
+          <Text style={styles.cardTitle}>
+            {item.title}
+          </Text>
+
+          <Text style={styles.cardDescription}>
+            {item.description}
+          </Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -56,16 +88,68 @@ export default function MarketAnalysisMainScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, padding: 20, backgroundColor: '#FFFFFF'},
-  header: {fontSize: 24, fontWeight: '700', marginTop: 12, marginBottom: 24},
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: COLORS.background,
+  },
+
+  headerBackground: {
+    marginHorizontal: -20,
+    marginTop: -20,
+    paddingTop: 36,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    marginBottom: 24,
+
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+
+  header: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginTop: 12,
+    marginBottom: 6,
+    color: COLORS.primaryDark,
+  },
+
+  subHeader: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+
   card: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    padding: 16,
+    borderColor: '#E8EEDC',
+    borderRadius: 18,
+
+    padding: 18,
     marginBottom: 14,
-    backgroundColor: '#F8F9FA',
+
+    backgroundColor: '#FBFDF7',
+
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+
+    elevation: 2,
   },
-  cardTitle: {fontSize: 17, fontWeight: '600', marginBottom: 6, color: '#1A1A1A'},
-  cardDescription: {fontSize: 13, color: '#6B6B6B'},
+
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 7,
+    color: COLORS.primaryDark,
+  },
+
+  cardDescription: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+  },
 });
