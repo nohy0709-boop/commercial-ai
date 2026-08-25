@@ -1,12 +1,22 @@
+import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useColorScheme } from 'react-native';
 
-export default function ShortTermAnalysisLayout() {
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  const colorScheme = useColorScheme();
+
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{title: '단기 상권 분석'}} />
-      <Stack.Screen name="field" options={{title: '운영 분야 선택'}} />
-      <Stack.Screen name="event" options={{title: '행사 선택'}} />
-      <Stack.Screen name="field-result" options={{title: '행사 적합도 순위'}} />
-    </Stack>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AnimatedSplashOverlay />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="market-analysis" />
+        <Stack.Screen name="short-term-analysis" />
+      </Stack>
+    </ThemeProvider>
   );
 }
