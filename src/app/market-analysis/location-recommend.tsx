@@ -1,12 +1,14 @@
-import type { Industry, Region } from '@/data/mockMarketAnalysisData';
+import type { Region } from '@/data/mockMarketAnalysisData';
 import { ALL_REGIONS } from '@/data/mockMarketAnalysisData';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function RegionSelectionScreen() {
+// 실제로는 주소 입력 → Geocoding API로 좌표 변환하는 기능이 필요하지만,
+// 아직 실제 API 연동 전이라 우선 기존 지역 3개 중에서 고르는 방식으로 대체합니다.
+// 보유하신 장소가 여러 곳일 수 있어 여러 개 선택 가능하게 만들었습니다.
+export default function LocationRecommendScreen() {
   const router = useRouter();
-  const {industry} = useLocalSearchParams<{industry: Industry}>();
   const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
 
   const toggleRegion = (region: Region) => {
@@ -20,16 +22,14 @@ export default function RegionSelectionScreen() {
       return;
     }
     router.push({
-      pathname: '/market-analysis/region-result',
-      params: {industry, regions: selectedRegions.join(',')},
+      pathname: '/market-analysis/location-recommend-result',
+      params: {regions: selectedRegions.join(',')},
     });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>
-        {`'${industry}' 업종을 분석할 지역을 선택해주세요 (여러 개 가능)`}
-      </Text>
+      <Text style={styles.header}>보유하신 장소(지역)를 선택해주세요 (여러 개 가능)</Text>
 
       <FlatList
         data={ALL_REGIONS}
@@ -59,7 +59,7 @@ export default function RegionSelectionScreen() {
         disabled={selectedRegions.length === 0}
         onPress={handleAnalyze}>
         <Text style={styles.analyzeButtonText}>
-          {`선택한 ${selectedRegions.length}개 지역 분석하기`}
+          {`선택한 ${selectedRegions.length}개 장소 분석하기`}
         </Text>
       </TouchableOpacity>
     </View>
