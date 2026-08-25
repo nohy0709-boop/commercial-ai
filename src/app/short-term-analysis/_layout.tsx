@@ -5,7 +5,24 @@ export default function ShortTermAnalysisLayout() {
     <Stack>
       <Stack.Screen name="index" options={{title: '단기 상권 분석'}} />
       <Stack.Screen name="field" options={{title: '운영 분야 선택'}} />
-      <Stack.Screen name="field-result" options={{title: '행사 추천 순위'}} />
+      <Stack.Screen name="event" options={{title: '행사 선택'}} />
+      <Stack.Screen name="field-result" options={{title: '행사 적합도 순위'}} />
+      <Stack.Screen
+        name="event-recommend"
+        options={{title: '행사/지역 선택'}}
+      />
+      <Stack.Screen
+        name="event-recommend-result"
+        options={{title: '운영 분야 추천 순위'}}
+      />
+      <Stack.Screen
+        name="suitability"
+        options={{title: '적합성 분석'}}
+      />
+      <Stack.Screen
+        name="suitability-result"
+        options={{title: '적합성 분석 결과'}}
+      />
     </Stack>
   );
 }

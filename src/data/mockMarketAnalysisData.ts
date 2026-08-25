@@ -14,6 +14,11 @@ export interface MarketAnalysisResult {
   recommendationReasons: string[]; // 추천 이유
 }
 
+export interface IndustryRegionCombo {
+  industry: Industry;
+  region: Region;
+}
+
 /**
  * key 형식: "업종-지역" 예) "카페-성수동"
  * 백엔드 연동 전까지 사용할 더미(mock) 데이터입니다.
@@ -190,11 +195,12 @@ const mockMarketAnalysisData: Record<string, MarketAnalysisResult> = {
   },
 };
 
-const ALL_INDUSTRIES: Industry[] = ['카페', '음식점', '베이커리', '편의점'];
+export const ALL_INDUSTRIES: Industry[] = ['카페', '음식점', '베이커리', '편의점'];
+export const ALL_REGIONS: Region[] = ['성수동', '건대입구', '왕십리'];
 
 /**
  * 업종 + 지역 조합으로 분석 결과 하나를 조회합니다.
- * ("업종 기반 입지 추천" 흐름에서 사용)
+ * ("업종+입지 적합성 분석" 등 단일 조합 조회에 사용)
  */
 export function getMarketAnalysisResult(
   industry: Industry,
@@ -221,17 +227,18 @@ export function getMarketAnalysisResult(
 }
 
 /**
- * 특정 지역에 대해, 모든 업종의 분석 결과를 적합도 점수 높은 순으로 정렬해 반환합니다.
- * ("보유 장소 기반 업종 추천" 흐름에서 사용)
+ * 여러 개의 (업종, 지역) 조합을 한 번에 받아서, 적합도 점수 높은 순으로 정렬해 반환합니다.
  *
- * 새로운 mock 데이터를 따로 만들지 않고, 기존 업종별 데이터를 재사용해서
- * 순위만 다시 매기는 방식입니다. 실제 API 연동 시에도 이 함수의 내부 구현만
- * 서버에서 순위 계산된 데이터를 받아오는 방식으로 바꾸면 됩니다.
+ * 사용 예:
+ * - "업종 기반 입지 추천"에서 사용자가 지역을 여러 개 선택한 경우:
+ *   업종은 고정, 지역만 여러 개 → combos = 선택한 지역들.map(region => ({industry, region}))
+ * - "보유 장소 기반 업종 추천"에서 사용자가 보유 장소를 여러 개 선택한 경우:
+ *   모든 업종 × 선택한 지역들의 전체 조합 → combos = 선택한 지역들.flatMap(region => 모든 업종.map(industry => ({industry, region})))
  */
-export function getIndustryRecommendationsForRegion(
-  region: Region,
+export function getRankedResults(
+  combos: IndustryRegionCombo[],
 ): MarketAnalysisResult[] {
-  return ALL_INDUSTRIES
-    .map(industry => getMarketAnalysisResult(industry, region))
+  return combos
+    .map(combo => getMarketAnalysisResult(combo.industry, combo.region))
     .sort((a, b) => b.suitabilityScore - a.suitabilityScore);
 }

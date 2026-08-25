@@ -1,27 +1,28 @@
-import type { EventName, OperatingField } from '@/data/mockShortTermData';
-import { getRankedShortTermResults } from '@/data/mockShortTermData';
+import type { EventName } from '@/data/mockShortTermData';
+import { ALL_FIELDS, getRankedShortTermResults } from '@/data/mockShortTermData';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-export default function FieldResultScreen() {
-  const {field, events} = useLocalSearchParams<{
-    field: OperatingField;
-    events: string;
-  }>();
+export default function EventRecommendResultScreen() {
+  const {events} = useLocalSearchParams<{events: string}>();
   const selectedEvents = events.split(',') as EventName[];
-  const combos = selectedEvents.map(eventName => ({field, eventName}));
+
+  // 선택한 모든 행사 x 모든 운영 분야의 전체 조합을 만들어서 점수 순으로 정렬합니다.
+  const combos = selectedEvents.flatMap(eventName =>
+    ALL_FIELDS.map(field => ({field, eventName})),
+  );
   const results = getRankedShortTermResults(combos);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{`'${field}' 행사 적합도 순위`}</Text>
+      <Text style={styles.title}>선택한 행사 운영 분야 추천 순위</Text>
 
       {results.map((item, index) => (
-        <View key={item.eventName} style={styles.card}>
+        <View key={`${item.eventName}-${item.field}`} style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.rank}>{`${index + 1}위`}</Text>
-            <Text style={styles.eventName}>{item.eventName}</Text>
+            <Text style={styles.name}>{`${item.eventName} · ${item.field}`}</Text>
             <Text style={styles.score}>{`${item.suitabilityScore}점`}</Text>
           </View>
           <Text style={styles.metaLine}>{`${item.eventRegion} · ${item.eventPeriod}`}</Text>
@@ -55,8 +56,8 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     marginRight: 8,
   },
-  eventName: {
-    fontSize: 16,
+  name: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#1A1A1A',
     flex: 1,

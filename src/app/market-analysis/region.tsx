@@ -16,7 +16,7 @@ import {
 export default function RegionSelectionScreen() {
   const router = useRouter();
 
-  const {businesses} =
+  const { businesses } =
     useLocalSearchParams<{
       businesses: string;
     }>();
@@ -79,7 +79,7 @@ export default function RegionSelectionScreen() {
         keyExtractor={item => item.code}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        renderItem={({item}) => {
+        renderItem={({ item }) => {
           const selected =
             selectedAreas.includes(item.name);
 
@@ -148,7 +148,7 @@ export default function RegionSelectionScreen() {
         >
           {selectedAreas.length === 0
             ? '지역을 선택해주세요'
-            : `선택한 ${selectedAreas.length}개 지역 분석하기  →`}
+            : `선택한 ${selectedAreas.length}개 지역 분석하기 →`}
         </Text>
       </TouchableOpacity>
     </View>
@@ -222,15 +222,11 @@ const styles = StyleSheet.create({
   regionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-
     paddingVertical: 12,
     paddingHorizontal: 18,
-
     borderRadius: 22,
-
     borderWidth: 1,
     borderColor: COLORS.border,
-
     backgroundColor: COLORS.surface,
   },
 
@@ -253,13 +249,9 @@ const styles = StyleSheet.create({
   checkCircle: {
     width: 19,
     height: 19,
-
     marginLeft: 8,
-
     borderRadius: 10,
-
     backgroundColor: COLORS.primary,
-
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -274,7 +266,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     marginBottom: 16,
-
     backgroundColor: '#F7F7F7',
   },
 
@@ -294,7 +285,6 @@ const styles = StyleSheet.create({
     paddingVertical: 17,
     borderRadius: 16,
     alignItems: 'center',
-
     backgroundColor: COLORS.neonLime,
   },
 

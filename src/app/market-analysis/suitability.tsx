@@ -1,5 +1,5 @@
+import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
-import type { Industry, Region } from '@/data/mockMarketAnalysisData';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -10,42 +10,36 @@ import {
   View,
 } from 'react-native';
 
-const INDUSTRIES: Industry[] = [
-  '카페',
-  '음식점',
-  '베이커리',
-  '편의점',
-];
-
-const REGIONS: Region[] = [
-  '성수동',
-  '건대입구',
-  '왕십리',
-];
-
 export default function SuitabilityScreen() {
   const router = useRouter();
 
-  const [selectedIndustry, setSelectedIndustry] =
-    useState<Industry | null>(null);
+  const allBusinesses = businessCategories.flatMap(
+    category => category.businesses,
+  );
 
-  const [selectedRegion, setSelectedRegion] =
-    useState<Region | null>(null);
+  const [selectedBusinessName, setSelectedBusinessName] =
+    useState<string | null>(null);
 
-  const canAnalyze =
-    selectedIndustry !== null &&
-    selectedRegion !== null;
+  const handleNext = () => {
+    if (!selectedBusinessName) {
+      return;
+    }
 
-  const handleAnalyze = () => {
-    if (!selectedIndustry || !selectedRegion) {
+    const business = allBusinesses.find(
+      item => item.name === selectedBusinessName,
+    );
+
+    if (!business) {
       return;
     }
 
     router.push({
-      pathname: '/market-analysis/result',
+      pathname: '/market-analysis/suitability-region',
       params: {
-        industry: selectedIndustry,
-        region: selectedRegion,
+        businessName: business.name,
+        lclsCode: business.lclsCode,
+        mclsCode: business.mclsCode ?? '',
+        sclsCode: business.sclsCode ?? '',
       },
     });
   };
@@ -58,16 +52,16 @@ export default function SuitabilityScreen() {
     >
       <View style={styles.headerBox}>
         <Text style={styles.header}>
-          업종과 지역을 선택해주세요
+          업종을 선택해주세요
         </Text>
 
         <Text style={styles.headerDescription}>
-          분석하고 싶은 업종과 지역을 각각 하나씩 선택해주세요.
+          입지 적합성을 분석하고 싶은 업종을 하나 선택해주세요.
         </Text>
 
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>
-            1개씩 선택
+            1개 선택
           </Text>
         </View>
       </View>
@@ -78,7 +72,7 @@ export default function SuitabilityScreen() {
             업종
           </Text>
 
-          {selectedIndustry && (
+          {selectedBusinessName && (
             <Text style={styles.selectedText}>
               선택됨
             </Text>
@@ -86,13 +80,13 @@ export default function SuitabilityScreen() {
         </View>
 
         <View style={styles.optionRow}>
-          {INDUSTRIES.map(item => {
+          {allBusinesses.map(business => {
             const selected =
-              selectedIndustry === item;
+              selectedBusinessName === business.name;
 
             return (
               <TouchableOpacity
-                key={item}
+                key={business.name}
                 style={[
                   styles.optionChip,
                   selected &&
@@ -100,7 +94,7 @@ export default function SuitabilityScreen() {
                 ]}
                 activeOpacity={0.7}
                 onPress={() =>
-                  setSelectedIndustry(item)
+                  setSelectedBusinessName(business.name)
                 }
               >
                 <Text
@@ -110,7 +104,7 @@ export default function SuitabilityScreen() {
                       styles.optionChipTextSelected,
                   ]}
                 >
-                  {item}
+                  {business.name}
                   {selected ? '  ✓' : ''}
                 </Text>
               </TouchableOpacity>
@@ -119,61 +113,14 @@ export default function SuitabilityScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>
-            지역
-          </Text>
-
-          {selectedRegion && (
-            <Text style={styles.selectedText}>
-              선택됨
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.optionRow}>
-          {REGIONS.map(item => {
-            const selected =
-              selectedRegion === item;
-
-            return (
-              <TouchableOpacity
-                key={item}
-                style={[
-                  styles.optionChip,
-                  selected &&
-                    styles.optionChipSelected,
-                ]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  setSelectedRegion(item)
-                }
-              >
-                <Text
-                  style={[
-                    styles.optionChipText,
-                    selected &&
-                      styles.optionChipTextSelected,
-                  ]}
-                >
-                  {item}
-                  {selected ? '  ✓' : ''}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {selectedIndustry && selectedRegion && (
+      {selectedBusinessName && (
         <View style={styles.selectionSummary}>
           <Text style={styles.selectionSummaryLabel}>
-            선택한 분석 조건
+            선택한 업종
           </Text>
 
           <Text style={styles.selectionSummaryValue}>
-            {selectedIndustry} · {selectedRegion}
+            {selectedBusinessName}
           </Text>
         </View>
       )}
@@ -181,23 +128,23 @@ export default function SuitabilityScreen() {
       <TouchableOpacity
         style={[
           styles.analyzeButton,
-          !canAnalyze &&
+          !selectedBusinessName &&
             styles.analyzeButtonDisabled,
         ]}
         activeOpacity={0.8}
-        disabled={!canAnalyze}
-        onPress={handleAnalyze}
+        disabled={!selectedBusinessName}
+        onPress={handleNext}
       >
         <Text
           style={[
             styles.analyzeButtonText,
-            !canAnalyze &&
+            !selectedBusinessName &&
               styles.analyzeButtonTextDisabled,
           ]}
         >
-          {canAnalyze
-            ? '선택한 조건 분석하기 →'
-            : '업종과 지역을 선택해주세요'}
+          {selectedBusinessName
+            ? '다음: 지역 선택 →'
+            : '업종을 선택해주세요'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -237,30 +184,23 @@ const styles = StyleSheet.create({
   headerBadge: {
     alignSelf: 'flex-start',
     marginTop: 12,
-
     paddingVertical: 6,
     paddingHorizontal: 11,
-
     borderRadius: 18,
-
     backgroundColor: COLORS.lime,
   },
 
   headerBadgeText: {
     fontSize: 12,
     fontWeight: '800',
-
     color: COLORS.primary,
   },
 
   section: {
     backgroundColor: COLORS.surface,
-
     borderWidth: 1,
     borderColor: COLORS.border,
-
     borderRadius: 18,
-
     padding: 18,
     marginBottom: 16,
   },
@@ -269,21 +209,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-
     marginBottom: 14,
   },
 
   sectionLabel: {
     fontSize: 16,
     fontWeight: '800',
-
     color: COLORS.text,
   },
 
   selectedText: {
     fontSize: 12,
     fontWeight: '800',
-
     color: COLORS.primary,
   },
 
@@ -296,71 +233,54 @@ const styles = StyleSheet.create({
   optionChip: {
     borderWidth: 1,
     borderColor: COLORS.border,
-
     borderRadius: 20,
-
     paddingVertical: 11,
     paddingHorizontal: 18,
-
     backgroundColor: COLORS.surface,
   },
 
   optionChipSelected: {
     borderColor: COLORS.primary,
-
     backgroundColor: '#F1FFF5',
   },
 
   optionChipText: {
     fontSize: 14,
     fontWeight: '600',
-
     color: COLORS.text,
   },
 
   optionChipTextSelected: {
     fontWeight: '800',
-
     color: COLORS.primary,
   },
 
   selectionSummary: {
     padding: 16,
-
     marginBottom: 16,
-
     borderRadius: 16,
-
     backgroundColor: '#F7F7F7',
-
     borderWidth: 1,
     borderColor: COLORS.border,
   },
 
   selectionSummaryLabel: {
     fontSize: 12,
-
     color: COLORS.textSecondary,
-
     marginBottom: 5,
   },
 
   selectionSummaryValue: {
     fontSize: 15,
     fontWeight: '800',
-
     color: COLORS.text,
   },
 
   analyzeButton: {
     marginTop: 4,
-
     paddingVertical: 17,
-
     borderRadius: 16,
-
     alignItems: 'center',
-
     backgroundColor: COLORS.neonLime,
   },
 
@@ -371,7 +291,6 @@ const styles = StyleSheet.create({
   analyzeButtonText: {
     fontSize: 16,
     fontWeight: '900',
-
     color: COLORS.text,
   },
 

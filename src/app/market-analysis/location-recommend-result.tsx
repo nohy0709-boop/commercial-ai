@@ -220,7 +220,6 @@ export default function LocationRecommendResultScreen() {
         {
           text:
             "점포당 카드소비가 높은 편입니다.",
-
           score:
             item.averageSalesScore,
         },
@@ -228,7 +227,6 @@ export default function LocationRecommendResultScreen() {
         {
           text:
             "경쟁 부담이 비교적 낮습니다.",
-
           score:
             item.competitionScore,
         },
@@ -236,7 +234,6 @@ export default function LocationRecommendResultScreen() {
         {
           text:
             "해당 업종의 소비 규모가 큽니다.",
-
           score:
             item.salesScore,
         },
@@ -954,22 +951,17 @@ const styles =
     container: {
       padding: 20,
       paddingBottom: 50,
-
       backgroundColor:
         COLORS.background,
     },
 
     centerContainer: {
       flex: 1,
-
       justifyContent:
         "center",
-
       alignItems:
         "center",
-
       padding: 30,
-
       backgroundColor:
         COLORS.background,
     },
@@ -977,197 +969,144 @@ const styles =
     loadingTitle: {
       fontSize: 18,
       fontWeight: "800",
-
       marginTop: 20,
-
       color:
         COLORS.text,
     },
 
     loadingDescription: {
       fontSize: 13,
-
       color:
         COLORS.textSecondary,
-
       marginTop: 8,
     },
 
     errorText: {
       color: "#D64545",
-
       fontSize: 15,
-
       textAlign: "center",
     },
 
     smallTitle: {
       marginTop: 12,
-
       fontSize: 13,
-
       fontWeight: "700",
-
       color:
         COLORS.primary,
     },
 
     title: {
       fontSize: 30,
-
       fontWeight: "900",
-
       marginTop: 5,
-
       color:
         COLORS.text,
     },
 
     description: {
       fontSize: 14,
-
       color:
         COLORS.textSecondary,
-
       lineHeight: 20,
-
       marginTop: 7,
-
       marginBottom: 22,
     },
 
     summaryBox: {
       backgroundColor:
         "#111111",
-
       borderRadius: 18,
-
       padding: 22,
-
       marginBottom: 30,
-
       borderWidth: 1,
-
       borderColor:
         "#252525",
     },
 
     summaryLabel: {
       fontSize: 12,
-
       color:
         "#A8B0A9",
     },
 
     summaryBusiness: {
       fontSize: 28,
-
       fontWeight: "900",
-
       color:
         "#FFFFFF",
-
       marginTop: 5,
     },
 
     summaryScore: {
       fontSize: 15,
-
       fontWeight: "800",
-
       color:
         COLORS.neonLime,
-
       marginTop: 6,
     },
 
     summaryReason: {
       fontSize: 12,
-
       lineHeight: 18,
-
       color:
         "#C8CEC9",
-
       marginTop: 8,
     },
 
     sectionTitle: {
       fontSize: 20,
-
       fontWeight: "900",
-
       color:
         COLORS.text,
     },
 
     sectionDescription: {
       fontSize: 13,
-
       color:
         COLORS.textSecondary,
-
       marginTop: 5,
-
       marginBottom: 18,
     },
 
     card: {
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
-
       borderRadius: 16,
-
       padding: 16,
-
       marginBottom: 13,
-
       backgroundColor:
         COLORS.surface,
-
       shadowColor:
         "#000000",
-
       shadowOffset: {
         width: 0,
         height: 2,
       },
-
       shadowOpacity: 0.04,
-
       shadowRadius: 5,
-
       elevation: 1,
     },
 
     cardHeader: {
       flexDirection:
         "row",
-
       alignItems:
         "flex-start",
     },
 
     rankBox: {
       marginRight: 10,
-
       paddingVertical: 5,
-
       paddingHorizontal: 9,
-
       borderRadius: 12,
-
       backgroundColor:
         COLORS.lime,
     },
 
     rank: {
       fontSize: 13,
-
       fontWeight: "900",
-
       color:
         COLORS.primary,
     },
@@ -1178,118 +1117,87 @@ const styles =
 
     name: {
       fontSize: 18,
-
       fontWeight: "900",
-
       color:
         COLORS.text,
     },
 
     reason: {
       fontSize: 12,
-
       color:
         COLORS.textSecondary,
-
       lineHeight: 18,
-
       marginTop: 5,
     },
 
     score: {
       fontSize: 18,
-
       fontWeight: "900",
-
       color:
         COLORS.primary,
-
       marginLeft: 8,
     },
 
     previewContainer: {
       flexDirection:
         "row",
-
       gap: 7,
-
       marginTop: 16,
     },
 
     previewItem: {
       flex: 1,
-
       backgroundColor:
         "#F7F9F7",
-
       borderRadius: 12,
-
       padding: 10,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
     },
 
     previewLabel: {
       fontSize: 10,
-
       color:
         COLORS.textSecondary,
-
       marginBottom: 4,
     },
 
     previewValue: {
       fontSize: 12,
-
       fontWeight: "800",
-
       color:
         COLORS.text,
     },
 
     expandButton: {
       marginTop: 14,
-
       paddingVertical: 10,
-
       borderRadius: 12,
-
       backgroundColor:
         COLORS.neonLime,
     },
 
     expandText: {
       textAlign: "center",
-
       color:
         COLORS.text,
-
       fontSize: 12,
-
       fontWeight: "900",
     },
 
     detailContainer: {
       borderTopWidth: 1,
-
       borderTopColor:
         COLORS.border,
-
       paddingTop: 18,
-
       marginTop: 18,
     },
 
     detailTitle: {
       fontSize: 16,
-
       fontWeight: "900",
-
       marginBottom: 13,
-
       color:
         COLORS.text,
     },
@@ -1297,77 +1205,58 @@ const styles =
     detailRow: {
       flexDirection:
         "row",
-
       justifyContent:
         "space-between",
-
       marginBottom: 11,
     },
 
     detailLabel: {
       fontSize: 13,
-
       color:
         COLORS.textSecondary,
     },
 
     detailValue: {
       fontSize: 13,
-
       fontWeight: "800",
-
       color:
         COLORS.text,
     },
 
     divider: {
       borderTopWidth: 1,
-
       borderTopColor:
         COLORS.border,
-
       marginVertical: 18,
     },
 
     finalScoreBox: {
       flexDirection:
         "row",
-
       justifyContent:
         "space-between",
-
       alignItems:
         "center",
-
       backgroundColor:
         "#F1FFF5",
-
       borderRadius: 14,
-
       padding: 16,
-
       marginTop: 10,
-
       borderWidth: 1,
-
       borderColor:
         "#D8F5E2",
     },
 
     finalScoreLabel: {
       fontSize: 14,
-
       fontWeight: "900",
-
       color:
         COLORS.text,
     },
 
     finalScoreValue: {
       fontSize: 21,
-
       fontWeight: "900",
-
       color:
         COLORS.primary,
     },

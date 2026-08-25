@@ -230,7 +230,7 @@ export default function IndustrySelectionScreen() {
         >
           {selectedBusinesses.length === 0
             ? '업종을 선택해주세요'
-            : `선택한 ${selectedBusinesses.length}개 업종으로 다음  →`}
+            : `선택한 ${selectedBusinesses.length}개 업종으로 다음 →`}
         </Text>
       </TouchableOpacity>
     </ScrollView>

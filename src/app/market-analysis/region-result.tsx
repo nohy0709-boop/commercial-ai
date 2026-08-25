@@ -86,10 +86,11 @@ function formatChangeRate(value?: number) {
 }
 
 export default function RegionResultScreen() {
-  const {businesses, areas} = useLocalSearchParams<{
-    businesses: string;
-    areas: string;
-  }>();
+  const { businesses, areas } =
+    useLocalSearchParams<{
+      businesses: string;
+      areas: string;
+    }>();
 
   const [groupedResults, setGroupedResults] =
     useState<GroupedResult[]>([]);
@@ -163,9 +164,10 @@ export default function RegionResultScreen() {
                   business.sclsCode,
                 );
 
-              analysisResults.push(result);
+              analysisResults.push(
+                result as ScoredCommercialAnalysisResult,
+              );
 
-              // API 요청 제한 방지
               await delay(600);
             } catch (error) {
               console.error(
@@ -193,7 +195,6 @@ export default function RegionResultScreen() {
 
           groups.push({
             businessName: business.name,
-
             items: scoredResults.map(
               (result, index) => ({
                 ...result,
@@ -239,8 +240,6 @@ export default function RegionResultScreen() {
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      {/* 상단 */}
-
       <View style={styles.headerBackground}>
         <Text style={styles.title}>
           분석 결과
@@ -256,8 +255,6 @@ export default function RegionResultScreen() {
           </Text>
         </View>
       </View>
-
-      {/* 로딩 */}
 
       {loading && (
         <View style={styles.loadingBox}>
@@ -277,8 +274,6 @@ export default function RegionResultScreen() {
         </View>
       )}
 
-      {/* 오류 */}
-
       {!loading &&
         errorMessage !== '' && (
           <View style={styles.errorBox}>
@@ -292,8 +287,6 @@ export default function RegionResultScreen() {
           </View>
         )}
 
-      {/* 분석 결과 */}
-
       {!loading &&
         errorMessage === '' &&
         groupedResults.map(group => (
@@ -301,8 +294,6 @@ export default function RegionResultScreen() {
             key={group.businessName}
             style={styles.businessSection}
           >
-            {/* 업종 헤더 */}
-
             <View style={styles.businessHeader}>
               <View>
                 <Text
@@ -326,8 +317,6 @@ export default function RegionResultScreen() {
                 </Text>
               </View>
             </View>
-
-            {/* 지역 순위 */}
 
             {group.items.map(result => {
               const key =
@@ -423,8 +412,6 @@ export default function RegionResultScreen() {
                     </View>
                   </View>
 
-                  {/* 추천 이유 */}
-
                   <View
                     style={styles.reasonBox}
                   >
@@ -442,8 +429,6 @@ export default function RegionResultScreen() {
                       )}
                     </Text>
                   </View>
-
-                  {/* 핵심 지표 */}
 
                   <View
                     style={styles.previewRow}
@@ -499,8 +484,6 @@ export default function RegionResultScreen() {
                     </View>
                   </View>
 
-                  {/* 상세 버튼 */}
-
                   <View
                     style={styles.expandButton}
                   >
@@ -508,12 +491,10 @@ export default function RegionResultScreen() {
                       style={styles.expandText}
                     >
                       {expanded
-                        ? '상세 정보 접기  ▲'
-                        : '상세 정보 보기  ▼'}
+                        ? '상세 정보 접기 ▲'
+                        : '상세 정보 보기 ▼'}
                     </Text>
                   </View>
-
-                  {/* 상세 정보 */}
 
                   {expanded && (
                     <View
@@ -651,8 +632,6 @@ export default function RegionResultScreen() {
                         style={styles.divider}
                       />
 
-                      {/* 최종 점수 */}
-
                       <View
                         style={
                           styles.finalScoreBox
@@ -713,23 +692,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  /* 상단 */
-
   headerBackground: {
     marginHorizontal: -20,
     marginTop: -20,
-
     paddingTop: 38,
     paddingHorizontal: 20,
     paddingBottom: 26,
-
     marginBottom: 24,
-
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-
     backgroundColor: COLORS.surface,
-
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -737,103 +709,74 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 27,
     fontWeight: '900',
-
     color: COLORS.text,
-
     marginBottom: 6,
   },
 
   subTitle: {
     fontSize: 14,
     lineHeight: 20,
-
     color: COLORS.textSecondary,
   },
 
   headerBadge: {
     alignSelf: 'flex-start',
-
     marginTop: 14,
-
     paddingVertical: 7,
     paddingHorizontal: 12,
-
     borderRadius: 20,
-
     backgroundColor: COLORS.lime,
   },
 
   headerBadgeText: {
     fontSize: 12,
     fontWeight: '800',
-
     color: COLORS.primary,
   },
 
-  /* 로딩 */
-
   loadingBox: {
     marginTop: 40,
-
     padding: 28,
-
     alignItems: 'center',
-
     borderRadius: 20,
-
     backgroundColor: COLORS.surface,
-
     borderWidth: 1,
     borderColor: COLORS.border,
   },
 
   loadingText: {
     marginTop: 14,
-
     fontSize: 15,
     fontWeight: '800',
-
     color: COLORS.text,
   },
 
   loadingSubText: {
     marginTop: 6,
-
     fontSize: 12,
     lineHeight: 18,
-
     textAlign: 'center',
-
     color: COLORS.textSecondary,
   },
 
-  /* 오류 */
-
   errorBox: {
     padding: 18,
-
     borderRadius: 18,
-
     backgroundColor: '#FFF3F3',
   },
 
   errorTitle: {
     fontSize: 15,
     fontWeight: '800',
-
     color: '#B42318',
-
     marginBottom: 6,
   },
 
   error: {
     fontSize: 13,
     lineHeight: 19,
-
     color: '#D14343',
   },
-
-  /* 업종 */
 
   businessSection: {
     marginBottom: 26,
@@ -841,22 +784,15 @@ const styles = StyleSheet.create({
 
   businessHeader: {
     flexDirection: 'row',
-
     justifyContent: 'space-between',
     alignItems: 'center',
-
     marginBottom: 14,
-
     paddingVertical: 20,
     paddingHorizontal: 20,
-
     borderRadius: 20,
-
     backgroundColor: '#111111',
-
     borderWidth: 1,
     borderColor: '#1F1F1F',
-
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
@@ -864,56 +800,42 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 7,
-
     elevation: 3,
   },
 
   businessSmallTitle: {
     fontSize: 12,
     fontWeight: '600',
-
     color: '#9CA3AF',
-
     marginBottom: 5,
   },
 
   businessTitle: {
     fontSize: 24,
     fontWeight: '900',
-
     color: '#FFFFFF',
   },
 
   businessTag: {
     paddingVertical: 8,
     paddingHorizontal: 13,
-
     borderRadius: 20,
-
     backgroundColor: COLORS.primary,
   },
 
   businessTagText: {
     fontSize: 11,
     fontWeight: '900',
-
     color: '#FFFFFF',
   },
 
-  /* 지역 카드 */
-
   card: {
     padding: 18,
-
     marginBottom: 14,
-
     borderWidth: 1,
     borderColor: COLORS.border,
-
     borderRadius: 20,
-
     backgroundColor: COLORS.surface,
-
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
@@ -921,23 +843,18 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.04,
     shadowRadius: 7,
-
     elevation: 2,
   },
 
   firstCard: {
     borderColor: COLORS.primary,
-
     backgroundColor: '#FFFFFF',
   },
 
   cardTopRow: {
     flexDirection: 'row',
-
     justifyContent: 'space-between',
-
     alignItems: 'flex-start',
-
     gap: 12,
   },
 
@@ -947,14 +864,10 @@ const styles = StyleSheet.create({
 
   rankBadge: {
     alignSelf: 'flex-start',
-
     paddingVertical: 5,
     paddingHorizontal: 9,
-
     borderRadius: 12,
-
     backgroundColor: COLORS.lightGray,
-
     marginBottom: 8,
   },
 
@@ -965,7 +878,6 @@ const styles = StyleSheet.create({
   rank: {
     fontSize: 12,
     fontWeight: '800',
-
     color: COLORS.textSecondary,
   },
 
@@ -976,210 +888,151 @@ const styles = StyleSheet.create({
   areaName: {
     fontSize: 21,
     fontWeight: '900',
-
     color: COLORS.text,
   },
 
   bestText: {
     marginTop: 5,
-
     fontSize: 11,
     fontWeight: '800',
-
     color: COLORS.primary,
   },
 
-  /* 점수 */
-
   scoreBox: {
     minWidth: 90,
-
     paddingVertical: 10,
     paddingHorizontal: 12,
-
     alignItems: 'center',
-
     borderRadius: 16,
-
     backgroundColor: '#F1FFF5',
-
     borderWidth: 1,
     borderColor: '#D8F5E2',
   },
 
   scoreLabel: {
     fontSize: 11,
-
     color: COLORS.textSecondary,
-
     marginBottom: 2,
   },
 
   scoreRow: {
     flexDirection: 'row',
-
     alignItems: 'flex-end',
   },
 
   scoreValue: {
     fontSize: 25,
     fontWeight: '900',
-
     color: COLORS.primary,
   },
 
   scoreUnit: {
     fontSize: 13,
     fontWeight: '800',
-
     color: COLORS.text,
-
     marginBottom: 3,
     marginLeft: 2,
   },
 
-  /* 추천 이유 */
-
   reasonBox: {
     marginTop: 16,
-
     padding: 14,
-
     borderRadius: 15,
-
     backgroundColor: '#F7F7F7',
   },
 
   reasonTitle: {
     fontSize: 12,
     fontWeight: '900',
-
     color: COLORS.text,
-
     marginBottom: 5,
   },
 
   reasonText: {
     fontSize: 13,
     lineHeight: 19,
-
     color: COLORS.textSecondary,
   },
 
-  /* 미리보기 */
-
   previewRow: {
     flexDirection: 'row',
-
     gap: 8,
-
     marginTop: 14,
   },
 
   previewItem: {
     flex: 1,
-
     padding: 11,
-
     borderRadius: 13,
-
     backgroundColor: COLORS.surface,
-
     borderWidth: 1,
     borderColor: COLORS.border,
   },
 
   previewLabel: {
     fontSize: 10,
-
     color: COLORS.textSecondary,
-
     marginBottom: 5,
   },
 
   previewValue: {
     fontSize: 13,
     fontWeight: '800',
-
     color: COLORS.text,
   },
 
-  /* 상세 버튼 */
-
   expandButton: {
     marginTop: 14,
-
     paddingVertical: 10,
-
     borderRadius: 12,
-
     backgroundColor: COLORS.neonLime,
   },
 
   expandText: {
     textAlign: 'center',
-
     fontSize: 12,
     fontWeight: '900',
-
     color: '#111111',
   },
 
-  /* 상세 */
-
   detailContainer: {
     marginTop: 16,
-
     paddingTop: 16,
-
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
 
   detailRow: {
     flexDirection: 'row',
-
     justifyContent: 'space-between',
-
     alignItems: 'center',
-
     marginBottom: 12,
   },
 
   detailLabel: {
     fontSize: 13,
-
     color: COLORS.textSecondary,
   },
 
   detailValue: {
     fontSize: 13,
     fontWeight: '800',
-
     color: COLORS.text,
   },
 
   divider: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-
     marginVertical: 12,
   },
 
-  /* 최종 점수 */
-
   finalScoreBox: {
     flexDirection: 'row',
-
     justifyContent: 'space-between',
     alignItems: 'center',
-
     borderRadius: 16,
-
     padding: 16,
-
     backgroundColor: '#F1FFF5',
-
     borderWidth: 1,
     borderColor: '#D8F5E2',
   },
@@ -1187,29 +1040,24 @@ const styles = StyleSheet.create({
   finalScoreLabel: {
     fontSize: 13,
     fontWeight: '900',
-
     color: COLORS.text,
   },
 
   finalScoreRow: {
     flexDirection: 'row',
-
     alignItems: 'flex-end',
   },
 
   finalScoreValue: {
     fontSize: 24,
     fontWeight: '900',
-
     color: COLORS.primary,
   },
 
   finalScoreUnit: {
     fontSize: 13,
     fontWeight: '800',
-
     color: COLORS.text,
-
     marginBottom: 3,
     marginLeft: 2,
   },

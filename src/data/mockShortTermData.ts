@@ -1,14 +1,11 @@
 export type OperatingField = '푸드트럭' | '팝업스토어' | '플리마켓 셀러' | '버스킹/공연';
-export type EventName =
-  | '성수 리버사이드 페스티벌'
-  | '건대 청춘 프리마켓'
-  | '왕십리 로컬푸드 마켓';
+export type EventName = '나성동 도시축제' | '도담동 청춘 프리마켓' | '소담동 로컬푸드 마켓';
 export type ShortTermCompetitionLevel = '낮음' | '보통' | '높음';
 
 export interface ShortTermResult {
   field: OperatingField;
   eventName: EventName;
-  eventRegion: string; // 행사가 열리는 지역
+  eventRegion: string; // 행사가 열리는 지역 (세종시 행정동)
   eventPeriod: string; // 운영 기간
   expectedFootfall: string; // 예상 유동인구
   competitorBoothCount: number; // 예상 경쟁 부스/팀 수
@@ -19,194 +16,207 @@ export interface ShortTermResult {
   recommendationReasons: string[];
 }
 
+export interface ShortTermCombo {
+  field: OperatingField;
+  eventName: EventName;
+}
+
 /**
  * key 형식: "운영분야-행사명"
  * 장기 상권 분석 데이터(mockMarketAnalysisData.ts)와는 완전히 분리된 별도 mock 데이터입니다.
+ * 세종시 실제 행정동 이름(나성동/도담동/소담동)을 기반으로 한 가상의 행사입니다.
  */
 const mockShortTermData: Record<string, ShortTermResult> = {
-  '푸드트럭-성수 리버사이드 페스티벌': {
+  '푸드트럭-나성동 도시축제': {
     field: '푸드트럭',
-    eventName: '성수 리버사이드 페스티벌',
-    eventRegion: '성수동',
-    eventPeriod: '9월 5일~9월 7일 (3일간)',
-    expectedFootfall: '일 평균 15,000명',
-    competitorBoothCount: 22,
-    estimatedRevenue: '부스당 일 평균 180만원',
-    mainVisitorAgeGroup: '20~30대 (58%)',
+    eventName: '나성동 도시축제',
+    eventRegion: '나성동',
+    eventPeriod: '9월 12일~9월 14일 (3일간)',
+    expectedFootfall: '일 평균 13,000명',
+    competitorBoothCount: 20,
+    estimatedRevenue: '부스당 일 평균 160만원',
+    mainVisitorAgeGroup: '20~40대 (60%)',
     competitionLevel: '높음',
-    suitabilityScore: 85,
+    suitabilityScore: 84,
     recommendationReasons: [
-      '페스티벌 특성상 야외 취식 수요가 매우 높음',
-      '성수동 특유의 트렌디한 방문객층과 궁합이 좋음',
+      '도시축제 특성상 야외 취식 수요가 높음',
+      '정부청사·중심상업지구 인근 직장인 유동인구가 꾸준함',
     ],
   },
-  '팝업스토어-성수 리버사이드 페스티벌': {
+  '팝업스토어-나성동 도시축제': {
     field: '팝업스토어',
-    eventName: '성수 리버사이드 페스티벌',
-    eventRegion: '성수동',
-    eventPeriod: '9월 5일~9월 7일 (3일간)',
-    expectedFootfall: '일 평균 15,000명',
-    competitorBoothCount: 15,
-    estimatedRevenue: '부스당 일 평균 220만원',
-    mainVisitorAgeGroup: '20~30대 (58%)',
+    eventName: '나성동 도시축제',
+    eventRegion: '나성동',
+    eventPeriod: '9월 12일~9월 14일 (3일간)',
+    expectedFootfall: '일 평균 13,000명',
+    competitorBoothCount: 14,
+    estimatedRevenue: '부스당 일 평균 200만원',
+    mainVisitorAgeGroup: '20~40대 (60%)',
     competitionLevel: '보통',
-    suitabilityScore: 88,
+    suitabilityScore: 86,
     recommendationReasons: [
-      '브랜드 팝업스토어 성지로 알려진 성수동 특성과 시너지',
-      'SNS 인증샷 수요가 높은 방문객층',
+      '신도시 중심 상업지구라 트렌디한 브랜드 체험 수요가 높음',
+      'SNS 인증샷을 남기려는 방문객 비중이 높음',
     ],
   },
-  '플리마켓 셀러-성수 리버사이드 페스티벌': {
+  '플리마켓 셀러-나성동 도시축제': {
     field: '플리마켓 셀러',
-    eventName: '성수 리버사이드 페스티벌',
-    eventRegion: '성수동',
-    eventPeriod: '9월 5일~9월 7일 (3일간)',
-    expectedFootfall: '일 평균 15,000명',
-    competitorBoothCount: 30,
-    estimatedRevenue: '부스당 일 평균 90만원',
-    mainVisitorAgeGroup: '20~30대 (58%)',
+    eventName: '나성동 도시축제',
+    eventRegion: '나성동',
+    eventPeriod: '9월 12일~9월 14일 (3일간)',
+    expectedFootfall: '일 평균 13,000명',
+    competitorBoothCount: 28,
+    estimatedRevenue: '부스당 일 평균 85만원',
+    mainVisitorAgeGroup: '20~40대 (60%)',
     competitionLevel: '높음',
-    suitabilityScore: 74,
+    suitabilityScore: 72,
     recommendationReasons: [
-      '핸드메이드·소품 판매에 관심 많은 방문객 비중이 높음',
+      '핸드메이드·소품 판매에 관심 많은 방문객이 많음',
       '부스 수가 많은 편이라 경쟁이 있음',
     ],
   },
-  '버스킹/공연-성수 리버사이드 페스티벌': {
+  '버스킹/공연-나성동 도시축제': {
     field: '버스킹/공연',
-    eventName: '성수 리버사이드 페스티벌',
-    eventRegion: '성수동',
-    eventPeriod: '9월 5일~9월 7일 (3일간)',
-    expectedFootfall: '일 평균 15,000명',
-    competitorBoothCount: 8,
-    estimatedRevenue: '회당 평균 후원·굿즈 수익 70만원',
-    mainVisitorAgeGroup: '20~30대 (58%)',
+    eventName: '나성동 도시축제',
+    eventRegion: '나성동',
+    eventPeriod: '9월 12일~9월 14일 (3일간)',
+    expectedFootfall: '일 평균 13,000명',
+    competitorBoothCount: 7,
+    estimatedRevenue: '회당 평균 후원·굿즈 수익 65만원',
+    mainVisitorAgeGroup: '20~40대 (60%)',
     competitionLevel: '보통',
-    suitabilityScore: 80,
+    suitabilityScore: 78,
     recommendationReasons: [
-      '메인 무대 외 버스킹 공간 수요가 있음',
-      '축제 분위기상 관객 호응도가 높은 편',
+      '도시축제 메인 무대 외 버스킹 공간 수요가 있음',
+      '가족 단위 방문객이 많아 공연 호응도가 좋은 편',
     ],
   },
-  '푸드트럭-건대 청춘 프리마켓': {
+  '푸드트럭-도담동 청춘 프리마켓': {
     field: '푸드트럭',
-    eventName: '건대 청춘 프리마켓',
-    eventRegion: '건대입구',
+    eventName: '도담동 청춘 프리마켓',
+    eventRegion: '도담동',
     eventPeriod: '매주 토요일 상시 운영',
-    expectedFootfall: '토요일 평균 8,000명',
-    competitorBoothCount: 12,
-    estimatedRevenue: '부스당 평균 110만원',
-    mainVisitorAgeGroup: '20대 (65%)',
+    expectedFootfall: '토요일 평균 7,000명',
+    competitorBoothCount: 10,
+    estimatedRevenue: '부스당 평균 100만원',
+    mainVisitorAgeGroup: '10~30대 (62%)',
     competitionLevel: '보통',
-    suitabilityScore: 76,
+    suitabilityScore: 74,
     recommendationReasons: [
-      '대학가 특성상 저녁 시간대 방문객이 몰림',
-      '가성비 위주 메뉴에 대한 선호도가 높음',
+      '학원가 특성상 방과 후 시간대 방문객이 몰림',
+      '간편하게 먹을 수 있는 메뉴 선호도가 높음',
     ],
   },
-  '팝업스토어-건대 청춘 프리마켓': {
+  '팝업스토어-도담동 청춘 프리마켓': {
     field: '팝업스토어',
-    eventName: '건대 청춘 프리마켓',
-    eventRegion: '건대입구',
+    eventName: '도담동 청춘 프리마켓',
+    eventRegion: '도담동',
     eventPeriod: '매주 토요일 상시 운영',
-    expectedFootfall: '토요일 평균 8,000명',
-    competitorBoothCount: 10,
-    estimatedRevenue: '부스당 평균 95만원',
-    mainVisitorAgeGroup: '20대 (65%)',
-    competitionLevel: '보통',
-    suitabilityScore: 72,
-    recommendationReasons: ['20대 방문객 비중이 높아 트렌드 아이템에 반응이 좋음'],
+    expectedFootfall: '토요일 평균 7,000명',
+    competitorBoothCount: 8,
+    estimatedRevenue: '부스당 평균 90만원',
+    mainVisitorAgeGroup: '10~30대 (62%)',
+    competitionLevel: '낮음',
+    suitabilityScore: 70,
+    recommendationReasons: ['학생·젊은층 방문객 비중이 높아 트렌드 아이템 반응이 좋음'],
   },
-  '플리마켓 셀러-건대 청춘 프리마켓': {
+  '플리마켓 셀러-도담동 청춘 프리마켓': {
     field: '플리마켓 셀러',
-    eventName: '건대 청춘 프리마켓',
-    eventRegion: '건대입구',
+    eventName: '도담동 청춘 프리마켓',
+    eventRegion: '도담동',
     eventPeriod: '매주 토요일 상시 운영',
-    expectedFootfall: '토요일 평균 8,000명',
-    competitorBoothCount: 35,
-    estimatedRevenue: '부스당 평균 60만원',
-    mainVisitorAgeGroup: '20대 (65%)',
+    expectedFootfall: '토요일 평균 7,000명',
+    competitorBoothCount: 32,
+    estimatedRevenue: '부스당 평균 58만원',
+    mainVisitorAgeGroup: '10~30대 (62%)',
     competitionLevel: '높음',
-    suitabilityScore: 81,
+    suitabilityScore: 80,
     recommendationReasons: [
       '프리마켓 자체가 메인 컨셉이라 방문 목적과 셀러 수요가 일치',
       '경쟁은 있지만 방문객 대부분이 구매 목적으로 방문',
     ],
   },
-  '버스킹/공연-건대 청춘 프리마켓': {
+  '버스킹/공연-도담동 청춘 프리마켓': {
     field: '버스킹/공연',
-    eventName: '건대 청춘 프리마켓',
-    eventRegion: '건대입구',
+    eventName: '도담동 청춘 프리마켓',
+    eventRegion: '도담동',
     eventPeriod: '매주 토요일 상시 운영',
-    expectedFootfall: '토요일 평균 8,000명',
-    competitorBoothCount: 6,
-    estimatedRevenue: '회당 평균 후원·굿즈 수익 40만원',
-    mainVisitorAgeGroup: '20대 (65%)',
+    expectedFootfall: '토요일 평균 7,000명',
+    competitorBoothCount: 5,
+    estimatedRevenue: '회당 평균 후원·굿즈 수익 35만원',
+    mainVisitorAgeGroup: '10~30대 (62%)',
     competitionLevel: '낮음',
-    suitabilityScore: 70,
+    suitabilityScore: 68,
     recommendationReasons: ['프리마켓 분위기와 어울리는 소규모 공연 수요가 있음'],
   },
-  '푸드트럭-왕십리 로컬푸드 마켓': {
+  '푸드트럭-소담동 로컬푸드 마켓': {
     field: '푸드트럭',
-    eventName: '왕십리 로컬푸드 마켓',
-    eventRegion: '왕십리',
-    eventPeriod: '10월 1일~10월 3일 (3일간)',
-    expectedFootfall: '일 평균 5,000명',
-    competitorBoothCount: 8,
-    estimatedRevenue: '부스당 평균 70만원',
-    mainVisitorAgeGroup: '30~50대 (52%)',
+    eventName: '소담동 로컬푸드 마켓',
+    eventRegion: '소담동',
+    eventPeriod: '10월 3일~10월 5일 (3일간)',
+    expectedFootfall: '일 평균 4,500명',
+    competitorBoothCount: 7,
+    estimatedRevenue: '부스당 평균 65만원',
+    mainVisitorAgeGroup: '30~50대 (55%)',
     competitionLevel: '낮음',
-    suitabilityScore: 65,
+    suitabilityScore: 63,
     recommendationReasons: ['로컬푸드 컨셉과 다소 결이 다를 수 있어 메뉴 구성에 유의 필요'],
   },
-  '팝업스토어-왕십리 로컬푸드 마켓': {
+  '팝업스토어-소담동 로컬푸드 마켓': {
     field: '팝업스토어',
-    eventName: '왕십리 로컬푸드 마켓',
-    eventRegion: '왕십리',
-    eventPeriod: '10월 1일~10월 3일 (3일간)',
-    expectedFootfall: '일 평균 5,000명',
-    competitorBoothCount: 6,
-    estimatedRevenue: '부스당 평균 65만원',
-    mainVisitorAgeGroup: '30~50대 (52%)',
+    eventName: '소담동 로컬푸드 마켓',
+    eventRegion: '소담동',
+    eventPeriod: '10월 3일~10월 5일 (3일간)',
+    expectedFootfall: '일 평균 4,500명',
+    competitorBoothCount: 5,
+    estimatedRevenue: '부스당 평균 60만원',
+    mainVisitorAgeGroup: '30~50대 (55%)',
     competitionLevel: '낮음',
-    suitabilityScore: 62,
+    suitabilityScore: 60,
     recommendationReasons: ['방문객 연령대가 높은 편이라 트렌드성 아이템은 반응이 제한적일 수 있음'],
   },
-  '플리마켓 셀러-왕십리 로컬푸드 마켓': {
+  '플리마켓 셀러-소담동 로컬푸드 마켓': {
     field: '플리마켓 셀러',
-    eventName: '왕십리 로컬푸드 마켓',
-    eventRegion: '왕십리',
-    eventPeriod: '10월 1일~10월 3일 (3일간)',
-    expectedFootfall: '일 평균 5,000명',
-    competitorBoothCount: 18,
-    estimatedRevenue: '부스당 평균 75만원',
-    mainVisitorAgeGroup: '30~50대 (52%)',
+    eventName: '소담동 로컬푸드 마켓',
+    eventRegion: '소담동',
+    eventPeriod: '10월 3일~10월 5일 (3일간)',
+    expectedFootfall: '일 평균 4,500명',
+    competitorBoothCount: 16,
+    estimatedRevenue: '부스당 평균 72만원',
+    mainVisitorAgeGroup: '30~50대 (55%)',
     competitionLevel: '보통',
-    suitabilityScore: 77,
+    suitabilityScore: 76,
     recommendationReasons: [
       '로컬푸드·농산물 마켓과 궁합이 좋은 소규모 셀러 수요',
       '가족 단위 방문객이 많아 구매 전환율이 높은 편',
     ],
   },
-  '버스킹/공연-왕십리 로컬푸드 마켓': {
+  '버스킹/공연-소담동 로컬푸드 마켓': {
     field: '버스킹/공연',
-    eventName: '왕십리 로컬푸드 마켓',
-    eventRegion: '왕십리',
-    eventPeriod: '10월 1일~10월 3일 (3일간)',
-    expectedFootfall: '일 평균 5,000명',
-    competitorBoothCount: 4,
-    estimatedRevenue: '회당 평균 후원·굿즈 수익 25만원',
-    mainVisitorAgeGroup: '30~50대 (52%)',
+    eventName: '소담동 로컬푸드 마켓',
+    eventRegion: '소담동',
+    eventPeriod: '10월 3일~10월 5일 (3일간)',
+    expectedFootfall: '일 평균 4,500명',
+    competitorBoothCount: 3,
+    estimatedRevenue: '회당 평균 후원·굿즈 수익 20만원',
+    mainVisitorAgeGroup: '30~50대 (55%)',
     competitionLevel: '낮음',
-    suitabilityScore: 60,
+    suitabilityScore: 58,
     recommendationReasons: ['행사 규모가 작아 공연 수요는 제한적인 편'],
   },
 };
 
-const ALL_EVENTS: EventName[] = [
-  '성수 리버사이드 페스티벌',
-  '건대 청춘 프리마켓',
-  '왕십리 로컬푸드 마켓',
+export const ALL_FIELDS: OperatingField[] = [
+  '푸드트럭',
+  '팝업스토어',
+  '플리마켓 셀러',
+  '버스킹/공연',
+];
+
+export const ALL_EVENTS: EventName[] = [
+  '나성동 도시축제',
+  '도담동 청춘 프리마켓',
+  '소담동 로컬푸드 마켓',
 ];
 
 /**
@@ -239,12 +249,12 @@ export function getShortTermResult(
 }
 
 /**
- * 특정 운영 분야에 대해, 모든 행사의 분석 결과를 적합도 점수 높은 순으로 정렬해 반환합니다.
+ * 여러 개의 (운영분야, 행사) 조합을 한 번에 받아서, 적합도 점수 높은 순으로 정렬해 반환합니다.
  */
-export function getEventRecommendationsForField(
-  field: OperatingField,
+export function getRankedShortTermResults(
+  combos: ShortTermCombo[],
 ): ShortTermResult[] {
-  return ALL_EVENTS
-    .map(eventName => getShortTermResult(field, eventName))
+  return combos
+    .map(combo => getShortTermResult(combo.field, combo.eventName))
     .sort((a, b) => b.suitabilityScore - a.suitabilityScore);
 }
