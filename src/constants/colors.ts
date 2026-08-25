@@ -1,20 +1,22 @@
 export const COLORS = {
-  lime: '#BFE15A',
-  neonLime: '#CFE801',
-
-  primary: '#63C104',
-  primaryDark: '#1A4C0A',
-
-  mintBlue: '#AEE8F7',
-
-  background: '#FFFFFF',
+  background: '#F7F9F7',
   surface: '#FFFFFF',
 
-  lightGray: '#F2F2F2',
-  border: '#E5E7EB',
+  primary: '#12A84F',
+  primaryDark: '#111111',
 
-  text: '#1A1A1A',
+  // 기존 #A8FF00보다 살짝 어두운 라임
+  neonLime: '#8FD400',
+
+  lime: '#E6FFE6',
+
+  text: '#111111',
   textSecondary: '#6B7280',
 
-  disabled: '#D1D5DB',
+  border: '#E9ECEF',
+  lightGray: '#F1F3F5',
+
+  disabled: '#E9ECEF',
+
+  mintBlue: '#E6FFE6',
 };

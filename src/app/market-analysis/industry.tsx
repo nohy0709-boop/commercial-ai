@@ -1,6 +1,5 @@
 import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -76,19 +75,10 @@ export default function IndustrySelectionScreen() {
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      <LinearGradient
-        colors={[
-          COLORS.mintBlue,
-          '#E8F8D7',
-          COLORS.neonLime,
-        ]}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.headerBackground}
-      >
-        <Text style={styles.header}>업종 선택</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>업종 선택</Text>
 
-        <Text style={styles.subHeader}>
+        <Text style={styles.headerSub}>
           분석하고 싶은 업종을 선택해주세요
         </Text>
 
@@ -97,12 +87,15 @@ export default function IndustrySelectionScreen() {
             여러 개 선택 가능
           </Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>업종 대분류</Text>
+            <Text style={styles.sectionTitle}>
+              업종 대분류
+            </Text>
+
             <Text style={styles.sectionDescription}>
               먼저 업종의 큰 분류를 선택해주세요
             </Text>
@@ -137,8 +130,8 @@ export default function IndustrySelectionScreen() {
                     selected && styles.chipTextSelected,
                   ]}
                 >
-                  {selected ? '✓ ' : ''}
                   {category.categoryName}
+                  {selected ? '  ✓' : ''}
                 </Text>
               </TouchableOpacity>
             );
@@ -149,7 +142,10 @@ export default function IndustrySelectionScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>세부 업종</Text>
+            <Text style={styles.sectionTitle}>
+              세부 업종
+            </Text>
+
             <Text style={styles.sectionDescription}>
               실제 분석에 사용할 업종을 선택해주세요
             </Text>
@@ -162,9 +158,7 @@ export default function IndustrySelectionScreen() {
 
         {selectedCategories.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>＋</Text>
-
-            <Text style={styles.hint}>
+            <Text style={styles.emptyText}>
               업종 대분류를 먼저 선택해주세요
             </Text>
           </View>
@@ -180,7 +174,8 @@ export default function IndustrySelectionScreen() {
                   key={business.name}
                   style={[
                     styles.businessChip,
-                    selected && styles.businessChipSelected,
+                    selected &&
+                      styles.businessChipSelected,
                   ]}
                   activeOpacity={0.7}
                   onPress={() =>
@@ -194,8 +189,8 @@ export default function IndustrySelectionScreen() {
                         styles.businessChipTextSelected,
                     ]}
                   >
-                    {selected ? '✓ ' : ''}
                     {business.name}
+                    {selected ? '  ✓' : ''}
                   </Text>
                 </TouchableOpacity>
               );
@@ -251,65 +246,46 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 40,
-    backgroundColor: COLORS.background,
-  },
-
-  headerBackground: {
-    marginHorizontal: -20,
-    marginTop: -20,
-    paddingTop: 38,
-    paddingHorizontal: 20,
-    paddingBottom: 26,
-    marginBottom: 24,
-
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
   },
 
   header: {
-    fontSize: 27,
-    fontWeight: '800',
-    color: COLORS.primaryDark,
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 28,
   },
 
-  subHeader: {
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+
+  headerSub: {
     fontSize: 14,
-    lineHeight: 20,
     color: COLORS.textSecondary,
   },
 
   headerBadge: {
-    alignSelf: 'flex-start',
     marginTop: 14,
+    backgroundColor: COLORS.lime,
     paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    paddingHorizontal: 14,
+    borderRadius: 18,
   },
 
   headerBadgeText: {
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primaryDark,
   },
 
   section: {
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#E8EEDC',
+    borderColor: COLORS.border,
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 7,
-    elevation: 2,
   },
 
   sectionHeader: {
@@ -322,7 +298,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.primaryDark,
+    color: COLORS.text,
     marginBottom: 4,
   },
 
@@ -332,13 +308,9 @@ const styles = StyleSheet.create({
   },
 
   selectedCount: {
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
-    backgroundColor: '#F3FAD9',
-    paddingVertical: 6,
-    paddingHorizontal: 9,
-    borderRadius: 15,
   },
 
   chipRow: {
@@ -349,84 +321,76 @@ const styles = StyleSheet.create({
 
   chip: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 22,
-    paddingVertical: 11,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    paddingVertical: 12,
     paddingHorizontal: 18,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.surface,
   },
 
   chipSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F2F9DC',
+    backgroundColor: '#F1FFF5',
   },
 
   chipText: {
+    color: COLORS.text,
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
   },
 
   chipTextSelected: {
     fontWeight: '800',
-    color: COLORS.primaryDark,
+    color: COLORS.text,
   },
 
   businessChip: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.border,
     borderRadius: 18,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: COLORS.surface,
   },
 
   businessChipSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.lime,
+    backgroundColor: '#F1FFF5',
   },
 
   businessChipText: {
+    color: COLORS.text,
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
   },
 
   businessChipTextSelected: {
     fontWeight: '800',
-    color: COLORS.primaryDark,
+    color: COLORS.text,
   },
 
   emptyBox: {
-    minHeight: 100,
-    justifyContent: 'center',
+    minHeight: 90,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.lightGray,
     borderRadius: 16,
-    backgroundColor: '#F8FAF7',
   },
 
-  emptyIcon: {
-    fontSize: 26,
-    fontWeight: '300',
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-
-  hint: {
-    fontSize: 13,
+  emptyText: {
     color: COLORS.textSecondary,
+    fontSize: 13,
   },
 
   selectionSummary: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
-    borderRadius: 18,
-    backgroundColor: '#EFFBFE',
   },
 
   selectionSummaryLabel: {
     fontSize: 12,
-    fontWeight: '700',
     color: COLORS.textSecondary,
     marginBottom: 5,
   },
@@ -434,26 +398,24 @@ const styles = StyleSheet.create({
   selectionSummaryValue: {
     fontSize: 14,
     fontWeight: '700',
-    lineHeight: 20,
-    color: COLORS.primaryDark,
+    color: COLORS.text,
   },
 
   nextButton: {
-    marginTop: 4,
     paddingVertical: 17,
     borderRadius: 16,
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.neonLime,
   },
 
   nextButtonDisabled: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.disabled,
   },
 
   nextButtonText: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '900',
+    color: '#111111',
   },
 
   nextButtonTextDisabled: {

@@ -1,25 +1,38 @@
 import { businessCategories } from '@/constants/businessTypes';
+import { COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function SuitabilityScreen() {
   const router = useRouter();
-  const allBusinesses = businessCategories.flatMap(category => category.businesses);
-  const [selectedBusinessName, setSelectedBusinessName] = useState<string | null>(
-    null,
+
+  const allBusinesses = businessCategories.flatMap(
+    category => category.businesses,
   );
+
+  const [selectedBusinessName, setSelectedBusinessName] =
+    useState<string | null>(null);
 
   const handleNext = () => {
     if (!selectedBusinessName) {
       return;
     }
+
     const business = allBusinesses.find(
       item => item.name === selectedBusinessName,
     );
+
     if (!business) {
       return;
     }
+
     router.push({
       pathname: '/market-analysis/suitability-region',
       params: {
@@ -32,74 +45,256 @@ export default function SuitabilityScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>업종을 선택해주세요</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.headerBox}>
+        <Text style={styles.header}>
+          업종을 선택해주세요
+        </Text>
 
-      <View style={styles.chipRow}>
-        {allBusinesses.map(business => (
-          <TouchableOpacity
-            key={business.name}
-            style={[
-              styles.chip,
-              selectedBusinessName === business.name && styles.chipSelected,
-            ]}
-            activeOpacity={0.7}
-            onPress={() => setSelectedBusinessName(business.name)}>
-            <Text
-              style={[
-                styles.chipText,
-                selectedBusinessName === business.name && styles.chipTextSelected,
-              ]}>
-              {business.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.headerDescription}>
+          입지 적합성을 분석하고 싶은 업종을 하나 선택해주세요.
+        </Text>
+
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>
+            1개 선택
+          </Text>
+        </View>
       </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>
+            업종
+          </Text>
+
+          {selectedBusinessName && (
+            <Text style={styles.selectedText}>
+              선택됨
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.optionRow}>
+          {allBusinesses.map(business => {
+            const selected =
+              selectedBusinessName === business.name;
+
+            return (
+              <TouchableOpacity
+                key={business.name}
+                style={[
+                  styles.optionChip,
+                  selected &&
+                    styles.optionChipSelected,
+                ]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  setSelectedBusinessName(business.name)
+                }
+              >
+                <Text
+                  style={[
+                    styles.optionChipText,
+                    selected &&
+                      styles.optionChipTextSelected,
+                  ]}
+                >
+                  {business.name}
+                  {selected ? '  ✓' : ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {selectedBusinessName && (
+        <View style={styles.selectionSummary}>
+          <Text style={styles.selectionSummaryLabel}>
+            선택한 업종
+          </Text>
+
+          <Text style={styles.selectionSummaryValue}>
+            {selectedBusinessName}
+          </Text>
+        </View>
+      )}
 
       <TouchableOpacity
         style={[
-          styles.nextButton,
-          !selectedBusinessName && styles.nextButtonDisabled,
+          styles.analyzeButton,
+          !selectedBusinessName &&
+            styles.analyzeButtonDisabled,
         ]}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
         disabled={!selectedBusinessName}
-        onPress={handleNext}>
-        <Text style={styles.nextButtonText}>다음: 지역 선택</Text>
+        onPress={handleNext}
+      >
+        <Text
+          style={[
+            styles.analyzeButtonText,
+            !selectedBusinessName &&
+              styles.analyzeButtonTextDisabled,
+          ]}
+        >
+          {selectedBusinessName
+            ? '다음: 지역 선택 →'
+            : '업종을 선택해주세요'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {padding: 20, paddingBottom: 40, backgroundColor: '#FFFFFF'},
-  header: {fontSize: 20, fontWeight: '700', marginTop: 12, marginBottom: 20},
-  chipRow: {
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  container: {
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: COLORS.background,
+  },
+
+  headerBox: {
+    marginBottom: 24,
+  },
+
+  header: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginTop: 12,
+    marginBottom: 7,
+  },
+
+  headerDescription: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+  },
+
+  headerBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 18,
+    backgroundColor: COLORS.lime,
+  },
+
+  headerBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  section: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  selectedText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  optionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 12,
   },
-  chip: {
+
+  optionChip: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
     borderRadius: 20,
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: 18,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.surface,
   },
-  chipSelected: {
-    borderColor: '#1D4ED8',
-    backgroundColor: '#EAF2FF',
+
+  optionChipSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#F1FFF5',
   },
-  chipText: {fontSize: 14, fontWeight: '600', color: '#1A1A1A'},
-  chipTextSelected: {color: '#1D4ED8'},
-  nextButton: {
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: '#1D4ED8',
+
+  optionChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+
+  optionChipTextSelected: {
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  selectionSummary: {
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    backgroundColor: '#F7F7F7',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  selectionSummaryLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 5,
+  },
+
+  selectionSummaryValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  analyzeButton: {
+    marginTop: 4,
+    paddingVertical: 17,
+    borderRadius: 16,
     alignItems: 'center',
+    backgroundColor: COLORS.neonLime,
   },
-  nextButtonDisabled: {backgroundColor: '#C6D3EE'},
-  nextButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+
+  analyzeButtonDisabled: {
+    backgroundColor: COLORS.disabled,
+  },
+
+  analyzeButtonText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.text,
+  },
+
+  analyzeButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
 });

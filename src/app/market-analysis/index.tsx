@@ -1,5 +1,3 @@
-import { COLORS } from '@/constants/colors';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -55,32 +53,36 @@ export default function MarketAnalysisMainScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#AEE8F7', '#E8F8D7', '#CFE801']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.headerBackground}
-      >
+      <View style={styles.headerBackground}>
         <Text style={styles.header}>장기 상권 분석</Text>
+
         <Text style={styles.subHeader}>
           원하는 분석 방법을 선택해주세요
         </Text>
-      </LinearGradient>
+
+        <View style={styles.headerAccent} />
+      </View>
 
       {MENU_ITEMS.map(item => (
         <TouchableOpacity
           key={item.key}
           style={styles.card}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
           onPress={() => handlePress(item.key)}
         >
-          <Text style={styles.cardTitle}>
-            {item.title}
-          </Text>
+          <View style={styles.cardContent}>
+            <View>
+              <Text style={styles.cardTitle}>
+                {item.title}
+              </Text>
 
-          <Text style={styles.cardDescription}>
-            {item.description}
-          </Text>
+              <Text style={styles.cardDescription}>
+                {item.description}
+              </Text>
+            </View>
+
+            <Text style={styles.arrow}>›</Text>
+          </View>
         </TouchableOpacity>
       ))}
     </View>
@@ -91,65 +93,86 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F7F9F7',
   },
 
   headerBackground: {
     marginHorizontal: -20,
     marginTop: -20,
-    paddingTop: 36,
+    paddingTop: 38,
     paddingHorizontal: 20,
     paddingBottom: 28,
     marginBottom: 24,
-
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
   },
 
   header: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 27,
+    fontWeight: '900',
+    color: '#111111',
     marginTop: 12,
     marginBottom: 6,
-    color: COLORS.primaryDark,
   },
 
   subHeader: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    lineHeight: 20,
+    color: '#6B7280',
+  },
+
+  headerAccent: {
+    width: 42,
+    height: 5,
+    marginTop: 18,
+    borderRadius: 10,
+    backgroundColor: '#12A84F',
   },
 
   card: {
-    borderWidth: 1,
-    borderColor: '#E8EEDC',
-    borderRadius: 18,
-
-    padding: 18,
     marginBottom: 14,
-
-    backgroundColor: '#FBFDF7',
-
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
-
     elevation: 2,
+  },
+
+  cardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 18,
   },
 
   cardTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#111111',
     marginBottom: 7,
-    color: COLORS.primaryDark,
   },
 
   cardDescription: {
     fontSize: 13,
     lineHeight: 19,
-    color: COLORS.textSecondary,
+    color: '#6B7280',
+  },
+
+  arrow: {
+    marginLeft: 12,
+    fontSize: 28,
+    fontWeight: '400',
+    color: '#12A84F',
   },
 });

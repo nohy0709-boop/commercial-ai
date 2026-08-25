@@ -1,7 +1,7 @@
 import {
   businessCategories,
 } from "@/constants/businessTypes";
-
+import { COLORS } from "@/constants/colors";
 import {
   sejongAreas,
 } from "@/constants/sejongAreas";
@@ -110,7 +110,6 @@ export default function LocationRecommendResultScreen() {
           );
         }
 
-        // 현재 등록된 모든 업종
         const businesses =
           businessCategories.flatMap(
             (category) =>
@@ -122,8 +121,6 @@ export default function LocationRecommendResultScreen() {
           analysis: any;
         }[] = [];
 
-        // API 429 방지를 위해
-        // 업종별 순차 요청
         for (
           const business
           of businesses
@@ -146,8 +143,6 @@ export default function LocationRecommendResultScreen() {
               analysis,
             });
 
-            // 공공데이터 API
-            // 과도한 요청 방지
             await delay(700);
           } catch (error) {
             console.error(
@@ -162,8 +157,6 @@ export default function LocationRecommendResultScreen() {
                 "429"
               )
             ) {
-              // 요청 제한이면
-              // 조금 더 대기
               await delay(2000);
             }
           }
@@ -218,7 +211,6 @@ export default function LocationRecommendResultScreen() {
     )}%`;
   };
 
-  // 추천 근거
   const getRecommendationReason =
     (
       item:
@@ -270,7 +262,7 @@ export default function LocationRecommendResultScreen() {
       >
         <ActivityIndicator
           size="large"
-          color="#1D4ED8"
+          color={COLORS.primary}
         />
 
         <Text
@@ -323,10 +315,6 @@ export default function LocationRecommendResultScreen() {
         false
       }
     >
-      {/* =====================
-          상단
-      ====================== */}
-
       <Text
         style={
           styles.smallTitle
@@ -415,10 +403,6 @@ export default function LocationRecommendResultScreen() {
         있습니다.
       </Text>
 
-      {/* =====================
-          순위
-      ====================== */}
-
       {results.map(
         (item) => {
           const expanded =
@@ -497,8 +481,6 @@ export default function LocationRecommendResultScreen() {
                   점
                 </Text>
               </View>
-
-              {/* 핵심 미리보기 */}
 
               <View
                 style={
@@ -580,19 +562,21 @@ export default function LocationRecommendResultScreen() {
                 </View>
               </View>
 
-              <Text
+              <View
                 style={
-                  styles.expandText
+                  styles.expandButton
                 }
               >
-                {expanded
-                  ? "상세 정보 접기 ▲"
-                  : "상세 정보 보기 ▼"}
-              </Text>
-
-              {/* =====================
-                  상세
-              ====================== */}
+                <Text
+                  style={
+                    styles.expandText
+                  }
+                >
+                  {expanded
+                    ? "상세 정보 접기 ▲"
+                    : "상세 정보 보기 ▼"}
+                </Text>
+              </View>
 
               {expanded && (
                 <View
@@ -968,28 +952,32 @@ const styles =
       padding: 20,
       paddingBottom: 50,
       backgroundColor:
-        "#FFFFFF",
+        COLORS.background,
     },
 
     centerContainer: {
       flex: 1,
       justifyContent:
         "center",
-      alignItems: "center",
+      alignItems:
+        "center",
       padding: 30,
       backgroundColor:
-        "#FFFFFF",
+        COLORS.background,
     },
 
     loadingTitle: {
       fontSize: 18,
-      fontWeight: "700",
+      fontWeight: "800",
       marginTop: 20,
+      color:
+        COLORS.text,
     },
 
     loadingDescription: {
       fontSize: 13,
-      color: "#777",
+      color:
+        COLORS.textSecondary,
       marginTop: 8,
     },
 
@@ -1002,18 +990,23 @@ const styles =
     smallTitle: {
       marginTop: 12,
       fontSize: 13,
-      color: "#777",
+      fontWeight: "700",
+      color:
+        COLORS.primary,
     },
 
     title: {
       fontSize: 30,
-      fontWeight: "800",
+      fontWeight: "900",
       marginTop: 5,
+      color:
+        COLORS.text,
     },
 
     description: {
       fontSize: 14,
-      color: "#777",
+      color:
+        COLORS.textSecondary,
       lineHeight: 20,
       marginTop: 7,
       marginBottom: 22,
@@ -1021,46 +1014,56 @@ const styles =
 
     summaryBox: {
       backgroundColor:
-        "#1D4ED8",
-      borderRadius: 16,
+        "#111111",
+      borderRadius: 18,
       padding: 22,
       marginBottom: 30,
+      borderWidth: 1,
+      borderColor:
+        "#252525",
     },
 
     summaryLabel: {
       fontSize: 12,
-      color: "#DCE7FF",
+      color:
+        "#A8B0A9",
     },
 
     summaryBusiness: {
       fontSize: 28,
-      fontWeight: "800",
-      color: "#FFFFFF",
+      fontWeight: "900",
+      color:
+        "#FFFFFF",
       marginTop: 5,
     },
 
     summaryScore: {
       fontSize: 15,
-      fontWeight: "700",
-      color: "#FFFFFF",
+      fontWeight: "800",
+      color:
+        COLORS.neonLime,
       marginTop: 6,
     },
 
     summaryReason: {
       fontSize: 12,
       lineHeight: 18,
-      color: "#DCE7FF",
+      color:
+        "#C8CEC9",
       marginTop: 8,
     },
 
     sectionTitle: {
       fontSize: 20,
-      fontWeight: "800",
+      fontWeight: "900",
+      color:
+        COLORS.text,
     },
 
     sectionDescription: {
       fontSize: 13,
-      color: "#888",
+      color:
+        COLORS.textSecondary,
       marginTop: 5,
       marginBottom: 18,
     },
@@ -1068,28 +1071,44 @@ const styles =
     card: {
       borderWidth: 1,
       borderColor:
-        "#E5E5E5",
-      borderRadius: 14,
+        COLORS.border,
+      borderRadius: 16,
       padding: 16,
       marginBottom: 13,
       backgroundColor:
-        "#F8F9FA",
+        COLORS.surface,
+      shadowColor:
+        "#000000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.04,
+      shadowRadius: 5,
+      elevation: 1,
     },
 
     cardHeader: {
-      flexDirection: "row",
+      flexDirection:
+        "row",
       alignItems:
         "flex-start",
     },
 
     rankBox: {
       marginRight: 10,
+      paddingVertical: 5,
+      paddingHorizontal: 9,
+      borderRadius: 12,
+      backgroundColor:
+        COLORS.lime,
     },
 
     rank: {
-      fontSize: 14,
-      fontWeight: "800",
-      color: "#1D4ED8",
+      fontSize: 13,
+      fontWeight: "900",
+      color:
+        COLORS.primary,
     },
 
     nameContainer: {
@@ -1098,26 +1117,30 @@ const styles =
 
     name: {
       fontSize: 18,
-      fontWeight: "800",
-      color: "#1A1A1A",
+      fontWeight: "900",
+      color:
+        COLORS.text,
     },
 
     reason: {
       fontSize: 12,
-      color: "#777",
+      color:
+        COLORS.textSecondary,
       lineHeight: 18,
       marginTop: 5,
     },
 
     score: {
-      fontSize: 16,
-      fontWeight: "800",
-      color: "#1D4ED8",
+      fontSize: 18,
+      fontWeight: "900",
+      color:
+        COLORS.primary,
       marginLeft: 8,
     },
 
     previewContainer: {
-      flexDirection: "row",
+      flexDirection:
+        "row",
       gap: 7,
       marginTop: 16,
     },
@@ -1125,47 +1148,63 @@ const styles =
     previewItem: {
       flex: 1,
       backgroundColor:
-        "#FFFFFF",
-      borderRadius: 10,
+        "#F7F9F7",
+      borderRadius: 12,
       padding: 10,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
     },
 
     previewLabel: {
       fontSize: 10,
-      color: "#888",
+      color:
+        COLORS.textSecondary,
       marginBottom: 4,
     },
 
     previewValue: {
       fontSize: 12,
-      fontWeight: "700",
-      color: "#222",
+      fontWeight: "800",
+      color:
+        COLORS.text,
+    },
+
+    expandButton: {
+      marginTop: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor:
+        COLORS.neonLime,
     },
 
     expandText: {
       textAlign: "center",
-      color: "#666",
+      color:
+        COLORS.text,
       fontSize: 12,
-      fontWeight: "600",
-      marginTop: 14,
+      fontWeight: "900",
     },
 
     detailContainer: {
       borderTopWidth: 1,
       borderTopColor:
-        "#E5E5E5",
+        COLORS.border,
       paddingTop: 18,
       marginTop: 18,
     },
 
     detailTitle: {
       fontSize: 16,
-      fontWeight: "800",
+      fontWeight: "900",
       marginBottom: 13,
+      color:
+        COLORS.text,
     },
 
     detailRow: {
-      flexDirection: "row",
+      flexDirection:
+        "row",
       justifyContent:
         "space-between",
       marginBottom: 11,
@@ -1173,46 +1212,52 @@ const styles =
 
     detailLabel: {
       fontSize: 13,
-      color: "#666",
+      color:
+        COLORS.textSecondary,
     },
 
     detailValue: {
       fontSize: 13,
-      fontWeight: "700",
-      color: "#222",
+      fontWeight: "800",
+      color:
+        COLORS.text,
     },
 
     divider: {
       borderTopWidth: 1,
       borderTopColor:
-        "#E5E5E5",
+        COLORS.border,
       marginVertical: 18,
     },
 
     finalScoreBox: {
-      flexDirection: "row",
+      flexDirection:
+        "row",
       justifyContent:
         "space-between",
-      alignItems: "center",
-
+      alignItems:
+        "center",
       backgroundColor:
-        "#EAF2FF",
-
-      borderRadius: 12,
-
+        "#F1FFF5",
+      borderRadius: 14,
       padding: 16,
-
       marginTop: 10,
+      borderWidth: 1,
+      borderColor:
+        "#D8F5E2",
     },
 
     finalScoreLabel: {
       fontSize: 14,
-      fontWeight: "800",
+      fontWeight: "900",
+      color:
+        COLORS.text,
     },
 
     finalScoreValue: {
       fontSize: 21,
-      fontWeight: "800",
-      color: "#1D4ED8",
+      fontWeight: "900",
+      color:
+        COLORS.primary,
     },
   });

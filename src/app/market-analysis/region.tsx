@@ -1,7 +1,9 @@
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
 import React, { useState } from 'react';
 import {
   FlatList,
@@ -13,13 +15,19 @@ import {
 
 export default function RegionSelectionScreen() {
   const router = useRouter();
-  const {businesses} = useLocalSearchParams<{businesses: string}>();
-  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+
+  const { businesses } =
+    useLocalSearchParams<{
+      businesses: string;
+    }>();
+
+  const [selectedAreas, setSelectedAreas] =
+    useState<string[]>([]);
 
   const toggleArea = (name: string) => {
     setSelectedAreas(prev =>
       prev.includes(name)
-        ? prev.filter(a => a !== name)
+        ? prev.filter(area => area !== name)
         : [...prev, name],
     );
   };
@@ -40,19 +48,12 @@ export default function RegionSelectionScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[
-          COLORS.mintBlue,
-          '#E8F8D7',
-          COLORS.neonLime,
-        ]}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.headerBackground}
-      >
-        <Text style={styles.header}>지역 선택</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>
+          지역 선택
+        </Text>
 
-        <Text style={styles.subHeader}>
+        <Text style={styles.headerSub}>
           분석하고 싶은 세종시 지역을 선택해주세요
         </Text>
 
@@ -61,18 +62,15 @@ export default function RegionSelectionScreen() {
             여러 개 선택 가능
           </Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>세종시 지역</Text>
-          <Text style={styles.sectionDescription}>
-            비교할 지역을 하나 이상 선택해주세요
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>
+          지역 선택
+        </Text>
 
         <Text style={styles.selectedCount}>
-          {selectedAreas.length}개 선택
+          {selectedAreas.length}개 선택됨
         </Text>
       </View>
 
@@ -81,55 +79,39 @@ export default function RegionSelectionScreen() {
         keyExtractor={item => item.code}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        renderItem={({item}) => {
-          const selected = selectedAreas.includes(item.name);
+        renderItem={({ item }) => {
+          const selected =
+            selectedAreas.includes(item.name);
 
           return (
             <TouchableOpacity
               style={[
-                styles.item,
-                selected && styles.itemSelected,
+                styles.regionChip,
+                selected &&
+                  styles.regionChipSelected,
               ]}
               activeOpacity={0.7}
-              onPress={() => toggleArea(item.name)}
+              onPress={() =>
+                toggleArea(item.name)
+              }
             >
-              <View style={styles.itemLeft}>
-                <View
-                  style={[
-                    styles.locationIcon,
-                    selected && styles.locationIconSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.locationIconText,
-                      selected && styles.locationIconTextSelected,
-                    ]}
-                  >
-                    ●
-                  </Text>
-                </View>
-
-                <Text
-                  style={[
-                    styles.itemText,
-                    selected && styles.itemTextSelected,
-                  ]}
-                >
-                  {item.name}
-                </Text>
-              </View>
-
-              <View
+              <Text
                 style={[
-                  styles.checkCircle,
-                  selected && styles.checkCircleSelected,
+                  styles.regionText,
+                  selected &&
+                    styles.regionTextSelected,
                 ]}
               >
-                {selected && (
-                  <Text style={styles.checkMark}>✓</Text>
-                )}
-              </View>
+                {item.name}
+              </Text>
+
+              {selected && (
+                <View style={styles.checkCircle}>
+                  <Text style={styles.checkMark}>
+                    ✓
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         }}
@@ -176,225 +158,144 @@ export default function RegionSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    padding: 20,
     backgroundColor: COLORS.background,
   },
 
-  headerBackground: {
-    marginHorizontal: -20,
-    paddingTop: 36,
-    paddingHorizontal: 20,
-    paddingBottom: 26,
-    marginBottom: 24,
-
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-
   header: {
-    fontSize: 27,
-    fontWeight: '800',
-    color: COLORS.primaryDark,
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 28,
   },
 
-  subHeader: {
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+
+  headerSub: {
     fontSize: 14,
-    lineHeight: 20,
     color: COLORS.textSecondary,
   },
 
   headerBadge: {
-    alignSelf: 'flex-start',
     marginTop: 14,
+    backgroundColor: COLORS.lime,
     paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    paddingHorizontal: 14,
+    borderRadius: 18,
   },
 
   headerBadgeText: {
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primaryDark,
   },
 
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 14,
   },
 
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.primaryDark,
-    marginBottom: 4,
-  },
-
-  sectionDescription: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    color: COLORS.text,
   },
 
   selectedCount: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.primary,
-    backgroundColor: '#F3FAD9',
-    paddingVertical: 6,
-    paddingHorizontal: 9,
-    borderRadius: 15,
   },
 
   listContent: {
-    paddingBottom: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingBottom: 14,
   },
 
-  item: {
+  regionChip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E8EEDC',
-
-    borderRadius: 18,
-
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-
-    marginBottom: 12,
-
-    backgroundColor: '#FFFFFF',
-
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
 
-  itemSelected: {
+  regionChipSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F5FBDD',
+    backgroundColor: '#F1FFF5',
   },
 
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  regionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
 
-  locationIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-
-    justifyContent: 'center',
-    alignItems: 'center',
-
-    marginRight: 12,
-
-    backgroundColor: COLORS.lightGray,
-  },
-
-  locationIconSelected: {
-    backgroundColor: COLORS.lime,
-  },
-
-  locationIconText: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  },
-
-  locationIconTextSelected: {
-    color: COLORS.primaryDark,
-  },
-
-  itemText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-
-  itemTextSelected: {
-    color: COLORS.primaryDark,
+  regionTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '800',
   },
 
   checkCircle: {
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-
-    justifyContent: 'center',
-    alignItems: 'center',
-
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-
-    backgroundColor: '#FFFFFF',
-  },
-
-  checkCircleSelected: {
-    borderColor: COLORS.primary,
+    width: 19,
+    height: 19,
+    marginLeft: 8,
+    borderRadius: 10,
     backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   checkMark: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '900',
     color: '#FFFFFF',
   },
 
   selectionSummary: {
-    padding: 15,
-    marginTop: 6,
-    marginBottom: 12,
-
-    borderRadius: 16,
-
-    backgroundColor: '#EFFBFE',
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 16,
+    backgroundColor: '#F7F7F7',
   },
 
   selectionSummaryLabel: {
     fontSize: 12,
-    fontWeight: '700',
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: 5,
   },
 
   selectionSummaryValue: {
     fontSize: 14,
     fontWeight: '700',
-    lineHeight: 20,
-    color: COLORS.primaryDark,
+    color: COLORS.text,
   },
 
   analyzeButton: {
-    marginTop: 4,
-
     paddingVertical: 17,
-
     borderRadius: 16,
-
     alignItems: 'center',
-
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.neonLime,
   },
 
   analyzeButtonDisabled: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.disabled,
   },
 
   analyzeButtonText: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '900',
+    color: '#111111',
   },
 
   analyzeButtonTextDisabled: {
