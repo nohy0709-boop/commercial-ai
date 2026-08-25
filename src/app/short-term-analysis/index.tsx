@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type MenuKey = 'fieldToEvent' | 'eventAnalysis' | 'suitability';
 
@@ -34,8 +34,7 @@ export default function ShortTermMainScreen() {
       router.push('/short-term-analysis/event-recommend');
       return;
     }
-    // 다음 단계에서 구현 예정
-    Alert.alert('준비 중', '해당 기능은 아직 준비 중입니다.');
+    router.push('/short-term-analysis/suitability');
   };
 
   return (

@@ -15,6 +15,14 @@ export default function ShortTermAnalysisLayout() {
         name="event-recommend-result"
         options={{title: '운영 분야 추천 순위'}}
       />
+      <Stack.Screen
+        name="suitability"
+        options={{title: '적합성 분석'}}
+      />
+      <Stack.Screen
+        name="suitability-result"
+        options={{title: '적합성 분석 결과'}}
+      />
     </Stack>
   );
 }

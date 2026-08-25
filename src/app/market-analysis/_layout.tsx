@@ -21,6 +21,7 @@ export default function MarketAnalysisLayout() {
         name="suitability-region"
         options={{title: '지역 선택'}}
       />
+      <Stack.Screen name="address-input" options={{title: '주소로 찾기'}} />
     </Stack>
   );
 }
