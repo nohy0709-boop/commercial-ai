@@ -18,6 +18,7 @@ import {
 
 type Result = {
   areaName: string;
+
   storeCount: number;
 
   livingPopulation: number;
@@ -27,8 +28,11 @@ type Result = {
   floatingPopulationChangeRate: number;
 
   salesAmount: number;
+
   competitionDensity: number;
   averageSalesPerStore: number;
+
+  busStopCount: number;
 
   floatingPopulationScore: number;
   salesScore: number;
@@ -39,41 +43,67 @@ type Result = {
   livingPopulationChangeScore: number;
   floatingPopulationChangeScore: number;
 
+  accessibilityScore: number;
+
   suitabilityScore: number;
 };
 
 export default function HomeScreen() {
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("음식점");
-  const [selectedBusiness, setSelectedBusiness] = useState("한식");
+
+  const [selectedCategory, setSelectedCategory] =
+    useState("음식점");
+
+  const [selectedBusiness, setSelectedBusiness] =
+    useState("한식");
 
   const [results, setResults] = useState<Result[]>([]);
+
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
   const toggleArea = (areaName: string) => {
     if (selectedAreas.includes(areaName)) {
       setSelectedAreas(
-        selectedAreas.filter((name) => name !== areaName)
+        selectedAreas.filter(
+          (name) => name !== areaName
+        )
       );
     } else {
-      setSelectedAreas([...selectedAreas, areaName]);
+      setSelectedAreas([
+        ...selectedAreas,
+        areaName,
+      ]);
     }
   };
 
-  const currentCategory = businessCategories.find(
-    (category) => category.categoryName === selectedCategory
-  );
-
-  const handleCategorySelect = (categoryName: string) => {
-    setSelectedCategory(categoryName);
-
-    const category = businessCategories.find(
-      (item) => item.categoryName === categoryName
+  const currentCategory =
+    businessCategories.find(
+      (category) =>
+        category.categoryName ===
+        selectedCategory
     );
 
-    if (category && category.businesses.length > 0) {
-      setSelectedBusiness(category.businesses[0].name);
+  const handleCategorySelect = (
+    categoryName: string
+  ) => {
+    setSelectedCategory(categoryName);
+
+    const category =
+      businessCategories.find(
+        (item) =>
+          item.categoryName === categoryName
+      );
+
+    if (
+      category &&
+      category.businesses.length > 0
+    ) {
+      setSelectedBusiness(
+        category.businesses[0].name
+      );
     }
 
     setResults([]);
@@ -82,123 +112,160 @@ export default function HomeScreen() {
 
   const handleAnalysis = async () => {
     if (selectedAreas.length === 0) {
-      setErrorMessage("분석할 지역을 1개 이상 선택해주세요.");
+      setErrorMessage(
+        "분석할 지역을 1개 이상 선택해주세요."
+      );
+
       return;
     }
 
     try {
       setLoading(true);
+
       setErrorMessage("");
+
       setResults([]);
 
-      const business = currentCategory?.businesses.find(
-        (item) => item.name === selectedBusiness
-      );
+      const business =
+        currentCategory?.businesses.find(
+          (item) =>
+            item.name === selectedBusiness
+        );
 
       if (!business) {
-        throw new Error("선택한 업종 정보를 찾을 수 없습니다.");
+        throw new Error(
+          "선택한 업종 정보를 찾을 수 없습니다."
+        );
       }
 
-      const targets = sejongAreas.filter((area) =>
-        selectedAreas.includes(area.name)
-      );
+      const targets =
+        sejongAreas.filter((area) =>
+          selectedAreas.includes(area.name)
+        );
 
-      const analysisResults = await Promise.all(
-        targets.map((area) =>
-          analyzeCommercialArea(
-            area.name,
-            area.code,
-            business.name,
-            business.lclsCode,
-            business.mclsCode,
-            business.sclsCode
+      const analysisResults =
+        await Promise.all(
+          targets.map((area) =>
+            analyzeCommercialArea(
+              area.name,
+              area.code,
+              business.name,
+              business.lclsCode,
+              business.mclsCode,
+              business.sclsCode
+            )
           )
-        )
-      );
+        );
 
       const scoredResults =
-        calculateSuitabilityScores(analysisResults);
+        calculateSuitabilityScores(
+          analysisResults
+        );
 
       setResults(scoredResults);
     } catch (error) {
-      console.error("상권 분석 오류:", error);
+      console.error(
+        "상권 분석 오류:",
+        error
+      );
 
       if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage("상권 분석 중 오류가 발생했습니다.");
+        setErrorMessage(
+          "상권 분석 중 오류가 발생했습니다."
+        );
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const formatChangeRate = (value?: number) => {
-  if (value === undefined || value === null) {
-    return "데이터 없음";
-  }
+  const formatChangeRate = (
+    value?: number
+  ) => {
+    if (
+      value === undefined ||
+      value === null
+    ) {
+      return "데이터 없음";
+    }
 
-  if (value > 0) {
-    return `+${value.toFixed(2)}%`;
-  }
+    if (value > 0) {
+      return `+${value.toFixed(2)}%`;
+    }
 
-  return `${value.toFixed(2)}%`;
-};
+    return `${value.toFixed(2)}%`;
+  };
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={
+        styles.contentContainer
+      }
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>세종 상권 분석</Text>
+      <Text style={styles.title}>
+        세종 상권 분석
+      </Text>
 
       <Text style={styles.sectionTitle}>
         업종 대분류
       </Text>
 
-      <View style={styles.categoryContainer}>
-        {businessCategories.map((category) => {
-          const selected =
-            selectedCategory === category.categoryName;
+      <View
+        style={styles.categoryContainer}
+      >
+        {businessCategories.map(
+          (category) => {
+            const selected =
+              selectedCategory ===
+              category.categoryName;
 
-          return (
-            <TouchableOpacity
-              key={category.categoryName}
-              style={[
-                styles.categoryButton,
-                selected &&
-                  styles.selectedCategoryButton,
-              ]}
-              onPress={() =>
-                handleCategorySelect(
-                  category.categoryName
-                )
-              }
-            >
-              <Text
+            return (
+              <TouchableOpacity
+                key={category.categoryName}
                 style={[
-                  styles.categoryText,
+                  styles.categoryButton,
                   selected &&
-                    styles.selectedCategoryText,
+                    styles.selectedCategoryButton,
                 ]}
+                onPress={() =>
+                  handleCategorySelect(
+                    category.categoryName
+                  )
+                }
               >
-                {category.categoryName}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.categoryText,
+                    selected &&
+                      styles.selectedCategoryText,
+                  ]}
+                >
+                  {
+                    category.categoryName
+                  }
+                </Text>
+              </TouchableOpacity>
+            );
+          }
+        )}
       </View>
 
       <Text style={styles.sectionTitle}>
         세부 업종
       </Text>
 
-      <View style={styles.businessContainer}>
+      <View
+        style={styles.businessContainer}
+      >
         {currentCategory?.businesses.map(
           (business) => {
             const selected =
-              selectedBusiness === business.name;
+              selectedBusiness ===
+              business.name;
 
             return (
               <TouchableOpacity
@@ -212,7 +279,9 @@ export default function HomeScreen() {
                   setSelectedBusiness(
                     business.name
                   );
+
                   setResults([]);
+
                   setErrorMessage("");
                 }}
               >
@@ -241,7 +310,9 @@ export default function HomeScreen() {
 
       {sejongAreas.map((area) => {
         const selected =
-          selectedAreas.includes(area.name);
+          selectedAreas.includes(
+            area.name
+          );
 
         return (
           <TouchableOpacity
@@ -269,11 +340,16 @@ export default function HomeScreen() {
         );
       })}
 
-      <Text style={styles.selectedCount}>
-        {selectedAreas.length}개 지역 선택됨
+      <Text
+        style={styles.selectedCount}
+      >
+        {selectedAreas.length}개 지역
+        선택됨
       </Text>
 
-      <Text style={styles.currentBusiness}>
+      <Text
+        style={styles.currentBusiness}
+      >
         선택 업종: {selectedBusiness}
       </Text>
 
@@ -282,7 +358,9 @@ export default function HomeScreen() {
         onPress={handleAnalysis}
       >
         <Text
-          style={styles.analysisButtonText}
+          style={
+            styles.analysisButtonText
+          }
         >
           상권 분석하기
         </Text>
@@ -290,9 +368,13 @@ export default function HomeScreen() {
 
       {loading && (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator
+            size="large"
+          />
 
-          <Text style={styles.loadingText}>
+          <Text
+            style={styles.loadingText}
+          >
             상권 데이터를 분석하는 중...
           </Text>
         </View>
@@ -305,171 +387,370 @@ export default function HomeScreen() {
       )}
 
       {!loading &&
-        results.map((result, index) => (
-          <View
-            key={result.areaName}
-            style={styles.resultCard}
-          >
-            <Text style={styles.rank}>
-              상권 적합도 {index + 1}위
-            </Text>
-
-            <Text style={styles.resultName}>
-              {result.areaName}
-            </Text>
-
-            <Text style={styles.resultBusiness}>
-              {selectedBusiness}
-            </Text>
-
-            <View style={styles.scoreBox}>
-              <Text style={styles.scoreLabel}>
-                상권 적합도
-              </Text>
-
-              <Text style={styles.scoreValue}>
-                {result.suitabilityScore}점
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                {selectedBusiness} 수
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {result.storeCount.toLocaleString()}개
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                생활인구
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {result.livingPopulation.toLocaleString()}
-                명
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                생활인구 증감률
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {formatChangeRate(
-                  result.livingPopulationChangeRate
-                )}
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                유동인구
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {result.floatingPopulation.toLocaleString()}
-                명
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                유동인구 증감률
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {formatChangeRate(
-                  result.floatingPopulationChangeRate
-                )}
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                {selectedBusiness} 카드소비
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {result.salesAmount.toLocaleString()}원
-              </Text>
-            </View>
-
-            <View style={styles.dataRow}>
-              <Text style={styles.resultLabel}>
-                점포당 카드소비액
-              </Text>
-
-              <Text style={styles.resultValue}>
-                {Math.round(
-                  result.averageSalesPerStore
-                ).toLocaleString()}
-                원
-              </Text>
-            </View>
-
-            <View style={styles.densityBox}>
-              <Text style={styles.densityLabel}>
-                경쟁밀도
-              </Text>
-
-              <Text style={styles.densityValue}>
-                {result.competitionDensity.toFixed(3)}
+        results.map(
+          (result, index) => (
+            <View
+              key={result.areaName}
+              style={styles.resultCard}
+            >
+              <Text
+                style={styles.rank}
+              >
+                상권 적합도{" "}
+                {index + 1}위
               </Text>
 
               <Text
-                style={styles.densityDescription}
+                style={styles.resultName}
               >
-                유동인구 1,000명당{" "}
-                {selectedBusiness} 수
+                {result.areaName}
               </Text>
+
+              <Text
+                style={
+                  styles.resultBusiness
+                }
+              >
+                {selectedBusiness}
+              </Text>
+
+              <View
+                style={styles.scoreBox}
+              >
+                <Text
+                  style={
+                    styles.scoreLabel
+                  }
+                >
+                  상권 적합도
+                </Text>
+
+                <Text
+                  style={
+                    styles.scoreValue
+                  }
+                >
+                  {
+                    result.suitabilityScore
+                  }
+                  점
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  {selectedBusiness} 수
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {result.storeCount.toLocaleString()}
+                  개
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  생활인구
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {result.livingPopulation.toLocaleString()}
+                  명
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  생활인구 증감률
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {formatChangeRate(
+                    result.livingPopulationChangeRate
+                  )}
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  유동인구
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {result.floatingPopulation.toLocaleString()}
+                  명
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  유동인구 증감률
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {formatChangeRate(
+                    result.floatingPopulationChangeRate
+                  )}
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  {selectedBusiness} 카드소비
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {result.salesAmount.toLocaleString()}
+                  원
+                </Text>
+              </View>
+
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  점포당 카드소비액
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {Math.round(
+                    result.averageSalesPerStore
+                  ).toLocaleString()}
+                  원
+                </Text>
+              </View>
+
+              {/* 새로 추가 */}
+              <View
+                style={styles.dataRow}
+              >
+                <Text
+                  style={
+                    styles.resultLabel
+                  }
+                >
+                  버스정류장 수
+                </Text>
+
+                <Text
+                  style={
+                    styles.resultValue
+                  }
+                >
+                  {result.busStopCount.toLocaleString()}
+                  개
+                </Text>
+              </View>
+
+              <View
+                style={styles.densityBox}
+              >
+                <Text
+                  style={
+                    styles.densityLabel
+                  }
+                >
+                  경쟁밀도
+                </Text>
+
+                <Text
+                  style={
+                    styles.densityValue
+                  }
+                >
+                  {result.competitionDensity.toFixed(
+                    3
+                  )}
+                </Text>
+
+                <Text
+                  style={
+                    styles.densityDescription
+                  }
+                >
+                  유동인구 1,000명당{" "}
+                  {selectedBusiness} 수
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.detailScoreBox
+                }
+              >
+                <Text
+                  style={
+                    styles.detailTitle
+                  }
+                >
+                  지표별 점수
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  유동인구:{" "}
+                  {
+                    result.floatingPopulationScore
+                  }
+                  점
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  전체 카드소비:{" "}
+                  {result.salesScore}점
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  점포당 카드소비:{" "}
+                  {
+                    result.averageSalesScore
+                  }
+                  점
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  경쟁도:{" "}
+                  {
+                    result.competitionScore
+                  }
+                  점
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  생활인구:{" "}
+                  {
+                    result.livingPopulationScore
+                  }
+                  점
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  생활인구 증감:{" "}
+                  {
+                    result.livingPopulationChangeScore
+                  }
+                  점
+                </Text>
+
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  유동인구 증감:{" "}
+                  {
+                    result.floatingPopulationChangeScore
+                  }
+                  점
+                </Text>
+
+                {/* 새로 추가 */}
+                <Text
+                  style={
+                    styles.detailText
+                  }
+                >
+                  대중교통 접근성:{" "}
+                  {
+                    result.accessibilityScore
+                  }
+                  점
+                </Text>
+              </View>
             </View>
-
-            <View style={styles.detailScoreBox}>
-              <Text style={styles.detailTitle}>
-                지표별 점수
-              </Text>
-
-              <Text style={styles.detailText}>
-                유동인구:{" "}
-                {result.floatingPopulationScore}점
-              </Text>
-
-              <Text style={styles.detailText}>
-                전체 카드소비:{" "}
-                {result.salesScore}점
-              </Text>
-
-              <Text style={styles.detailText}>
-                점포당 카드소비:{" "}
-                {result.averageSalesScore}점
-              </Text>
-
-              <Text style={styles.detailText}>
-                경쟁도:{" "}
-                {result.competitionScore}점
-              </Text>
-
-              <Text style={styles.detailText}>
-                생활인구:{" "}
-                {result.livingPopulationScore}점
-              </Text>
-
-              <Text style={styles.detailText}>
-                생활인구 증감:{" "}
-                {result.livingPopulationChangeScore}점
-              </Text>
-
-              <Text style={styles.detailText}>
-                유동인구 증감:{" "}
-                {result.floatingPopulationChangeScore}점
-              </Text>
-            </View>
-          </View>
-        ))}
+          )
+        )}
     </ScrollView>
   );
 }

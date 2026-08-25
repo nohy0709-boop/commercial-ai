@@ -1,3 +1,4 @@
+import { getAccessibilityByArea } from "../data/accessibilityData";
 import { getPopulationByArea } from "../data/populationData";
 import { getSalesByAreaAndBusiness } from "../data/salesData";
 import { getStoreCount } from "./storeApi";
@@ -18,6 +19,8 @@ export type CommercialAnalysisResult = {
   competitionDensity: number;
 
   averageSalesPerStore: number;
+
+  busStopCount: number;
 };
 
 export type ScoredCommercialAnalysisResult =
@@ -30,6 +33,8 @@ export type ScoredCommercialAnalysisResult =
 
     livingPopulationChangeScore: number;
     floatingPopulationChangeScore: number;
+
+    accessibilityScore: number;
 
     suitabilityScore: number;
   };
@@ -55,6 +60,15 @@ export async function analyzeCommercialArea(
   if (!population) {
     throw new Error(
       `${areaName} 인구 데이터를 찾을 수 없습니다.`
+    );
+  }
+
+  const accessibility =
+    getAccessibilityByArea(areaName);
+
+  if (!accessibility) {
+    throw new Error(
+      `${areaName} 접근성 데이터를 찾을 수 없습니다.`
     );
   }
 
@@ -105,6 +119,9 @@ export async function analyzeCommercialArea(
     competitionDensity,
 
     averageSalesPerStore,
+
+    busStopCount:
+      accessibility.busStopCount,
   };
 }
 
@@ -189,6 +206,12 @@ export function calculateSuitabilityScores(
         item.floatingPopulationChangeRate
     );
 
+  const busStopCounts =
+    results.map(
+      (item) =>
+        item.busStopCount
+    );
+
   const minFloating =
     Math.min(...floatingPopulations);
 
@@ -230,6 +253,12 @@ export function calculateSuitabilityScores(
 
   const maxFloatingChange =
     Math.max(...floatingChangeRates);
+
+  const minBusStop =
+    Math.min(...busStopCounts);
+
+  const maxBusStop =
+    Math.max(...busStopCounts);
 
   const scoredResults =
     results.map((item) => {
@@ -282,28 +311,22 @@ export function calculateSuitabilityScores(
           maxFloatingChange
         );
 
-      /*
-        최종 가중치
-
-        유동인구              20%
-        전체 카드소비          15%
-        점포당 카드소비        20%
-        경쟁도                15%
-        생활인구              10%
-        생활인구 증감률        10%
-        유동인구 증감률        10%
-
-        총 100%
-      */
+      const accessibilityScore =
+        normalize(
+          item.busStopCount,
+          minBusStop,
+          maxBusStop
+        );
 
       const suitabilityScore =
-        floatingPopulationScore * 0.2 +
-        salesScore * 0.15 +
-        averageSalesScore * 0.2 +
-        competitionScore * 0.15 +
-        livingPopulationScore * 0.1 +
-        livingPopulationChangeScore * 0.1 +
-        floatingPopulationChangeScore * 0.1;
+        floatingPopulationScore * 0.18 +
+        salesScore * 0.14 +
+        averageSalesScore * 0.18 +
+        competitionScore * 0.14 +
+        livingPopulationScore * 0.09 +
+        livingPopulationChangeScore * 0.09 +
+        floatingPopulationChangeScore * 0.09 +
+        accessibilityScore * 0.09;
 
       return {
         ...item,
@@ -341,6 +364,11 @@ export function calculateSuitabilityScores(
         floatingPopulationChangeScore:
           Number(
             floatingPopulationChangeScore.toFixed(1)
+          ),
+
+        accessibilityScore:
+          Number(
+            accessibilityScore.toFixed(1)
           ),
 
         suitabilityScore:
