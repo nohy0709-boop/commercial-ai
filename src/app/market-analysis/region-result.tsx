@@ -1,13 +1,16 @@
 import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
+
 import type { ScoredCommercialAnalysisResult } from '@/services/commercialAnalysis';
 import {
   analyzeCommercialArea,
   calculateSuitabilityScores,
 } from '@/services/commercialAnalysis';
+
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+
 import {
   ActivityIndicator,
   Pressable,
@@ -17,10 +20,9 @@ import {
   View,
 } from 'react-native';
 
-type RankedResult =
-  ScoredCommercialAnalysisResult & {
-    rank: number;
-  };
+type RankedResult = ScoredCommercialAnalysisResult & {
+  rank: number;
+};
 
 type GroupedResult = {
   businessName: string;
@@ -28,9 +30,7 @@ type GroupedResult = {
 };
 
 const delay = (ms: number) =>
-  new Promise(resolve =>
-    setTimeout(resolve, ms),
-  );
+  new Promise(resolve => setTimeout(resolve, ms));
 
 function getReasonSummary(
   result: ScoredCommercialAnalysisResult,
@@ -58,13 +58,11 @@ function getReasonSummary(
     },
     {
       text: '생활인구 증가세가 좋습니다',
-      score:
-        result.livingPopulationChangeScore,
+      score: result.livingPopulationChangeScore,
     },
     {
       text: '유동인구 증가세가 좋습니다',
-      score:
-        result.floatingPopulationChangeScore,
+      score: result.floatingPopulationChangeScore,
     },
     {
       text: '대중교통 접근성이 좋습니다',
@@ -79,27 +77,19 @@ function getReasonSummary(
     .join(' · ');
 }
 
-function formatChangeRate(
-  value?: number,
-) {
-  if (
-    value === undefined ||
-    value === null
-  ) {
+function formatChangeRate(value?: number) {
+  if (value === undefined || value === null) {
     return '데이터 없음';
   }
 
-  return `${value > 0 ? '+' : ''}${value.toFixed(
-    2,
-  )}%`;
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
 
 export default function RegionResultScreen() {
-  const {businesses, areas} =
-    useLocalSearchParams<{
-      businesses: string;
-      areas: string;
-    }>();
+  const {businesses, areas} = useLocalSearchParams<{
+    businesses: string;
+    areas: string;
+  }>();
 
   const [groupedResults, setGroupedResults] =
     useState<GroupedResult[]>([]);
@@ -114,6 +104,15 @@ export default function RegionResultScreen() {
     useState<string | null>(null);
 
   useEffect(() => {
+    if (!businesses || !areas) {
+      setErrorMessage(
+        '선택한 업종 또는 지역 정보를 찾을 수 없습니다.',
+      );
+
+      setLoading(false);
+      return;
+    }
+
     const selectedBusinessNames =
       businesses.split(',');
 
@@ -146,11 +145,11 @@ export default function RegionResultScreen() {
         setGroupedResults([]);
         setExpandedKey(null);
 
-        const groups: GroupedResult[] =
-          [];
+        const groups: GroupedResult[] = [];
 
         for (const business of targetBusinesses) {
-          const analysisResults = [];
+          const analysisResults: ScoredCommercialAnalysisResult[] =
+            [];
 
           for (const area of targetAreas) {
             try {
@@ -164,10 +163,9 @@ export default function RegionResultScreen() {
                   business.sclsCode,
                 );
 
-              analysisResults.push(
-                result,
-              );
+              analysisResults.push(result);
 
+              // API 요청 제한 방지
               await delay(600);
             } catch (error) {
               console.error(
@@ -177,18 +175,14 @@ export default function RegionResultScreen() {
 
               if (
                 error instanceof Error &&
-                error.message.includes(
-                  '429',
-                )
+                error.message.includes('429')
               ) {
                 await delay(2000);
               }
             }
           }
 
-          if (
-            analysisResults.length === 0
-          ) {
+          if (analysisResults.length === 0) {
             continue;
           }
 
@@ -198,8 +192,7 @@ export default function RegionResultScreen() {
             );
 
           groups.push({
-            businessName:
-              business.name,
+            businessName: business.name,
 
             items: scoredResults.map(
               (result, index) => ({
@@ -238,23 +231,17 @@ export default function RegionResultScreen() {
     };
 
     run();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businesses, areas]);
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={
-        styles.container
-      }
-      showsVerticalScrollIndicator={
-        false
-      }
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
     >
-      <View
-        style={styles.headerBackground}
-      >
+      {/* 상단 */}
+
+      <View style={styles.headerBackground}>
         <Text style={styles.title}>
           분석 결과
         </Text>
@@ -263,18 +250,14 @@ export default function RegionResultScreen() {
           업종별 지역 적합도 순위를 확인해보세요
         </Text>
 
-        <View
-          style={styles.headerBadge}
-        >
-          <Text
-            style={
-              styles.headerBadgeText
-            }
-          >
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>
             데이터 기반 분석
           </Text>
         </View>
       </View>
+
+      {/* 로딩 */}
 
       {loading && (
         <View style={styles.loadingBox}>
@@ -283,31 +266,23 @@ export default function RegionResultScreen() {
             color={COLORS.primary}
           />
 
-          <Text
-            style={styles.loadingText}
-          >
+          <Text style={styles.loadingText}>
             상권 데이터를 분석하는 중...
           </Text>
 
-          <Text
-            style={
-              styles.loadingSubText
-            }
-          >
+          <Text style={styles.loadingSubText}>
             여러 업종이나 지역을 선택한 경우
             시간이 걸릴 수 있어요.
           </Text>
         </View>
       )}
 
+      {/* 오류 */}
+
       {!loading &&
         errorMessage !== '' && (
-          <View
-            style={styles.errorBox}
-          >
-            <Text
-              style={styles.errorTitle}
-            >
+          <View style={styles.errorBox}>
+            <Text style={styles.errorTitle}>
               분석 결과를 불러오지 못했어요
             </Text>
 
@@ -317,52 +292,42 @@ export default function RegionResultScreen() {
           </View>
         )}
 
+      {/* 분석 결과 */}
+
       {!loading &&
         errorMessage === '' &&
         groupedResults.map(group => (
           <View
             key={group.businessName}
-            style={
-              styles.businessSection
-            }
+            style={styles.businessSection}
           >
-            <View
-              style={
-                styles.businessHeader
-              }
-            >
+            {/* 업종 헤더 */}
+
+            <View style={styles.businessHeader}>
               <View>
                 <Text
-                  style={
-                    styles.businessSmallTitle
-                  }
+                  style={styles.businessSmallTitle}
                 >
                   선택 업종
                 </Text>
 
                 <Text
-                  style={
-                    styles.businessTitle
-                  }
+                  style={styles.businessTitle}
                 >
                   {group.businessName}
                 </Text>
               </View>
 
-              <View
-                style={
-                  styles.businessTag
-                }
-              >
+              <View style={styles.businessTag}>
                 <Text
-                  style={
-                    styles.businessTagText
-                  }
+                  style={styles.businessTagText}
                 >
                   지역 순위
                 </Text>
               </View>
             </View>
+
+            {/* 지역 순위 */}
 
             {group.items.map(result => {
               const key =
@@ -391,14 +356,10 @@ export default function RegionResultScreen() {
                   }
                 >
                   <View
-                    style={
-                      styles.cardTopRow
-                    }
+                    style={styles.cardTopRow}
                   >
                     <View
-                      style={
-                        styles.cardLeft
-                      }
+                      style={styles.cardLeft}
                     >
                       <View
                         style={[
@@ -414,23 +375,19 @@ export default function RegionResultScreen() {
                               styles.rankFirst,
                           ]}
                         >
-                          {`${result.rank}위`}
+                          {result.rank}위
                         </Text>
                       </View>
 
                       <Text
-                        style={
-                          styles.areaName
-                        }
+                        style={styles.areaName}
                       >
                         {result.areaName}
                       </Text>
 
                       {isFirst && (
                         <Text
-                          style={
-                            styles.bestText
-                          }
+                          style={styles.bestText}
                         >
                           가장 높은 적합도
                         </Text>
@@ -438,27 +395,19 @@ export default function RegionResultScreen() {
                     </View>
 
                     <View
-                      style={
-                        styles.scoreBox
-                      }
+                      style={styles.scoreBox}
                     >
                       <Text
-                        style={
-                          styles.scoreLabel
-                        }
+                        style={styles.scoreLabel}
                       >
                         상권 적합도
                       </Text>
 
                       <View
-                        style={
-                          styles.scoreRow
-                        }
+                        style={styles.scoreRow}
                       >
                         <Text
-                          style={
-                            styles.scoreValue
-                          }
+                          style={styles.scoreValue}
                         >
                           {
                             result.suitabilityScore
@@ -466,9 +415,7 @@ export default function RegionResultScreen() {
                         </Text>
 
                         <Text
-                          style={
-                            styles.scoreUnit
-                          }
+                          style={styles.scoreUnit}
                         >
                           점
                         </Text>
@@ -476,21 +423,19 @@ export default function RegionResultScreen() {
                     </View>
                   </View>
 
+                  {/* 추천 이유 */}
+
                   <View
                     style={styles.reasonBox}
                   >
                     <Text
-                      style={
-                        styles.reasonTitle
-                      }
+                      style={styles.reasonTitle}
                     >
                       추천 이유
                     </Text>
 
                     <Text
-                      style={
-                        styles.reasonText
-                      }
+                      style={styles.reasonText}
                     >
                       {getReasonSummary(
                         result,
@@ -498,70 +443,54 @@ export default function RegionResultScreen() {
                     </Text>
                   </View>
 
+                  {/* 핵심 지표 */}
+
                   <View
                     style={styles.previewRow}
                   >
                     <View
-                      style={
-                        styles.previewItem
-                      }
+                      style={styles.previewItem}
                     >
                       <Text
-                        style={
-                          styles.previewLabel
-                        }
+                        style={styles.previewLabel}
                       >
                         유동인구
                       </Text>
 
                       <Text
-                        style={
-                          styles.previewValue
-                        }
+                        style={styles.previewValue}
                       >
                         {`${result.floatingPopulation.toLocaleString()}명`}
                       </Text>
                     </View>
 
                     <View
-                      style={
-                        styles.previewItem
-                      }
+                      style={styles.previewItem}
                     >
                       <Text
-                        style={
-                          styles.previewLabel
-                        }
+                        style={styles.previewLabel}
                       >
-                        {`${group.businessName} 수`}
+                        {group.businessName} 수
                       </Text>
 
                       <Text
-                        style={
-                          styles.previewValue
-                        }
+                        style={styles.previewValue}
                       >
-                        {`${result.storeCount}개`}
+                        {result.storeCount}개
                       </Text>
                     </View>
 
                     <View
-                      style={
-                        styles.previewItem
-                      }
+                      style={styles.previewItem}
                     >
                       <Text
-                        style={
-                          styles.previewLabel
-                        }
+                        style={styles.previewLabel}
                       >
                         경쟁밀도
                       </Text>
 
                       <Text
-                        style={
-                          styles.previewValue
-                        }
+                        style={styles.previewValue}
                       >
                         {result.competitionDensity.toFixed(
                           3,
@@ -570,21 +499,21 @@ export default function RegionResultScreen() {
                     </View>
                   </View>
 
+                  {/* 상세 버튼 */}
+
                   <View
-                    style={
-                      styles.expandButton
-                    }
+                    style={styles.expandButton}
                   >
                     <Text
-                      style={
-                        styles.expandText
-                      }
+                      style={styles.expandText}
                     >
                       {expanded
                         ? '상세 정보 접기  ▲'
                         : '상세 정보 보기  ▼'}
                     </Text>
                   </View>
+
+                  {/* 상세 정보 */}
 
                   {expanded && (
                     <View
@@ -593,9 +522,7 @@ export default function RegionResultScreen() {
                       }
                     >
                       <View
-                        style={
-                          styles.detailRow
-                        }
+                        style={styles.detailRow}
                       >
                         <Text
                           style={
@@ -615,9 +542,7 @@ export default function RegionResultScreen() {
                       </View>
 
                       <View
-                        style={
-                          styles.detailRow
-                        }
+                        style={styles.detailRow}
                       >
                         <Text
                           style={
@@ -639,9 +564,7 @@ export default function RegionResultScreen() {
                       </View>
 
                       <View
-                        style={
-                          styles.detailRow
-                        }
+                        style={styles.detailRow}
                       >
                         <Text
                           style={
@@ -663,9 +586,7 @@ export default function RegionResultScreen() {
                       </View>
 
                       <View
-                        style={
-                          styles.detailRow
-                        }
+                        style={styles.detailRow}
                       >
                         <Text
                           style={
@@ -685,9 +606,7 @@ export default function RegionResultScreen() {
                       </View>
 
                       <View
-                        style={
-                          styles.detailRow
-                        }
+                        style={styles.detailRow}
                       >
                         <Text
                           style={
@@ -709,9 +628,7 @@ export default function RegionResultScreen() {
                       </View>
 
                       <View
-                        style={
-                          styles.detailRow
-                        }
+                        style={styles.detailRow}
                       >
                         <Text
                           style={
@@ -726,15 +643,15 @@ export default function RegionResultScreen() {
                             styles.detailValue
                           }
                         >
-                          {`${result.busStopCount}개`}
+                          {result.busStopCount}개
                         </Text>
                       </View>
 
                       <View
-                        style={
-                          styles.divider
-                        }
+                        style={styles.divider}
                       />
+
+                      {/* 최종 점수 */}
 
                       <View
                         style={
@@ -796,13 +713,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
+  /* 상단 */
+
   headerBackground: {
     marginHorizontal: -20,
     marginTop: -20,
 
     paddingTop: 38,
     paddingHorizontal: 20,
-    paddingBottom: 28,
+    paddingBottom: 26,
 
     marginBottom: 24,
 
@@ -851,6 +770,8 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 
+  /* 로딩 */
+
   loadingBox: {
     marginTop: 40,
 
@@ -886,6 +807,8 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
+  /* 오류 */
+
   errorBox: {
     padding: 18,
 
@@ -910,6 +833,8 @@ const styles = StyleSheet.create({
     color: '#D14343',
   },
 
+  /* 업종 */
+
   businessSection: {
     marginBottom: 26,
   },
@@ -922,34 +847,46 @@ const styles = StyleSheet.create({
 
     marginBottom: 14,
 
-    padding: 18,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
 
     borderRadius: 20,
 
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#111111',
 
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#1F1F1F',
+
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 7,
+
+    elevation: 3,
   },
 
   businessSmallTitle: {
     fontSize: 12,
+    fontWeight: '600',
 
-    color: COLORS.textSecondary,
+    color: '#9CA3AF',
 
-    marginBottom: 4,
+    marginBottom: 5,
   },
 
   businessTitle: {
-    fontSize: 23,
+    fontSize: 24,
     fontWeight: '900',
 
-    color: COLORS.text,
+    color: '#FFFFFF',
   },
 
   businessTag: {
-    paddingVertical: 7,
-    paddingHorizontal: 11,
+    paddingVertical: 8,
+    paddingHorizontal: 13,
 
     borderRadius: 20,
 
@@ -962,6 +899,8 @@ const styles = StyleSheet.create({
 
     color: '#FFFFFF',
   },
+
+  /* 지역 카드 */
 
   card: {
     padding: 18,
@@ -976,26 +915,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
 
     shadowColor: '#000000',
-
     shadowOffset: {
       width: 0,
       height: 2,
     },
-
     shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowRadius: 7,
 
     elevation: 2,
   },
 
   firstCard: {
     borderColor: COLORS.primary,
+
+    backgroundColor: '#FFFFFF',
   },
 
   cardTopRow: {
     flexDirection: 'row',
 
     justifyContent: 'space-between',
+
     alignItems: 'flex-start',
 
     gap: 12,
@@ -1049,6 +989,8 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 
+  /* 점수 */
+
   scoreBox: {
     minWidth: 90,
 
@@ -1096,6 +1038,8 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
 
+  /* 추천 이유 */
+
   reasonBox: {
     marginTop: 16,
 
@@ -1121,6 +1065,8 @@ const styles = StyleSheet.create({
 
     color: COLORS.textSecondary,
   },
+
+  /* 미리보기 */
 
   previewRow: {
     flexDirection: 'row',
@@ -1153,10 +1099,12 @@ const styles = StyleSheet.create({
 
   previewValue: {
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
 
     color: COLORS.text,
   },
+
+  /* 상세 버튼 */
 
   expandButton: {
     marginTop: 14,
@@ -1174,8 +1122,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
 
-    color: COLORS.text,
+    color: '#111111',
   },
+
+  /* 상세 */
 
   detailContainer: {
     marginTop: 16,
@@ -1190,6 +1140,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
 
     justifyContent: 'space-between',
+
     alignItems: 'center',
 
     marginBottom: 12,
@@ -1214,6 +1165,8 @@ const styles = StyleSheet.create({
 
     marginVertical: 12,
   },
+
+  /* 최종 점수 */
 
   finalScoreBox: {
     flexDirection: 'row',
