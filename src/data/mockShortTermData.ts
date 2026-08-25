@@ -19,6 +19,11 @@ export interface ShortTermResult {
   recommendationReasons: string[];
 }
 
+export interface ShortTermCombo {
+  field: OperatingField;
+  eventName: EventName;
+}
+
 /**
  * key 형식: "운영분야-행사명"
  * 장기 상권 분석 데이터(mockMarketAnalysisData.ts)와는 완전히 분리된 별도 mock 데이터입니다.
@@ -203,7 +208,14 @@ const mockShortTermData: Record<string, ShortTermResult> = {
   },
 };
 
-const ALL_EVENTS: EventName[] = [
+export const ALL_FIELDS: OperatingField[] = [
+  '푸드트럭',
+  '팝업스토어',
+  '플리마켓 셀러',
+  '버스킹/공연',
+];
+
+export const ALL_EVENTS: EventName[] = [
   '성수 리버사이드 페스티벌',
   '건대 청춘 프리마켓',
   '왕십리 로컬푸드 마켓',
@@ -239,12 +251,12 @@ export function getShortTermResult(
 }
 
 /**
- * 특정 운영 분야에 대해, 모든 행사의 분석 결과를 적합도 점수 높은 순으로 정렬해 반환합니다.
+ * 여러 개의 (운영분야, 행사) 조합을 한 번에 받아서, 적합도 점수 높은 순으로 정렬해 반환합니다.
  */
-export function getEventRecommendationsForField(
-  field: OperatingField,
+export function getRankedShortTermResults(
+  combos: ShortTermCombo[],
 ): ShortTermResult[] {
-  return ALL_EVENTS
-    .map(eventName => getShortTermResult(field, eventName))
+  return combos
+    .map(combo => getShortTermResult(combo.field, combo.eventName))
     .sort((a, b) => b.suitabilityScore - a.suitabilityScore);
 }

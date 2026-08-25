@@ -21,7 +21,7 @@ export default function FieldSelectionScreen() {
             activeOpacity={0.7}
             onPress={() =>
               router.push({
-                pathname: '/short-term-analysis/field-result',
+                pathname: '/short-term-analysis/event',
                 params: {field: item},
               })
             }>

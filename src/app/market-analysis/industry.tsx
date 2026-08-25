@@ -5,101 +5,108 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 export default function IndustrySelectionScreen() {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState(
-    businessCategories[0].categoryName,
-  );
-  const [selectedBusinessName, setSelectedBusinessName] = useState<string | null>(
-    null,
-  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedBusinesses, setSelectedBusinesses] = useState<string[]>([]);
 
-  const currentCategory = businessCategories.find(
-    category => category.categoryName === selectedCategory,
-  );
+  const availableBusinesses = businessCategories
+    .filter(category => selectedCategories.includes(category.categoryName))
+    .flatMap(category => category.businesses);
 
-  const handleCategorySelect = (categoryName: string) => {
-    setSelectedCategory(categoryName);
-    setSelectedBusinessName(null);
+  const toggleCategory = (categoryName: string) => {
+    const category = businessCategories.find(
+      item => item.categoryName === categoryName,
+    );
+    if (!category) {
+      return;
+    }
+
+    if (selectedCategories.includes(categoryName)) {
+      setSelectedCategories(prev => prev.filter(name => name !== categoryName));
+      const businessNames = category.businesses.map(business => business.name);
+      setSelectedBusinesses(prev =>
+        prev.filter(name => !businessNames.includes(name)),
+      );
+    } else {
+      setSelectedCategories(prev => [...prev, categoryName]);
+    }
+  };
+
+  const toggleBusiness = (businessName: string) => {
+    setSelectedBusinesses(prev =>
+      prev.includes(businessName)
+        ? prev.filter(name => name !== businessName)
+        : [...prev, businessName],
+    );
   };
 
   const handleNext = () => {
-    if (!selectedBusinessName) {
-      return;
-    }
-    const business = currentCategory?.businesses.find(
-      item => item.name === selectedBusinessName,
-    );
-    if (!business) {
+    if (selectedBusinesses.length === 0) {
       return;
     }
     router.push({
       pathname: '/market-analysis/region',
-      params: {
-        businessName: business.name,
-        lclsCode: business.lclsCode,
-        mclsCode: business.mclsCode ?? '',
-        sclsCode: business.sclsCode ?? '',
-      },
+      params: {businesses: selectedBusinesses.join(',')},
     });
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>업종을 선택해주세요</Text>
+      <Text style={styles.header}>업종을 선택해주세요 (여러 개 가능)</Text>
 
       <Text style={styles.sectionLabel}>업종 대분류</Text>
       <View style={styles.chipRow}>
-        {businessCategories.map(category => (
-          <TouchableOpacity
-            key={category.categoryName}
-            style={[
-              styles.chip,
-              selectedCategory === category.categoryName && styles.chipSelected,
-            ]}
-            activeOpacity={0.7}
-            onPress={() => handleCategorySelect(category.categoryName)}>
-            <Text
-              style={[
-                styles.chipText,
-                selectedCategory === category.categoryName &&
-                  styles.chipTextSelected,
-              ]}>
-              {category.categoryName}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {businessCategories.map(category => {
+          const selected = selectedCategories.includes(category.categoryName);
+          return (
+            <TouchableOpacity
+              key={category.categoryName}
+              style={[styles.chip, selected && styles.chipSelected]}
+              activeOpacity={0.7}
+              onPress={() => toggleCategory(category.categoryName)}>
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                {selected ? '✓ ' : ''}
+                {category.categoryName}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={styles.sectionLabel}>세부 업종</Text>
-      <View style={styles.chipRow}>
-        {currentCategory?.businesses.map(business => (
-          <TouchableOpacity
-            key={business.name}
-            style={[
-              styles.chip,
-              selectedBusinessName === business.name && styles.chipSelected,
-            ]}
-            activeOpacity={0.7}
-            onPress={() => setSelectedBusinessName(business.name)}>
-            <Text
-              style={[
-                styles.chipText,
-                selectedBusinessName === business.name && styles.chipTextSelected,
-              ]}>
-              {business.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {selectedCategories.length === 0 ? (
+        <Text style={styles.hint}>업종 대분류를 먼저 선택해주세요.</Text>
+      ) : (
+        <View style={styles.chipRow}>
+          {availableBusinesses.map(business => {
+            const selected = selectedBusinesses.includes(business.name);
+            return (
+              <TouchableOpacity
+                key={business.name}
+                style={[styles.chip, selected && styles.chipSelected]}
+                activeOpacity={0.7}
+                onPress={() => toggleBusiness(business.name)}>
+                <Text
+                  style={[styles.chipText, selected && styles.chipTextSelected]}>
+                  {selected ? '✓ ' : ''}
+                  {business.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       <TouchableOpacity
         style={[
           styles.nextButton,
-          !selectedBusinessName && styles.nextButtonDisabled,
+          selectedBusinesses.length === 0 && styles.nextButtonDisabled,
         ]}
         activeOpacity={0.7}
-        disabled={!selectedBusinessName}
+        disabled={selectedBusinesses.length === 0}
         onPress={handleNext}>
-        <Text style={styles.nextButtonText}>다음: 지역 선택</Text>
+        <Text style={styles.nextButtonText}>
+          {`선택한 ${selectedBusinesses.length}개 업종으로 다음`}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -107,7 +114,7 @@ export default function IndustrySelectionScreen() {
 
 const styles = StyleSheet.create({
   container: {padding: 20, paddingBottom: 40, backgroundColor: '#FFFFFF'},
-  header: {fontSize: 20, fontWeight: '700', marginTop: 12, marginBottom: 20},
+  header: {fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 20},
   sectionLabel: {
     fontSize: 14,
     fontWeight: '700',
@@ -115,6 +122,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 8,
   },
+  hint: {fontSize: 13, color: '#8A8A8A', marginBottom: 12},
   chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12},
   chip: {
     borderWidth: 1,

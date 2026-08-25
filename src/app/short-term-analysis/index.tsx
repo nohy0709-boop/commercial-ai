@@ -30,6 +30,10 @@ export default function ShortTermMainScreen() {
       router.push('/short-term-analysis/field');
       return;
     }
+    if (key === 'eventAnalysis') {
+      router.push('/short-term-analysis/event-recommend');
+      return;
+    }
     // 다음 단계에서 구현 예정
     Alert.alert('준비 중', '해당 기능은 아직 준비 중입니다.');
   };
