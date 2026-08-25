@@ -1,48 +1,58 @@
-import type { Industry, Region } from '@/data/mockMarketAnalysisData';
-import { ALL_REGIONS } from '@/data/mockMarketAnalysisData';
+import { sejongAreas } from '@/constants/sejongAreas';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function RegionSelectionScreen() {
   const router = useRouter();
-  const {industry} = useLocalSearchParams<{industry: Industry}>();
-  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
+  const {businessName, lclsCode, mclsCode, sclsCode} = useLocalSearchParams<{
+    businessName: string;
+    lclsCode: string;
+    mclsCode: string;
+    sclsCode: string;
+  }>();
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
 
-  const toggleRegion = (region: Region) => {
-    setSelectedRegions(prev =>
-      prev.includes(region) ? prev.filter(r => r !== region) : [...prev, region],
+  const toggleArea = (name: string) => {
+    setSelectedAreas(prev =>
+      prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name],
     );
   };
 
   const handleAnalyze = () => {
-    if (selectedRegions.length === 0) {
+    if (selectedAreas.length === 0) {
       return;
     }
     router.push({
       pathname: '/market-analysis/region-result',
-      params: {industry, regions: selectedRegions.join(',')},
+      params: {
+        businessName,
+        lclsCode,
+        mclsCode,
+        sclsCode,
+        areas: selectedAreas.join(','),
+      },
     });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>
-        {`'${industry}' 업종을 분석할 지역을 선택해주세요 (여러 개 가능)`}
+        {`'${businessName}' 업종을 분석할 지역을 선택해주세요 (여러 개 가능)`}
       </Text>
 
       <FlatList
-        data={ALL_REGIONS}
-        keyExtractor={item => item}
+        data={sejongAreas}
+        keyExtractor={item => item.code}
         renderItem={({item}) => {
-          const selected = selectedRegions.includes(item);
+          const selected = selectedAreas.includes(item.name);
           return (
             <TouchableOpacity
               style={[styles.item, selected && styles.itemSelected]}
               activeOpacity={0.7}
-              onPress={() => toggleRegion(item)}>
+              onPress={() => toggleArea(item.name)}>
               <Text style={[styles.itemText, selected && styles.itemTextSelected]}>
-                {item}
+                {item.name}
               </Text>
               {selected && <Text style={styles.checkMark}>✓</Text>}
             </TouchableOpacity>
@@ -53,13 +63,13 @@ export default function RegionSelectionScreen() {
       <TouchableOpacity
         style={[
           styles.analyzeButton,
-          selectedRegions.length === 0 && styles.analyzeButtonDisabled,
+          selectedAreas.length === 0 && styles.analyzeButtonDisabled,
         ]}
         activeOpacity={0.7}
-        disabled={selectedRegions.length === 0}
+        disabled={selectedAreas.length === 0}
         onPress={handleAnalyze}>
         <Text style={styles.analyzeButtonText}>
-          {`선택한 ${selectedRegions.length}개 지역 분석하기`}
+          {`선택한 ${selectedAreas.length}개 지역 분석하기`}
         </Text>
       </TouchableOpacity>
     </View>

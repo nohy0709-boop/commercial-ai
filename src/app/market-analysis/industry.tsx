@@ -1,48 +1,139 @@
-import type { Industry } from '@/data/mockMarketAnalysisData';
+import { businessCategories } from '@/constants/businessTypes';
 import { useRouter } from 'expo-router';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const INDUSTRIES: Industry[] = ['카페', '음식점', '베이커리', '편의점'];
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function IndustrySelectionScreen() {
   const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState(
+    businessCategories[0].categoryName,
+  );
+  const [selectedBusinessName, setSelectedBusinessName] = useState<string | null>(
+    null,
+  );
+
+  const currentCategory = businessCategories.find(
+    category => category.categoryName === selectedCategory,
+  );
+
+  const handleCategorySelect = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setSelectedBusinessName(null);
+  };
+
+  const handleNext = () => {
+    if (!selectedBusinessName) {
+      return;
+    }
+    const business = currentCategory?.businesses.find(
+      item => item.name === selectedBusinessName,
+    );
+    if (!business) {
+      return;
+    }
+    router.push({
+      pathname: '/market-analysis/region',
+      params: {
+        businessName: business.name,
+        lclsCode: business.lclsCode,
+        mclsCode: business.mclsCode ?? '',
+        sclsCode: business.sclsCode ?? '',
+      },
+    });
+  };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>업종을 선택해주세요</Text>
 
-      <FlatList
-        data={INDUSTRIES}
-        keyExtractor={item => item}
-        renderItem={({item}) => (
+      <Text style={styles.sectionLabel}>업종 대분류</Text>
+      <View style={styles.chipRow}>
+        {businessCategories.map(category => (
           <TouchableOpacity
-            style={styles.item}
+            key={category.categoryName}
+            style={[
+              styles.chip,
+              selectedCategory === category.categoryName && styles.chipSelected,
+            ]}
             activeOpacity={0.7}
-            onPress={() =>
-              router.push({
-                pathname: '/market-analysis/region',
-                params: {industry: item},
-              })
-            }>
-            <Text style={styles.itemText}>{item}</Text>
+            onPress={() => handleCategorySelect(category.categoryName)}>
+            <Text
+              style={[
+                styles.chipText,
+                selectedCategory === category.categoryName &&
+                  styles.chipTextSelected,
+              ]}>
+              {category.categoryName}
+            </Text>
           </TouchableOpacity>
-        )}
-      />
-    </View>
+        ))}
+      </View>
+
+      <Text style={styles.sectionLabel}>세부 업종</Text>
+      <View style={styles.chipRow}>
+        {currentCategory?.businesses.map(business => (
+          <TouchableOpacity
+            key={business.name}
+            style={[
+              styles.chip,
+              selectedBusinessName === business.name && styles.chipSelected,
+            ]}
+            activeOpacity={0.7}
+            onPress={() => setSelectedBusinessName(business.name)}>
+            <Text
+              style={[
+                styles.chipText,
+                selectedBusinessName === business.name && styles.chipTextSelected,
+              ]}>
+              {business.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TouchableOpacity
+        style={[
+          styles.nextButton,
+          !selectedBusinessName && styles.nextButtonDisabled,
+        ]}
+        activeOpacity={0.7}
+        disabled={!selectedBusinessName}
+        onPress={handleNext}>
+        <Text style={styles.nextButtonText}>다음: 지역 선택</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, padding: 20, backgroundColor: '#FFFFFF'},
+  container: {padding: 20, paddingBottom: 40, backgroundColor: '#FFFFFF'},
   header: {fontSize: 20, fontWeight: '700', marginTop: 12, marginBottom: 20},
-  item: {
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B6B6B',
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12},
+  chip: {
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
     backgroundColor: '#F8F9FA',
   },
-  itemText: {fontSize: 16, fontWeight: '600', color: '#1A1A1A'},
+  chipSelected: {borderColor: '#1D4ED8', backgroundColor: '#EAF2FF'},
+  chipText: {fontSize: 14, fontWeight: '600', color: '#1A1A1A'},
+  chipTextSelected: {color: '#1D4ED8'},
+  nextButton: {
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#1D4ED8',
+    alignItems: 'center',
+  },
+  nextButtonDisabled: {backgroundColor: '#C6D3EE'},
+  nextButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
 });
