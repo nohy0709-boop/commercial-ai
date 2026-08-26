@@ -1,17 +1,18 @@
+import AddressMap from '@/components/address-map';
 import { sejongAreas } from '@/constants/sejongAreas';
 import type { Coordinates } from '@/services/geocoding';
 import { getDongFromCoords, searchAddress } from '@/services/geocoding';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Keyboard,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 export default function AddressInputScreen() {
@@ -108,16 +109,7 @@ export default function AddressInputScreen() {
         )}
 
         {!loading && coords && (
-          <MapView
-            style={styles.map}
-            region={{
-              latitude: coords.lat,
-              longitude: coords.lng,
-              latitudeDelta: 0.02,
-              longitudeDelta: 0.02,
-            }}>
-            <Marker coordinate={{latitude: coords.lat, longitude: coords.lng}} />
-          </MapView>
+          <AddressMap latitude={coords.lat} longitude={coords.lng} />
         )}
 
         {!loading && matchedDong && (
@@ -159,12 +151,6 @@ const styles = StyleSheet.create({
   searchButtonText: {color: '#FFFFFF', fontWeight: '700', fontSize: 14},
   loading: {marginTop: 20},
   error: {color: '#D14343', fontSize: 13, marginTop: 8},
-  map: {
-    width: '100%',
-    height: 240,
-    borderRadius: 12,
-    marginTop: 12,
-  },
   resultBox: {
     marginTop: 16,
     backgroundColor: '#EAF2FF',
@@ -180,4 +166,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   analyzeButtonText: {color: '#FFFFFF', fontWeight: '700', fontSize: 14},
-}); 
+});

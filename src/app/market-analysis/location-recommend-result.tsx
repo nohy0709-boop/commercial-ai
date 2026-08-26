@@ -15,6 +15,11 @@ import {
   calculateBusinessRecommendationScores,
 } from "@/services/businessRecommendation";
 
+import type { AIExplanation } from "@/services/aiExplanation";
+import {
+  generateAIExplanation,
+} from "@/services/aiExplanation";
+
 import {
   useLocalSearchParams,
 } from "expo-router";
@@ -30,8 +35,28 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+
+// AI 응답 안의 **단어** 표시를, 실제로 굵고 강조된 글씨로 렌더링합니다.
+function renderEmphasizedText(text: string, textStyle: object) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return (
+    <Text style={textStyle}>
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <Text key={index} style={styles.aiHighlight}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        return part;
+      })}
+    </Text>
+  );
+}
 
 export default function LocationRecommendResultScreen() {
   const { region } =
@@ -66,6 +91,16 @@ export default function LocationRecommendResultScreen() {
     useState<string | null>(
       null
     );
+
+  // AI 설명은 업종마다 따로, 버튼 눌렀을 때만 요청합니다.
+  const [aiExplanations, setAiExplanations] = useState<
+    Record<string, AIExplanation>
+  >({});
+  const [aiLoadingKeys, setAiLoadingKeys] = useState<Record<string, boolean>>({});
+  const [aiErrorKeys, setAiErrorKeys] = useState<Record<string, string>>({});
+  const [aiDetailExpandedKeys, setAiDetailExpandedKeys] = useState<
+    Record<string, boolean>
+  >({});
 
   const delay = (
     ms: number
@@ -253,6 +288,50 @@ export default function LocationRecommendResultScreen() {
         .join(" ");
     };
 
+  const handleGenerateAI = async (
+    item: BusinessRecommendationResult,
+  ) => {
+    const key = item.businessName;
+    if (aiExplanations[key] || aiLoadingKeys[key]) {
+      return;
+    }
+
+    setAiLoadingKeys(prev => ({...prev, [key]: true}));
+    setAiErrorKeys(prev => ({...prev, [key]: ''}));
+
+    try {
+      const explanation = await generateAIExplanation({
+        지역: region,
+        업종: item.businessName,
+        유동인구: item.floatingPopulation,
+        생활인구: item.livingPopulation,
+        점포수: item.storeCount,
+        경쟁밀도: item.competitionDensity,
+        전체카드소비: item.salesAmount,
+        점포당카드소비: item.averageSalesPerStore,
+        버스정류장수: item.busStopCount,
+        추천점수: item.recommendationScore,
+        순위: item.rank,
+      });
+      setAiExplanations(prev => ({...prev, [key]: explanation}));
+    } catch (error) {
+      console.error('AI 설명 생성 오류:', error);
+      setAiErrorKeys(prev => ({
+        ...prev,
+        [key]:
+          error instanceof Error
+            ? error.message
+            : 'AI 설명을 가져오지 못했습니다.',
+      }));
+    } finally {
+      setAiLoadingKeys(prev => ({...prev, [key]: false}));
+    }
+  };
+
+  const toggleAiDetail = (key: string) => {
+    setAiDetailExpandedKeys(prev => ({...prev, [key]: !prev[key]}));
+  };
+
   if (loading) {
     return (
       <View
@@ -408,6 +487,12 @@ export default function LocationRecommendResultScreen() {
           const expanded =
             expandedBusiness ===
             item.businessName;
+
+          const aiKey = item.businessName;
+          const explanation = aiExplanations[aiKey];
+          const aiLoading = aiLoadingKeys[aiKey];
+          const aiError = aiErrorKeys[aiKey];
+          const aiDetailExpanded = aiDetailExpandedKeys[aiKey];
 
           return (
             <Pressable
@@ -938,6 +1023,75 @@ export default function LocationRecommendResultScreen() {
                   </View>
                 </View>
               )}
+
+              {/* AI 상세 분석 (버튼 눌렀을 때만 요청) */}
+              {!explanation && (
+                <TouchableOpacity
+                  style={styles.aiButton}
+                  activeOpacity={0.7}
+                  disabled={aiLoading}
+                  onPress={() => handleGenerateAI(item)}>
+                  {aiLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  ) : (
+                    <Text style={styles.aiButtonText}>AI 설명 보기</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {aiError && !aiLoading && (
+                <Text style={styles.aiError}>{aiError}</Text>
+              )}
+
+              {explanation && (
+                <View style={styles.aiBox}>
+                  <Text style={styles.aiLabel}>AI 추천 이유</Text>
+                  {renderEmphasizedText(
+                    explanation.recommendationReason,
+                    styles.aiText,
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.detailToggleButton}
+                    activeOpacity={0.7}
+                    onPress={() => toggleAiDetail(aiKey)}>
+                    <Text style={styles.detailToggleText}>
+                      {aiDetailExpanded
+                        ? 'AI 상세 설명 접기 ▲'
+                        : 'AI 상세 설명 보기 ▼'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {aiDetailExpanded && (
+                    <View style={styles.aiDetailSection}>
+                      <Text style={styles.aiLabel}>주요 특징</Text>
+                      {renderEmphasizedText(
+                        explanation.keyFeatures,
+                        styles.aiText,
+                      )}
+
+                      <Text style={styles.aiLabel}>장점</Text>
+                      {explanation.advantages.map((advantage, index) => (
+                        <Text key={index} style={styles.aiListItem}>
+                          {`· ${advantage}`}
+                        </Text>
+                      ))}
+
+                      <Text style={styles.aiLabel}>위험요소</Text>
+                      {explanation.risks.map((risk, index) => (
+                        <Text key={index} style={styles.aiListItem}>
+                          {`· ${risk}`}
+                        </Text>
+                      ))}
+
+                      <Text style={styles.aiLabel}>고려사항</Text>
+                      <Text style={styles.aiText}>
+                        {explanation.considerations}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </Pressable>
           );
         }
@@ -1259,5 +1413,40 @@ const styles =
       fontWeight: "900",
       color:
         COLORS.primary,
+    },
+
+    aiButton: {
+      marginTop: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+      alignItems: 'center',
+    },
+    aiButtonText: {fontSize: 13, fontWeight: '800', color: COLORS.primary},
+    aiError: {fontSize: 12, color: '#D64545', marginTop: 10},
+    aiBox: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+    },
+    aiLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: COLORS.textSecondary,
+      marginTop: 10,
+      marginBottom: 4,
+    },
+    aiText: {fontSize: 13, color: COLORS.text, lineHeight: 19},
+    aiHighlight: {fontWeight: '900', color: COLORS.primary},
+    aiListItem: {fontSize: 13, color: COLORS.text, lineHeight: 19, marginLeft: 4},
+    detailToggleButton: {marginTop: 12, alignItems: 'center'},
+    detailToggleText: {fontSize: 12, fontWeight: '700', color: COLORS.textSecondary},
+    aiDetailSection: {
+      marginTop: 6,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
     },
   });
