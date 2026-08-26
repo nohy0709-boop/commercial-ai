@@ -1,14 +1,10 @@
 import React from 'react';
-import {
-    StyleSheet,
-    Text,
-    View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-type AddressMapProps = {
+interface AddressMapProps {
   latitude: number;
   longitude: number;
-};
+}
 
 export default function AddressMap({
   latitude,
@@ -16,20 +12,20 @@ export default function AddressMap({
 }: AddressMapProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        지도 미리보기
+      <Text style={styles.icon}>📍</Text>
+
+      <Text style={styles.title}>검색된 위치</Text>
+
+      <Text style={styles.coordinate}>
+        위도 {latitude.toFixed(6)}
+      </Text>
+
+      <Text style={styles.coordinate}>
+        경도 {longitude.toFixed(6)}
       </Text>
 
       <Text style={styles.description}>
-        지도는 모바일 환경에서 표시됩니다.
-      </Text>
-
-      <Text style={styles.coordinate}>
-        위도 {latitude.toFixed(5)}
-      </Text>
-
-      <Text style={styles.coordinate}>
-        경도 {longitude.toFixed(5)}
+        지도는 모바일 앱에서 확인할 수 있습니다.
       </Text>
     </View>
   );
@@ -38,44 +34,40 @@ export default function AddressMap({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: 260,
-
-    justifyContent: 'center',
-    alignItems: 'center',
-
-    padding: 20,
-
-    borderRadius: 18,
+    height: 240,
+    marginTop: 12,
 
     backgroundColor: '#F7F9F7',
 
     borderWidth: 1,
     borderColor: '#E9ECEF',
+    borderRadius: 16,
+
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  title: {
-    fontSize: 17,
-    fontWeight: '900',
-
-    color: '#111111',
-
+  icon: {
+    fontSize: 32,
     marginBottom: 8,
   },
 
-  description: {
-    fontSize: 13,
-
-    color: '#6B7280',
-
-    marginBottom: 14,
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111111',
+    marginBottom: 8,
   },
 
   coordinate: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 3,
+  },
+
+  description: {
+    marginTop: 10,
     fontSize: 12,
-    fontWeight: '700',
-
-    color: '#12A84F',
-
-    marginTop: 3,
+    color: '#9CA3AF',
   },
 });

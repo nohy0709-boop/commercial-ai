@@ -2,10 +2,10 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
-type AddressMapProps = {
+interface AddressMapProps {
   latitude: number;
   longitude: number;
-};
+}
 
 export default function AddressMap({
   latitude,
@@ -17,10 +17,9 @@ export default function AddressMap({
       region={{
         latitude,
         longitude,
-        latitudeDelta: 0.015,
-        longitudeDelta: 0.015,
-      }}
-    >
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      }}>
       <Marker
         coordinate={{
           latitude,
@@ -34,6 +33,7 @@ export default function AddressMap({
 const styles = StyleSheet.create({
   map: {
     width: '100%',
-    height: 260,
+    height: 240,
+    borderRadius: 12,
   },
 });
