@@ -1,18 +1,20 @@
+import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
 import type { Coordinates } from '@/services/geocoding';
 import { getDongFromCoords, searchAddress } from '@/services/geocoding';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Keyboard,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 
 export default function AddressInputScreen() {
   const router = useRouter();
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   searchButton: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     paddingHorizontal: 20,
     justifyContent: 'center',
@@ -167,17 +169,21 @@ const styles = StyleSheet.create({
   },
   resultBox: {
     marginTop: 16,
-    backgroundColor: '#EAF2FF',
+    backgroundColor: COLORS.mintBlue,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
-  resultText: {fontSize: 15, fontWeight: '700', color: '#1D4ED8', marginBottom: 12},
+  resultText: {fontSize: 15, fontWeight: '700', color: COLORS.primary, marginBottom: 12},
   analyzeButton: {
-    backgroundColor: '#1D4ED8',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  analyzeButtonText: {color: '#FFFFFF', fontWeight: '700', fontSize: 14},
+  backgroundColor: COLORS.neonLime,
+  borderRadius: 10,
+  paddingVertical: 12,
+  paddingHorizontal: 24,
+},
+  analyzeButtonText: {
+  color: '#111111',
+  fontWeight: '700',
+  fontSize: 14,
+},
 }); 
