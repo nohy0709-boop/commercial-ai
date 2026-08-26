@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
 import type { AIExplanation } from '@/services/aiExplanation';
 import { generateAIExplanation } from '@/services/aiExplanation';
@@ -303,63 +304,146 @@ export default function ResultScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {padding: 20, paddingBottom: 40, backgroundColor: '#FFFFFF'},
-  title: {fontSize: 20, fontWeight: '700', marginTop: 12, marginBottom: 20},
-  loadingBox: {marginTop: 30, alignItems: 'center', gap: 10},
-  loadingText: {fontSize: 14, color: '#6B6B6B'},
-  error: {color: '#D14343', fontSize: 14, marginTop: 12},
+  container: {
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: COLORS.background,
+  },
+
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+
+  loadingBox: {
+    marginTop: 30,
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+
+  error: {
+    color: '#D14343',
+    fontSize: 14,
+    marginTop: 12,
+  },
+
   card: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.surface,
   },
+
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
   },
-  rank: {fontSize: 14, fontWeight: '700', color: '#1D4ED8', marginRight: 8},
-  name: {fontSize: 16, fontWeight: '700', color: '#1A1A1A', flex: 1},
-  score: {fontSize: 14, fontWeight: '700', color: '#1D4ED8'},
-  metaLine: {fontSize: 12, color: '#8A8A8A', marginBottom: 2},
+
+  rank: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginRight: 8,
+  },
+
+  name: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    flex: 1,
+  },
+
+  score: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  metaLine: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+
   aiButton: {
     marginTop: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#1D4ED8',
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: COLORS.neonLime,
     alignItems: 'center',
   },
-  aiButtonText: {fontSize: 13, fontWeight: '700', color: '#1D4ED8'},
-  aiError: {fontSize: 12, color: '#D14343', marginTop: 10},
+
+  aiButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111111',
+  },
+
+  aiError: {
+    fontSize: 12,
+    color: '#D14343',
+    marginTop: 10,
+  },
+
   aiBox: {
     marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.mintBlue,
   },
+
   aiLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6B6B6B',
+    color: COLORS.primaryDark,
     marginTop: 10,
     marginBottom: 4,
   },
-  aiText: {fontSize: 13, color: '#3A3A3A', lineHeight: 19},
-  aiHighlight: {fontWeight: '700', color: '#1D4ED8'},
-  aiListItem: {fontSize: 13, color: '#3A3A3A', lineHeight: 19, marginLeft: 4},
+
+  aiText: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 19,
+  },
+
+  aiHighlight: {
+    fontWeight: '700',
+    color: COLORS.primaryDark,
+  },
+
+  aiListItem: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 19,
+    marginLeft: 4,
+  },
+
   detailToggleButton: {
     marginTop: 12,
     alignItems: 'center',
   },
-  detailToggleText: {fontSize: 12, fontWeight: '600', color: '#6B6B6B'},
+
+  detailToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
   detailSection: {
-    marginTop: 6,
-    paddingTop: 10,
+    marginTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: COLORS.border,
   },
 });

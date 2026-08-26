@@ -151,10 +151,7 @@ export default function AddressInputScreen() {
               style={styles.searchButton}
               activeOpacity={0.8}
               onPress={handleSearch}>
-              <Text
-                style={
-                  styles.searchButtonText
-                }>
+              <Text style={styles.searchButtonText}>
                 검색
               </Text>
             </TouchableOpacity>
@@ -205,13 +202,8 @@ export default function AddressInputScreen() {
             <TouchableOpacity
               style={styles.analyzeButton}
               activeOpacity={0.8}
-              onPress={
-                handleUseThisLocation
-              }>
-              <Text
-                style={
-                  styles.analyzeButtonText
-                }>
+              onPress={handleUseThisLocation}>
+              <Text style={styles.analyzeButtonText}>
                 이 지역으로 분석하기
               </Text>
             </TouchableOpacity>
@@ -284,16 +276,12 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
-
     backgroundColor: COLORS.background,
-
     paddingHorizontal: 14,
     paddingVertical: 12,
-
     fontSize: 14,
     color: COLORS.text,
   },
@@ -301,9 +289,7 @@ const styles = StyleSheet.create({
   searchButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
-
     paddingHorizontal: 20,
-
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -327,11 +313,8 @@ const styles = StyleSheet.create({
 
   errorBox: {
     marginTop: 16,
-
     padding: 14,
-
     borderRadius: 12,
-
     backgroundColor: '#FFF5F5',
     borderWidth: 1,
     borderColor: '#FFDADA',
@@ -344,24 +327,18 @@ const styles = StyleSheet.create({
 
   mapCard: {
     marginTop: 16,
-
     borderRadius: 16,
     overflow: 'hidden',
-
     backgroundColor: COLORS.surface,
   },
 
   resultBox: {
     marginTop: 16,
-
     backgroundColor: COLORS.surface,
-
     borderWidth: 1,
     borderColor: '#D8F5E2',
-
     borderRadius: 16,
     padding: 18,
-
     alignItems: 'center',
   },
 
@@ -380,13 +357,9 @@ const styles = StyleSheet.create({
 
   analyzeButton: {
     width: '100%',
-
     backgroundColor: COLORS.neonLime,
-
     borderRadius: 12,
-
     paddingVertical: 14,
-
     alignItems: 'center',
   },
 
