@@ -8,6 +8,9 @@ import {
   calculateSuitabilityScores,
 } from '@/services/commercialAnalysis';
 
+import type { AIExplanation } from '@/services/aiExplanation';
+import { generateAIExplanation } from '@/services/aiExplanation';
+
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 
@@ -17,6 +20,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -85,6 +89,25 @@ function formatChangeRate(value?: number) {
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
 
+// AI 응답 안의 **단어** 표시를, 실제로 굵고 강조된 글씨로 렌더링합니다.
+function renderEmphasizedText(text: string, textStyle: object) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return (
+    <Text style={textStyle}>
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <Text key={index} style={styles.aiHighlight}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        return part;
+      })}
+    </Text>
+  );
+}
+
 export default function RegionResultScreen() {
   const { businesses, areas } =
     useLocalSearchParams<{
@@ -103,6 +126,16 @@ export default function RegionResultScreen() {
 
   const [expandedKey, setExpandedKey] =
     useState<string | null>(null);
+
+  // AI 설명은 카드마다 따로, 버튼 눌렀을 때만 요청합니다.
+  const [aiExplanations, setAiExplanations] = useState<
+    Record<string, AIExplanation>
+  >({});
+  const [aiLoadingKeys, setAiLoadingKeys] = useState<Record<string, boolean>>({});
+  const [aiErrorKeys, setAiErrorKeys] = useState<Record<string, string>>({});
+  const [aiDetailExpandedKeys, setAiDetailExpandedKeys] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     if (!businesses || !areas) {
@@ -234,6 +267,51 @@ export default function RegionResultScreen() {
     run();
   }, [businesses, areas]);
 
+  const handleGenerateAI = async (
+    businessName: string,
+    result: RankedResult,
+  ) => {
+    const key = `${businessName}-${result.areaName}`;
+    if (aiExplanations[key] || aiLoadingKeys[key]) {
+      return;
+    }
+
+    setAiLoadingKeys(prev => ({...prev, [key]: true}));
+    setAiErrorKeys(prev => ({...prev, [key]: ''}));
+
+    try {
+      const explanation = await generateAIExplanation({
+        지역: result.areaName,
+        업종: businessName,
+        유동인구: result.floatingPopulation,
+        생활인구: result.livingPopulation,
+        점포수: result.storeCount,
+        경쟁밀도: result.competitionDensity,
+        전체카드소비: result.salesAmount,
+        점포당카드소비: result.averageSalesPerStore,
+        버스정류장수: result.busStopCount,
+        적합도점수: result.suitabilityScore,
+        순위: result.rank,
+      });
+      setAiExplanations(prev => ({...prev, [key]: explanation}));
+    } catch (error) {
+      console.error('AI 설명 생성 오류:', error);
+      setAiErrorKeys(prev => ({
+        ...prev,
+        [key]:
+          error instanceof Error
+            ? error.message
+            : 'AI 설명을 가져오지 못했습니다.',
+      }));
+    } finally {
+      setAiLoadingKeys(prev => ({...prev, [key]: false}));
+    }
+  };
+
+  const toggleAiDetail = (key: string) => {
+    setAiDetailExpandedKeys(prev => ({...prev, [key]: !prev[key]}));
+  };
+
   return (
     <ScrollView
       style={styles.screen}
@@ -327,6 +405,11 @@ export default function RegionResultScreen() {
 
               const isFirst =
                 result.rank === 1;
+
+              const explanation = aiExplanations[key];
+              const aiLoading = aiLoadingKeys[key];
+              const aiError = aiErrorKeys[key];
+              const aiDetailExpanded = aiDetailExpandedKeys[key];
 
               return (
                 <Pressable
@@ -669,6 +752,77 @@ export default function RegionResultScreen() {
                           </Text>
                         </View>
                       </View>
+                    </View>
+                  )}
+
+                  {/* AI 상세 분석 (버튼 눌렀을 때만 요청) */}
+                  {!explanation && (
+                    <TouchableOpacity
+                      style={styles.aiButton}
+                      activeOpacity={0.7}
+                      disabled={aiLoading}
+                      onPress={() =>
+                        handleGenerateAI(group.businessName, result)
+                      }>
+                      {aiLoading ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.aiButtonText}>AI 설명 보기</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {aiError && !aiLoading && (
+                    <Text style={styles.aiError}>{aiError}</Text>
+                  )}
+
+                  {explanation && (
+                    <View style={styles.aiBox}>
+                      <Text style={styles.aiLabel}>AI 추천 이유</Text>
+                      {renderEmphasizedText(
+                        explanation.recommendationReason,
+                        styles.aiText,
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.detailToggleButton}
+                        activeOpacity={0.7}
+                        onPress={() => toggleAiDetail(key)}>
+                        <Text style={styles.detailToggleText}>
+                          {aiDetailExpanded
+                            ? 'AI 상세 설명 접기 ▲'
+                            : 'AI 상세 설명 보기 ▼'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {aiDetailExpanded && (
+                        <View style={styles.aiDetailSection}>
+                          <Text style={styles.aiLabel}>주요 특징</Text>
+                          {renderEmphasizedText(
+                            explanation.keyFeatures,
+                            styles.aiText,
+                          )}
+
+                          <Text style={styles.aiLabel}>장점</Text>
+                          {explanation.advantages.map((advantage, index) => (
+                            <Text key={index} style={styles.aiListItem}>
+                              {`· ${advantage}`}
+                            </Text>
+                          ))}
+
+                          <Text style={styles.aiLabel}>위험요소</Text>
+                          {explanation.risks.map((risk, index) => (
+                            <Text key={index} style={styles.aiListItem}>
+                              {`· ${risk}`}
+                            </Text>
+                          ))}
+
+                          <Text style={styles.aiLabel}>고려사항</Text>
+                          <Text style={styles.aiText}>
+                            {explanation.considerations}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </Pressable>
@@ -1060,5 +1214,77 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 3,
     marginLeft: 2,
+  },
+
+  aiButton: {
+    marginTop: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+  },
+
+  aiButtonText: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+
+  aiError: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#D14343',
+  },
+
+  aiBox: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 15,
+    backgroundColor: '#F7F7F7',
+  },
+
+  aiLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+
+  aiText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+  },
+
+  aiHighlight: {
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+
+  aiListItem: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+    marginLeft: 4,
+  },
+
+  detailToggleButton: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+
+  detailToggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+  },
+
+  aiDetailSection: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
 });
