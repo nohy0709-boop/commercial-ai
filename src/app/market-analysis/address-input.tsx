@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants/colors';
+import AddressMap from '@/components/address-map';
 import { sejongAreas } from '@/constants/sejongAreas';
 import type { Coordinates } from '@/services/geocoding';
 import { getDongFromCoords, searchAddress } from '@/services/geocoding';
@@ -14,7 +15,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 
 export default function AddressInputScreen() {
   const router = useRouter();
@@ -110,16 +110,7 @@ export default function AddressInputScreen() {
         )}
 
         {!loading && coords && (
-          <MapView
-            style={styles.map}
-            region={{
-              latitude: coords.lat,
-              longitude: coords.lng,
-              latitudeDelta: 0.02,
-              longitudeDelta: 0.02,
-            }}>
-            <Marker coordinate={{latitude: coords.lat, longitude: coords.lng}} />
-          </MapView>
+          <AddressMap latitude={coords.lat} longitude={coords.lng} />
         )}
 
         {!loading && matchedDong && (
@@ -161,12 +152,6 @@ const styles = StyleSheet.create({
   searchButtonText: {color: '#FFFFFF', fontWeight: '700', fontSize: 14},
   loading: {marginTop: 20},
   error: {color: '#D14343', fontSize: 13, marginTop: 8},
-  map: {
-    width: '100%',
-    height: 240,
-    borderRadius: 12,
-    marginTop: 12,
-  },
   resultBox: {
     marginTop: 16,
     backgroundColor: COLORS.mintBlue,
@@ -176,14 +161,14 @@ const styles = StyleSheet.create({
   },
   resultText: {fontSize: 15, fontWeight: '700', color: COLORS.primary, marginBottom: 12},
   analyzeButton: {
-  backgroundColor: COLORS.neonLime,
-  borderRadius: 10,
-  paddingVertical: 12,
-  paddingHorizontal: 24,
-},
+    backgroundColor: COLORS.neonLime,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
   analyzeButtonText: {
-  color: '#111111',
-  fontWeight: '700',
-  fontSize: 14,
-},
-}); 
+    color: '#111111',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+});
