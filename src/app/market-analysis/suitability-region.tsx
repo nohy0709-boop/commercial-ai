@@ -1,9 +1,21 @@
+import AddressMap, {
+  MapMarkerData,
+} from '@/components/address-map.web';
+
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { searchLocation } from '@/services/geocoding';
+
 import {
-  FlatList,
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
+
+import React, { useState } from 'react';
+
+import {
+  ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,193 +30,562 @@ export default function SuitabilityRegionScreen() {
     lclsCode,
     mclsCode,
     sclsCode,
-  } = useLocalSearchParams<{
-    businessName: string;
-    lclsCode: string;
-    mclsCode: string;
-    sclsCode: string;
-  }>();
+  } =
+    useLocalSearchParams<{
+      businessName: string;
+      lclsCode: string;
+      mclsCode: string;
+      sclsCode: string;
+    }>();
 
+  // 선택한 지역
   const [selectedAreas, setSelectedAreas] =
     useState<string[]>([]);
 
-  const toggleArea = (name: string) => {
+  // 지도에 표시할 마커
+  const [areaMarkers, setAreaMarkers] =
+    useState<MapMarkerData[]>([]);
+
+  // 현재 좌표 검색 중인 지역
+  const [loadingArea, setLoadingArea] =
+    useState<string | null>(null);
+
+  const SEJONG_CENTER = {
+    latitude: 36.48,
+    longitude: 127.289,
+  };
+
+  /**
+   * 지역 선택 / 해제
+   */
+  const toggleArea = async (
+    name: string,
+  ) => {
+    /**
+     * 이미 선택된 경우
+     * → 지역과 마커 제거
+     */
+    if (selectedAreas.includes(name)) {
+      setSelectedAreas(prev =>
+        prev.filter(
+          area => area !== name,
+        ),
+      );
+
+      setAreaMarkers(prev =>
+        prev.filter(
+          marker =>
+            marker.name !== name,
+        ),
+      );
+
+      return;
+    }
+
+    /**
+     * 신규 선택
+     */
+    try {
+      setLoadingArea(name);
+
+      const location =
+        await searchLocation(
+          `세종특별자치시 ${name}`,
+        );
+
+      setSelectedAreas(prev => [
+        ...prev,
+        name,
+      ]);
+
+      if (location) {
+        setAreaMarkers(prev => [
+          ...prev,
+          {
+            name,
+            latitude: location.lat,
+            longitude: location.lng,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error(
+        '지역 위치 검색 실패:',
+        error,
+      );
+    } finally {
+      setLoadingArea(null);
+    }
+  };
+
+  /**
+   * 선택한 지역 삭제
+   */
+  const removeArea = (
+    name: string,
+  ) => {
     setSelectedAreas(prev =>
-      prev.includes(name)
-        ? prev.filter(area => area !== name)
-        : [...prev, name],
+      prev.filter(
+        area => area !== name,
+      ),
+    );
+
+    setAreaMarkers(prev =>
+      prev.filter(
+        marker =>
+          marker.name !== name,
+      ),
     );
   };
 
+  /**
+   * 적합성 분석
+   */
   const handleAnalyze = () => {
-    if (selectedAreas.length === 0) {
+    if (
+      selectedAreas.length === 0
+    ) {
       return;
     }
 
     router.push({
-      pathname: '/market-analysis/result',
+      pathname:
+        '/market-analysis/result',
+
       params: {
         businessName,
         lclsCode,
         mclsCode,
         sclsCode,
-        areas: selectedAreas.join(','),
+
+        areas:
+          selectedAreas.join(','),
       },
     });
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerSection}>
-        <Text style={styles.smallTitle}>
-          업종 + 입지 적합성 분석
-        </Text>
-
-        <Text style={styles.header}>
-          지역 선택
-        </Text>
-
-        <Text style={styles.description}>
-          <Text style={styles.businessName}>
-            {businessName}
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={
+        styles.scrollContent
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.content}>
+        {/* HEADER */}
+        <View
+          style={styles.headerSection}
+        >
+          <Text
+            style={styles.smallTitle}
+          >
+            업종 + 입지 적합성 분석
           </Text>
-          {' 업종을 분석할 지역을 선택해주세요.'}
-        </Text>
 
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            여러 개 선택 가능
+          <Text style={styles.header}>
+            분석 지역 선택
           </Text>
+
+          <Text
+            style={styles.description}
+          >
+            <Text
+              style={styles.businessName}
+            >
+              {businessName}
+            </Text>
+
+            {
+              ' 업종과 잘 맞는지 확인할 지역을 선택해주세요.'
+            }
+          </Text>
+
+          <View style={styles.badge}>
+            <Text
+              style={styles.badgeText}
+            >
+              여러 개 선택 가능
+            </Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          분석 지역
-        </Text>
-
-        <Text style={styles.selectedCount}>
-          {selectedAreas.length}개 선택
-        </Text>
-      </View>
-
-      <FlatList
-        data={sejongAreas}
-        keyExtractor={item => item.code}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        renderItem={({item}) => {
-          const selected =
-            selectedAreas.includes(item.name);
-
-          return (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                selected &&
-                  styles.itemSelected,
-              ]}
-              activeOpacity={0.7}
-              onPress={() =>
-                toggleArea(item.name)
+        {/* STEP 1 */}
+        <View style={styles.section}>
+          <View
+            style={
+              styles.sectionHeader
+            }
+          >
+            <View
+              style={
+                styles.sectionTitleArea
               }
             >
+              <View
+                style={styles.stepBadge}
+              >
+                <Text
+                  style={
+                    styles.stepBadgeText
+                  }
+                >
+                  1
+                </Text>
+              </View>
+
               <View>
                 <Text
-                  style={[
-                    styles.itemText,
-                    selected &&
-                      styles.itemTextSelected,
-                  ]}
+                  style={
+                    styles.sectionTitle
+                  }
                 >
-                  {item.name}
+                  지역 선택
                 </Text>
 
                 <Text
                   style={
-                    styles.itemDescription
+                    styles.sectionDescription
                   }
                 >
-                  세종특별자치시 {item.name}
+                  분석하고 싶은 세종시 지역을
+                  선택해주세요
+                </Text>
+              </View>
+            </View>
+
+            <Text
+              style={
+                styles.selectedCount
+              }
+            >
+              {selectedAreas.length}개 선택
+            </Text>
+          </View>
+
+          {/* 지도 */}
+          <View
+            style={
+              styles.mapContainer
+            }
+          >
+            <View
+              style={styles.mapHeader}
+            >
+              <View>
+                <Text
+                  style={styles.mapTitle}
+                >
+                  세종시 지도
+                </Text>
+
+                <Text
+                  style={
+                    styles.mapDescription
+                  }
+                >
+                  선택한 지역이 지도에
+                  표시됩니다
                 </Text>
               </View>
 
               <View
-                style={[
-                  styles.checkCircle,
-                  selected &&
-                    styles.checkCircleSelected,
-                ]}
+                style={
+                  styles.mapCountBadge
+                }
               >
-                {selected && (
-                  <Text
-                    style={styles.checkMark}
-                  >
-                    ✓
-                  </Text>
-                )}
+                <Text
+                  style={
+                    styles.mapCountText
+                  }
+                >
+                  {selectedAreas.length}개
+                </Text>
               </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
+            </View>
 
-      {selectedAreas.length > 0 && (
-        <View
-          style={styles.selectionSummary}
-        >
-          <Text
-            style={
-              styles.selectionSummaryLabel
-            }
-          >
-            선택한 지역
-          </Text>
+            <View style={styles.mapArea}>
+              <AddressMap
+                latitude={
+                  SEJONG_CENTER.latitude
+                }
+                longitude={
+                  SEJONG_CENTER.longitude
+                }
+                markers={areaMarkers}
+              />
+            </View>
+          </View>
 
-          <Text
-            style={
-              styles.selectionSummaryValue
-            }
+          {/* 지역 선택 */}
+          <View
+            style={styles.regionHeader}
           >
-            {selectedAreas.join(', ')}
-          </Text>
+            <View>
+              <Text
+                style={styles.regionTitle}
+              >
+                동 선택하기
+              </Text>
+
+              <Text
+                style={
+                  styles.regionDescription
+                }
+              >
+                비교하고 싶은 지역을 여러 개
+                선택할 수 있어요
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.chipRow}>
+            {sejongAreas.map(area => {
+              const selected =
+                selectedAreas.includes(
+                  area.name,
+                );
+
+              const loading =
+                loadingArea === area.name;
+
+              return (
+                <TouchableOpacity
+                  key={area.code}
+                  style={[
+                    styles.regionChip,
+                    selected &&
+                      styles.regionChipSelected,
+                  ]}
+                  activeOpacity={0.7}
+                  disabled={loading}
+                  onPress={() =>
+                    toggleArea(
+                      area.name,
+                    )
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.regionText,
+                      selected &&
+                        styles.regionTextSelected,
+                    ]}
+                  >
+                    {area.name}
+                  </Text>
+
+                  {loading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={COLORS.primary}
+                      style={styles.loader}
+                    />
+                  ) : (
+                    selected && (
+                      <Text
+                        style={styles.check}
+                      >
+                        ✓
+                      </Text>
+                    )
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-      )}
 
-      <TouchableOpacity
-        style={[
-          styles.analyzeButton,
-          selectedAreas.length === 0 &&
-            styles.analyzeButtonDisabled,
-        ]}
-        activeOpacity={0.8}
-        disabled={
-          selectedAreas.length === 0
-        }
-        onPress={handleAnalyze}
-      >
-        <Text
+        {/* STEP 2 */}
+        {selectedAreas.length > 0 && (
+          <View
+            style={
+              styles.summarySection
+            }
+          >
+            <View
+              style={
+                styles.sectionHeader
+              }
+            >
+              <View
+                style={
+                  styles.sectionTitleArea
+                }
+              >
+                <View
+                  style={styles.stepBadge}
+                >
+                  <Text
+                    style={
+                      styles.stepBadgeText
+                    }
+                  >
+                    2
+                  </Text>
+                </View>
+
+                <View>
+                  <Text
+                    style={
+                      styles.sectionTitle
+                    }
+                  >
+                    선택한 지역
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.sectionDescription
+                    }
+                  >
+                    적합성을 비교할 지역을
+                    확인해주세요
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                style={
+                  styles.selectedCount
+                }
+              >
+                총 {selectedAreas.length}개
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.summaryChipRow
+              }
+            >
+              {selectedAreas.map(
+                area => (
+                  <TouchableOpacity
+                    key={area}
+                    style={
+                      styles.summaryChip
+                    }
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      removeArea(area)
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.summaryChipText
+                      }
+                    >
+                      📍 {area}
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.removeText
+                      }
+                    >
+                      ×
+                    </Text>
+                  </TouchableOpacity>
+                ),
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* 분석 정보 */}
+        {selectedAreas.length > 0 && (
+          <View style={styles.infoBox}>
+            <View
+              style={
+                styles.infoIconBox
+              }
+            >
+              <Text
+                style={styles.infoIcon}
+              >
+                ✓
+              </Text>
+            </View>
+
+            <View
+              style={styles.infoTextArea}
+            >
+              <Text
+                style={styles.infoTitle}
+              >
+                분석 대상
+              </Text>
+
+              <Text
+                style={
+                  styles.infoDescription
+                }
+              >
+                {businessName} ×{' '}
+                {selectedAreas.join(
+                  ', ',
+                )}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* BUTTON */}
+        <TouchableOpacity
           style={[
-            styles.analyzeButtonText,
-            selectedAreas.length === 0 &&
-              styles.analyzeButtonTextDisabled,
+            styles.analyzeButton,
+
+            selectedAreas.length ===
+              0 &&
+              styles.analyzeButtonDisabled,
           ]}
+          activeOpacity={0.8}
+          disabled={
+            selectedAreas.length ===
+            0
+          }
+          onPress={handleAnalyze}
         >
-          {selectedAreas.length === 0
-            ? '지역을 선택해주세요'
-            : `선택한 ${selectedAreas.length}개 지역 분석하기 →`}
-        </Text>
-      </TouchableOpacity>
-    </View>
+          <Text
+            style={[
+              styles.analyzeButtonText,
+
+              selectedAreas.length ===
+                0 &&
+                styles.analyzeButtonTextDisabled,
+            ]}
+          >
+            {selectedAreas.length ===
+            0
+              ? '분석할 지역을 선택해주세요'
+              : `선택한 ${selectedAreas.length}개 지역 적합성 분석하기 →`}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 20,
     backgroundColor: COLORS.background,
   },
+
+  scrollContent: {
+    width: '100%',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 50,
+  },
+
+  content: {
+    width: '100%',
+    maxWidth: 900,
+  },
+
+  /* HEADER */
 
   headerSection: {
     marginTop: 10,
@@ -251,124 +632,310 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 
+  /* SECTION */
+
+  section: {
+    padding: 20,
+    marginBottom: 16,
+
+    borderRadius: 20,
+
+    borderWidth: 1,
+    borderColor: COLORS.border,
+
+    backgroundColor: COLORS.surface,
+  },
+
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 18,
+  },
+
+  sectionTitleArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingRight: 12,
+  },
+
+  stepBadge: {
+    width: 30,
+    height: 30,
+
+    borderRadius: 15,
+
+    backgroundColor: COLORS.primary,
+
     alignItems: 'center',
-    marginBottom: 14,
+    justifyContent: 'center',
+
+    marginRight: 11,
+  },
+
+  stepBadgeText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 
   sectionTitle: {
     fontSize: 18,
     fontWeight: '900',
     color: COLORS.text,
+    marginBottom: 4,
+  },
+
+  sectionDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
   },
 
   selectedCount: {
     fontSize: 12,
     fontWeight: '800',
     color: COLORS.primary,
+    paddingTop: 4,
   },
 
-  listContent: {
-    paddingBottom: 14,
+  /* MAP */
+
+  mapContainer: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+
+    borderRadius: 16,
+
+    overflow: 'hidden',
+
+    marginBottom: 20,
   },
 
-  item: {
+  mapHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
 
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    padding: 14,
 
-    borderRadius: 16,
+    backgroundColor: '#FAFBFA',
 
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-
-    marginBottom: 10,
-
-    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECEFEC',
   },
 
-  itemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#F1FFF5',
-  },
-
-  itemText: {
-    fontSize: 16,
-    fontWeight: '800',
+  mapTitle: {
+    fontSize: 14,
+    fontWeight: '900',
     color: COLORS.text,
+    marginBottom: 3,
   },
 
-  itemTextSelected: {
+  mapDescription: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+
+  mapCountBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+
+    borderRadius: 999,
+
+    backgroundColor: '#E9F8EC',
+  },
+
+  mapCountText: {
+    fontSize: 11,
+    fontWeight: '800',
     color: COLORS.primary,
   },
 
-  itemDescription: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+  mapArea: {
+    height: 330,
+    backgroundColor: '#F4F7F4',
   },
 
-  checkCircle: {
-    width: 24,
-    height: 24,
+  /* REGION */
 
-    borderRadius: 12,
+  regionHeader: {
+    marginBottom: 12,
+  },
 
-    borderWidth: 1.5,
+  regionTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: 3,
+  },
+
+  regionDescription: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+
+  regionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+
+    borderRadius: 14,
+
+    borderWidth: 1,
     borderColor: COLORS.border,
 
-    backgroundColor: COLORS.surface,
-
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
 
-  checkCircleSelected: {
+  regionChipSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#F0FFF4',
   },
 
-  checkMark: {
+  regionText: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
 
-  selectionSummary: {
-    padding: 16,
+  regionTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
 
+  check: {
+    marginLeft: 7,
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+
+  loader: {
+    marginLeft: 7,
+  },
+
+  /* SUMMARY */
+
+  summarySection: {
+    padding: 20,
+    marginBottom: 16,
+
+    borderRadius: 20,
+
+    borderWidth: 1,
+    borderColor: '#DCEFE0',
+
+    backgroundColor: '#F5FCF6',
+  },
+
+  summaryChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
+  summaryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    paddingVertical: 8,
+    paddingLeft: 12,
+    paddingRight: 10,
+
+    borderRadius: 999,
+
+    backgroundColor: '#FFFFFF',
+
+    borderWidth: 1,
+    borderColor: '#DCEFE0',
+  },
+
+  summaryChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+
+  removeText: {
+    marginLeft: 7,
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  /* INFO */
+
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    padding: 16,
     marginBottom: 16,
 
     borderRadius: 16,
 
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#F7F9F7',
 
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E6EAE6',
   },
 
-  selectionSummaryLabel: {
-    fontSize: 12,
+  infoIconBox: {
+    width: 34,
+    height: 34,
+
+    borderRadius: 17,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    backgroundColor: '#E9F8EC',
+
+    marginRight: 11,
+  },
+
+  infoIcon: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+
+  infoTextArea: {
+    flex: 1,
+  },
+
+  infoTitle: {
+    fontSize: 11,
     color: COLORS.textSecondary,
-    marginBottom: 5,
+    marginBottom: 4,
   },
 
-  selectionSummaryValue: {
-    fontSize: 14,
-    lineHeight: 20,
+  infoDescription: {
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.text,
   },
 
+  /* BUTTON */
+
   analyzeButton: {
-    paddingVertical: 17,
+    minHeight: 56,
+
     borderRadius: 16,
+
     alignItems: 'center',
+    justifyContent: 'center',
+
     backgroundColor: COLORS.neonLime,
   },
 
