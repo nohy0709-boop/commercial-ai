@@ -20,7 +20,8 @@ export default function TabLayout() {
           fontSize: 12,
           fontWeight: '700',
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -32,6 +33,13 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: '탐색',
+        }}
+      />
+
+      <Tabs.Screen
+        name="my"
+        options={{
+          title: 'MY',
         }}
       />
     </Tabs>
