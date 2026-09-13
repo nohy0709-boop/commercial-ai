@@ -1,6 +1,6 @@
 import AddressMap, {
   MapMarkerData,
-} from '@/components/address-map.web';
+} from '@/components/address-map';
 
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
@@ -16,7 +16,7 @@ import {
   useRouter,
 } from 'expo-router';
 
-import React, {
+import {
   useCallback,
   useState,
 } from 'react';

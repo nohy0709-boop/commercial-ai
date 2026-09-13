@@ -11,14 +11,16 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import {
-    ActivityIndicator,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+
+import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 
 // AI 응답 안의 **단어** 표시를, 실제로 굵고 강조된 글씨로 렌더링합니다.
 function renderEmphasizedText(text: string, textStyle: object) {
@@ -46,6 +48,140 @@ function formatChangeRate(value: number) {
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
 
+// 점수를 매길 때 쓴 8개 지표를, 화면에서 다루기 좋게 3개 범주로 묶었습니다.
+const METRIC_GROUPS = [
+  {
+    key: 'population',
+    label: '인구 지표',
+    metrics: [
+      { key: 'floatingPopulationScore', label: '유동인구' },
+      { key: 'livingPopulationScore', label: '생활인구' },
+      { key: 'floatingPopulationChangeScore', label: '유동인구 증가세' },
+      { key: 'livingPopulationChangeScore', label: '생활인구 증가세' },
+    ],
+  },
+  {
+    key: 'sales',
+    label: '소비 지표',
+    metrics: [
+      { key: 'salesScore', label: '전체 소비' },
+      { key: 'averageSalesScore', label: '점포당 소비' },
+    ],
+  },
+  {
+    key: 'environment',
+    label: '환경 지표',
+    metrics: [
+      { key: 'competitionScore', label: '경쟁 여유도' },
+      { key: 'accessibilityScore', label: '교통 접근성' },
+    ],
+  },
+];
+
+const CHART_COLORS = [
+  '#1D4ED8',
+  '#F59E0B',
+  '#10B981',
+  '#EF4444',
+  '#8B5CF6',
+  '#0EA5E9',
+];
+
+type CompareItem = {
+  areaName: string;
+  rank: number;
+  [scoreKey: string]: number | string;
+};
+
+// 여러 지역을 하나의 선그래프로 비교합니다 (온도 그래프처럼, 지역마다 선 하나씩).
+function MultiAreaLineChart({
+  metrics,
+  series,
+}: {
+  metrics: { key: string; label: string }[];
+  series: { name: string; color: string; values: number[] }[];
+}) {
+  const W = 300;
+  const H = 170;
+  const padLeft = 22;
+  const padRight = 10;
+  const padTop = 14;
+  const padBottom = 30;
+  const plotW = W - padLeft - padRight;
+  const plotH = H - padTop - padBottom;
+
+  const xFor = (i: number) =>
+    metrics.length > 1
+      ? padLeft + (i / (metrics.length - 1)) * plotW
+      : padLeft + plotW / 2;
+  const yFor = (v: number) =>
+    padTop + plotH - (Math.max(0, Math.min(100, v)) / 100) * plotH;
+
+  const gridLines = [0, 50, 100];
+
+  return (
+    <View>
+      <View style={styles.legendRow}>
+        {series.map(s => (
+          <View key={s.name} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+            <Text style={styles.legendText}>{s.name}</Text>
+          </View>
+        ))}
+      </View>
+
+      <Svg width="100%" height={190} viewBox={`0 0 ${W} ${H}`}>
+        {gridLines.map(g => (
+          <Line
+            key={g}
+            x1={padLeft}
+            x2={W - padRight}
+            y1={yFor(g)}
+            y2={yFor(g)}
+            stroke="#E5E7EB"
+            strokeWidth={1}
+          />
+        ))}
+
+        {series.map(s => (
+          <Polyline
+            key={s.name}
+            points={s.values.map((v, i) => `${xFor(i)},${yFor(v)}`).join(' ')}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={2}
+          />
+        ))}
+
+        {series.map(s =>
+          s.values.map((v, i) => (
+            <Circle
+              key={`${s.name}-${i}`}
+              cx={xFor(i)}
+              cy={yFor(v)}
+              r={3}
+              fill={s.color}
+            />
+          )),
+        )}
+
+        {metrics.map((m, i) => (
+          <SvgText
+            key={m.key}
+            x={xFor(i)}
+            y={H - 8}
+            fontSize="9"
+            fill="#6B7280"
+            textAnchor="middle"
+          >
+            {m.label}
+          </SvgText>
+        ))}
+      </Svg>
+    </View>
+  );
+}
+
 export default function RegionResultDetailScreen() {
   const params = useLocalSearchParams<{
     businessName: string;
@@ -62,6 +198,7 @@ export default function RegionResultDetailScreen() {
     busStopCount: string;
     livingPopulationChangeRate: string;
     floatingPopulationChangeRate: string;
+    compareData: string;
   }>();
 
   const {
@@ -79,6 +216,7 @@ export default function RegionResultDetailScreen() {
     busStopCount,
     livingPopulationChangeRate,
     floatingPopulationChangeRate,
+    compareData,
   } = params;
 
   const area = sejongAreas.find(item => item.name === areaName);
@@ -94,6 +232,11 @@ export default function RegionResultDetailScreen() {
   const [nearbyStores, setNearbyStores] = useState<NearbyStore[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
   const [storesError, setStoresError] = useState('');
+
+  const [rawNumbersExpanded, setRawNumbersExpanded] = useState(false);
+  const [activeMetricGroup, setActiveMetricGroup] = useState(
+    METRIC_GROUPS[0].key,
+  );
 
   useEffect(() => {
     const run = async () => {
@@ -164,6 +307,32 @@ export default function RegionResultDetailScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 비교 데이터 파싱 (최대 5개 + 지금 보고 있는 지역은 항상 포함)
+  let compareItems: CompareItem[] = [];
+  try {
+    compareItems = JSON.parse(compareData || '[]');
+  } catch (error) {
+    console.error('비교 데이터 파싱 오류:', error);
+  }
+
+  let chartItems = compareItems.slice(0, 5);
+  if (!chartItems.find(item => item.areaName === areaName)) {
+    const current = compareItems.find(item => item.areaName === areaName);
+    if (current) {
+      chartItems = [...chartItems, current];
+    }
+  }
+
+  const activeGroup =
+    METRIC_GROUPS.find(group => group.key === activeMetricGroup) ??
+    METRIC_GROUPS[0];
+
+  const chartSeries = chartItems.map((item, index) => ({
+    name: `${item.rank}위 ${item.areaName}`,
+    color: CHART_COLORS[index % CHART_COLORS.length],
+    values: activeGroup.metrics.map(m => Number(item[m.key]) || 0),
+  }));
+
   return (
     <ScrollView
       style={styles.screen}
@@ -189,7 +358,7 @@ export default function RegionResultDetailScreen() {
         </View>
       </View>
 
-      {/* ③ 핵심 지표 */}
+      {/* ③ 핵심 지표 (요약 4개) */}
       <View style={styles.metricGrid}>
         <View style={styles.metricBox}>
           <Text style={styles.metricLabel}>유동인구</Text>
@@ -213,6 +382,84 @@ export default function RegionResultDetailScreen() {
             {Math.round(Number(averageSalesPerStore)).toLocaleString()}원
           </Text>
         </View>
+      </View>
+
+      {/* 핵심 지표 분석: 다른 후보 지역들과 비교하는 선그래프 */}
+      <View style={styles.sectionBox}>
+        <Text style={styles.sectionTitle}>다른 후보와 비교</Text>
+        <Text style={styles.sectionDescription}>
+          같이 분석한 다른 지역들과 점수를 비교해봤어요 (0~100점).
+        </Text>
+
+        <View style={styles.tabRow}>
+          {METRIC_GROUPS.map(group => {
+            const isActive = activeMetricGroup === group.key;
+            return (
+              <TouchableOpacity
+                key={group.key}
+                style={[styles.tabButton, isActive && styles.tabButtonActive]}
+                activeOpacity={0.7}
+                onPress={() => setActiveMetricGroup(group.key)}
+              >
+                <Text
+                  style={[
+                    styles.tabButtonText,
+                    isActive && styles.tabButtonTextActive,
+                  ]}
+                >
+                  {group.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {chartSeries.length > 0 && (
+          <MultiAreaLineChart metrics={activeGroup.metrics} series={chartSeries} />
+        )}
+
+        <TouchableOpacity
+          style={styles.detailToggleButton}
+          activeOpacity={0.7}
+          onPress={() => setRawNumbersExpanded(prev => !prev)}
+        >
+          <Text style={styles.detailToggleText}>
+            {rawNumbersExpanded ? '실제 수치 접기 ▲' : '실제 수치로 보기 ▼'}
+          </Text>
+        </TouchableOpacity>
+
+        {rawNumbersExpanded && (
+          <View style={styles.aiDetailSection}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>생활인구</Text>
+              <Text style={styles.detailValue}>
+                {Number(livingPopulation).toLocaleString()}명
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>생활인구 증감률</Text>
+              <Text style={styles.detailValue}>
+                {formatChangeRate(Number(livingPopulationChangeRate))}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>유동인구 증감률</Text>
+              <Text style={styles.detailValue}>
+                {formatChangeRate(Number(floatingPopulationChangeRate))}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>전체 카드소비</Text>
+              <Text style={styles.detailValue}>
+                {Number(salesAmount).toLocaleString()}원
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>버스정류장</Text>
+              <Text style={styles.detailValue}>{busStopCount}개</Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* ④ 지도 + ⑤ 주변 실제 점포 */}
@@ -254,39 +501,6 @@ export default function RegionResultDetailScreen() {
           ))}
       </View>
 
-      {/* 지역 환경 상세 (숫자 나열, 접어두기) */}
-      <View style={styles.sectionBox}>
-        <Text style={styles.sectionTitle}>지역 환경 상세</Text>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>생활인구</Text>
-          <Text style={styles.detailValue}>
-            {Number(livingPopulation).toLocaleString()}명
-          </Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>생활인구 증감률</Text>
-          <Text style={styles.detailValue}>
-            {formatChangeRate(Number(livingPopulationChangeRate))}
-          </Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>유동인구 증감률</Text>
-          <Text style={styles.detailValue}>
-            {formatChangeRate(Number(floatingPopulationChangeRate))}
-          </Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>전체 카드소비</Text>
-          <Text style={styles.detailValue}>
-            {Number(salesAmount).toLocaleString()}원
-          </Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>버스정류장</Text>
-          <Text style={styles.detailValue}>{busStopCount}개</Text>
-        </View>
-      </View>
-
       {/* ⑥ AI 분석 이유 (구조화) */}
       <View style={styles.sectionBox}>
         <Text style={styles.sectionTitle}>AI 분석 요약</Text>
@@ -294,9 +508,7 @@ export default function RegionResultDetailScreen() {
         {aiLoading && (
           <View style={styles.smallLoadingBox}>
             <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.smallLoadingText}>
-              AI가 분석하는 중...
-            </Text>
+            <Text style={styles.smallLoadingText}>AI가 분석하는 중...</Text>
           </View>
         )}
 
@@ -452,7 +664,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
-  sectionDescription: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 12 },
+  sectionDescription: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 },
+
+  tabRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tabButtonActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tabButtonText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
+  tabButtonTextActive: { color: '#FFFFFF' },
+
+  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 6 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
 
   map: { width: '100%', height: 200, borderRadius: 14, marginBottom: 12 },
 

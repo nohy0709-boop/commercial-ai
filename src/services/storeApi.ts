@@ -45,7 +45,7 @@ export async function getStoreCount(
       `${areaName} 상가정보 요청 실패: ${response.status}`
     );
   }
-  
+
   const data = await response.json();
   console.log("API 요청 URL:", url);
   console.log("API 응답:", data);
@@ -65,11 +65,7 @@ export async function getStoreCount(
   };
 }
 
-
 /**
- * 아래 함수를 기존 src/services/storeApi.ts 파일 맨 아래에 추가하세요.
- * (기존 getStoreCount 함수는 그대로 두고, 이 함수만 새로 붙이는 거예요.)
- *
  * 같은 공공데이터 API(소상공인시장진흥공단 상가업소정보)를 쓰지만,
  * 이번엔 개수(numOfRows=1)가 아니라 실제 점포 목록을 가져옵니다.
  * 응답 안에 실제 상호명(bizesNm), 실제 도로명주소(rdnmAdr), 실제 좌표(lat, lon)가 들어있어요.
@@ -94,23 +90,14 @@ export async function getStoreList(
     throw new Error('공공데이터 API 키를 불러오지 못했습니다.');
   }
 
-  const params = new URLSearchParams({
-    serviceKey: apiKey,
-    pageNo: '1',
-    numOfRows: String(numOfRows),
-    divId: 'adongCd',
-    key: adongCode,
-    indsLclsCd: lclsCode,
-    type: 'json',
-  });
+  let url = `${BASE_URL}?serviceKey=${apiKey}&pageNo=1&numOfRows=${numOfRows}&divId=adongCd&key=${adongCode}&indsLclsCd=${lclsCode}&type=json`;
+
   if (mclsCode) {
-    params.append('indsMclsCd', mclsCode);
+    url += `&indsMclsCd=${mclsCode}`;
   }
   if (sclsCode) {
-    params.append('indsSclsCd', sclsCode);
+    url += `&indsSclsCd=${sclsCode}`;
   }
-
-  const url = `https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInDong?${params.toString()}`;
 
   const response = await fetch(url);
   if (!response.ok) {
