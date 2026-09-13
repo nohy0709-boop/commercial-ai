@@ -12,6 +12,8 @@ export default function MarketAnalysisLayout() {
       />
       <Stack.Screen name="result" options={{ title: '분석 결과' }} />
 
+      <Stack.Screen name="region-result-detail" options={{title: '상세 분석'}} />
+
       <Stack.Screen
         name="location-recommend"
         options={{ title: '보유 장소 선택' }}
