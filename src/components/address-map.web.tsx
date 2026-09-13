@@ -1,15 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, {
+  useEffect,
+  useRef,
+} from 'react';
+
 import {
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-
-declare global {
-  interface Window {
-    kakao: any;
-  }
-}
 
 export interface MapMarkerData {
   name: string;
@@ -20,25 +18,30 @@ export interface MapMarkerData {
 interface AddressMapProps {
   latitude: number;
   longitude: number;
+
   markers?: MapMarkerData[];
 
-  // 지도 클릭 허용
   selectable?: boolean;
 
-  // 지도 클릭 좌표 반환
   onMapPress?: (
     latitude: number,
     longitude: number,
   ) => void;
 
-  // 현재 직접 선택 중인 위치
   selectedPoint?: {
     latitude: number;
     longitude: number;
   } | null;
 
-  // 선택 위치 반경
+  selectedPointLabel?: string;
+
   radius?: number;
+}
+
+declare global {
+  interface Window {
+    kakao: any;
+  }
 }
 
 const KAKAO_JS_KEY =
@@ -51,248 +54,465 @@ export default function AddressMap({
   selectable = false,
   onMapPress,
   selectedPoint = null,
+  selectedPointLabel,
   radius = 500,
 }: AddressMapProps) {
+  const mapContainerRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
   const mapRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<any>(null);
 
+  /**
+   * Kakao Map SDK
+   */
   useEffect(() => {
-    let cancelled = false;
-
     if (!KAKAO_JS_KEY) {
       console.error(
         'EXPO_PUBLIC_KAKAO_JS_KEY가 없습니다.',
       );
+
       return;
     }
 
-    const createMap = () => {
+    const initializeMap = () => {
       if (
-        cancelled ||
-        !mapRef.current ||
-        !window.kakao?.maps
+        !window.kakao ||
+        !window.kakao.maps
       ) {
         return;
       }
 
       window.kakao.maps.load(() => {
         if (
-          cancelled ||
-          !mapRef.current
+          !mapContainerRef.current
         ) {
           return;
         }
 
         const center =
           new window.kakao.maps.LatLng(
-            selectedPoint?.latitude ??
-              latitude,
-            selectedPoint?.longitude ??
-              longitude,
+            latitude,
+            longitude,
           );
 
-        const map =
-          new window.kakao.maps.Map(
-            mapRef.current,
-            {
-              center,
-              level:
-                selectedPoint
-                  ? 4
-                  : markers.length === 1
-                    ? 4
-                    : 7,
-            },
-          );
-
-        const bounds =
-          new window.kakao.maps.LatLngBounds();
-
-        /**
-         * 기존 선택 지역 마커
-         */
-        markers.forEach(item => {
-          const position =
-            new window.kakao.maps.LatLng(
-              item.latitude,
-              item.longitude,
+        if (!mapRef.current) {
+          mapRef.current =
+            new window.kakao.maps.Map(
+              mapContainerRef.current,
+              {
+                center,
+                level: 4,
+              },
             );
-
-          new window.kakao.maps.Marker({
-            map,
-            position,
-          });
-
-          const label =
-            document.createElement('div');
-
-          label.innerText = item.name;
-
-          Object.assign(
-            label.style,
-            {
-              background: '#FFFFFF',
-              border:
-                '1px solid #22A447',
-              borderRadius: '12px',
-              padding: '6px 10px',
-              fontSize: '12px',
-              fontWeight: '700',
-              color: '#16883A',
-              whiteSpace: 'nowrap',
-              boxShadow:
-                '0 2px 7px rgba(0,0,0,0.12)',
-            },
-          );
-
-          new window.kakao.maps.CustomOverlay({
-            map,
-            position,
-            content: label,
-            yAnchor: 2.5,
-          });
-
-          bounds.extend(position);
-        });
-
-        /**
-         * 사용자가 지도에서 직접 찍은 위치
-         */
-        if (selectedPoint) {
-          const pointPosition =
-            new window.kakao.maps.LatLng(
-              selectedPoint.latitude,
-              selectedPoint.longitude,
-            );
-
-          new window.kakao.maps.Marker({
-            map,
-            position: pointPosition,
-          });
-
-          /**
-           * 반경 원
-           */
-          new window.kakao.maps.Circle({
-            map,
-            center: pointPosition,
-            radius,
-            strokeWeight: 2,
-            strokeColor: '#22A447',
-            strokeOpacity: 0.8,
-            fillColor: '#A7F3B5',
-            fillOpacity: 0.25,
-          });
-
-          map.setCenter(pointPosition);
-        } else if (
-          markers.length > 1
-        ) {
-          map.setBounds(bounds);
-        }
-
-        /**
-         * 지도 클릭
-         */
-        if (
-          selectable &&
-          onMapPress
-        ) {
-          window.kakao.maps.event.addListener(
-            map,
-            'click',
-            (mouseEvent: any) => {
-              const latLng =
-                mouseEvent.latLng;
-
-              onMapPress(
-                latLng.getLat(),
-                latLng.getLng(),
-              );
-            },
-          );
         }
       });
     };
 
-    if (window.kakao?.maps) {
-      createMap();
+    if (
+      window.kakao &&
+      window.kakao.maps
+    ) {
+      initializeMap();
 
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
 
     const existingScript =
       document.getElementById(
-        'kakao-map-script',
+        'kakao-map-sdk',
       ) as HTMLScriptElement | null;
 
     if (existingScript) {
-      const handleLoad = () => {
-        createMap();
-      };
-
       existingScript.addEventListener(
         'load',
-        handleLoad,
+        initializeMap,
       );
 
-      setTimeout(() => {
-        if (window.kakao?.maps) {
-          createMap();
-        }
-      }, 300);
-
       return () => {
-        cancelled = true;
-
         existingScript.removeEventListener(
           'load',
-          handleLoad,
+          initializeMap,
         );
       };
     }
 
     const script =
-      document.createElement('script');
+      document.createElement(
+        'script',
+      );
 
     script.id =
-      'kakao-map-script';
+      'kakao-map-sdk';
+
+    script.async = true;
 
     script.src =
       `https://dapi.kakao.com/v2/maps/sdk.js` +
       `?appkey=${KAKAO_JS_KEY}` +
       `&autoload=false`;
 
-    script.async = true;
+    script.onload =
+      initializeMap;
 
-    script.onload = () => {
-      createMap();
+    script.onerror = () => {
+      console.error(
+        'Kakao Maps SDK 로드 실패',
+      );
     };
-
-    script.onerror =
-      error => {
-        console.error(
-          'Kakao Map SDK 로드 실패:',
-          error,
-        );
-      };
 
     document.head.appendChild(
       script,
     );
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
+  /**
+   * ★ 항상 부모가 넘겨준
+   * latitude / longitude를 중심으로 사용
+   *
+   * selectedPoint가 있다고 해서
+   * 파란핀 위치로 강제로 되돌리지 않음.
+   */
+  useEffect(() => {
+    if (
+      !mapRef.current ||
+      !window.kakao
+    ) {
+      return;
+    }
+
+    const center =
+      new window.kakao.maps.LatLng(
+        latitude,
+        longitude,
+      );
+
+    mapRef.current.setCenter(
+      center,
+    );
   }, [
     latitude,
     longitude,
+  ]);
+
+  /**
+   * 마커 / 원 / 라벨
+   */
+  useEffect(() => {
+    if (
+      !mapRef.current ||
+      !window.kakao
+    ) {
+      return;
+    }
+
+    const map =
+      mapRef.current;
+
+    const createdOverlays: any[] =
+      [];
+
+    let selectedCircle:
+      | any
+      | null = null;
+
+    /**
+     * =============================
+     * 동 전체 초록핀
+     * =============================
+     */
+    markers.forEach(
+      markerData => {
+        const position =
+          new window.kakao.maps.LatLng(
+            markerData.latitude,
+            markerData.longitude,
+          );
+
+        const content = `
+          <div
+            style="
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              justify-content:flex-end;
+              pointer-events:none;
+            "
+          >
+            <div
+              style="
+                margin-bottom:6px;
+                background:#FFFFFF;
+                border:2px solid #22A447;
+                border-radius:999px;
+                padding:6px 12px;
+                font-size:12px;
+                font-weight:800;
+                color:#168A37;
+                white-space:nowrap;
+                box-shadow:0 2px 7px rgba(0,0,0,0.15);
+              "
+            >
+              ${markerData.name}
+            </div>
+
+            <div
+              style="
+                width:36px;
+                height:36px;
+                background:#22A447;
+                border:3px solid #FFFFFF;
+                border-radius:50% 50% 50% 0;
+                transform:rotate(-45deg);
+                box-shadow:0 3px 8px rgba(0,0,0,0.28);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+              "
+            >
+              <div
+                style="
+                  width:10px;
+                  height:10px;
+                  background:#FFFFFF;
+                  border-radius:50%;
+                "
+              ></div>
+            </div>
+          </div>
+        `;
+
+        const overlay =
+          new window.kakao.maps.CustomOverlay({
+            map,
+            position,
+            content,
+            xAnchor: 0.5,
+            yAnchor: 1,
+          });
+
+        createdOverlays.push(
+          overlay,
+        );
+      },
+    );
+
+    /**
+     * =============================
+     * 지도 직접 선택 파란핀
+     * =============================
+     */
+    if (selectedPoint) {
+      const pointPosition =
+        new window.kakao.maps.LatLng(
+          selectedPoint.latitude,
+          selectedPoint.longitude,
+        );
+
+      const label =
+        selectedPointLabel ||
+        '선택한 위치';
+
+      const selectedContent = `
+        <div
+          style="
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:flex-end;
+            pointer-events:none;
+          "
+        >
+          <div
+            style="
+              margin-bottom:6px;
+              background:#FFFFFF;
+              border:2px solid #4285F4;
+              border-radius:999px;
+              padding:6px 12px;
+              font-size:12px;
+              font-weight:800;
+              color:#2563EB;
+              white-space:nowrap;
+              box-shadow:0 2px 7px rgba(0,0,0,0.15);
+            "
+          >
+            ${label}
+          </div>
+
+          <div
+            style="
+              width:36px;
+              height:36px;
+              background:#4285F4;
+              border:3px solid #FFFFFF;
+              border-radius:50% 50% 50% 0;
+              transform:rotate(-45deg);
+              box-shadow:0 3px 8px rgba(0,0,0,0.28);
+              display:flex;
+              align-items:center;
+              justify-content:center;
+            "
+          >
+            <div
+              style="
+                width:10px;
+                height:10px;
+                background:#FFFFFF;
+                border-radius:50%;
+              "
+            ></div>
+          </div>
+        </div>
+      `;
+
+      const selectedOverlay =
+        new window.kakao.maps.CustomOverlay({
+          map,
+          position:
+            pointPosition,
+          content:
+            selectedContent,
+          xAnchor: 0.5,
+          yAnchor: 1,
+        });
+
+      createdOverlays.push(
+        selectedOverlay,
+      );
+
+      /**
+       * 반경 원
+       */
+      selectedCircle =
+        new window.kakao.maps.Circle({
+          map,
+
+          center:
+            pointPosition,
+
+          radius,
+
+          strokeWeight: 2,
+
+          strokeColor:
+            '#22A447',
+
+          strokeOpacity:
+            0.85,
+
+          strokeStyle:
+            'solid',
+
+          fillColor:
+            '#A7F3B5',
+
+          fillOpacity:
+            0.25,
+        });
+
+      /**
+       * 중요:
+       *
+       * 여기서 map.setCenter(pointPosition)
+       * 절대 하지 않음.
+       *
+       * 지도 중심은 무조건
+       * region.tsx의 mapCenter가 결정함.
+       */
+
+      /**
+       * 반경을 바꿀 때만
+       * 줌 정도 조절
+       */
+      if (radius === 300) {
+        map.setLevel(3);
+      } else if (
+        radius === 500
+      ) {
+        map.setLevel(4);
+      } else {
+        map.setLevel(5);
+      }
+    } else {
+      /**
+       * 파란핀 없을 때
+       * 일반 동 선택 확대 수준
+       */
+      if (
+        markers.length > 0
+      ) {
+        map.setLevel(4);
+      }
+    }
+
+    /**
+     * 지도 클릭
+     */
+    const handleClick = (
+      mouseEvent: any,
+    ) => {
+      if (
+        !selectable ||
+        !onMapPress
+      ) {
+        return;
+      }
+
+      const latLng =
+        mouseEvent.latLng;
+
+      onMapPress(
+        latLng.getLat(),
+        latLng.getLng(),
+      );
+    };
+
+    if (
+      selectable &&
+      onMapPress
+    ) {
+      window.kakao.maps.event.addListener(
+        map,
+        'click',
+        handleClick,
+      );
+    }
+
+    return () => {
+      createdOverlays.forEach(
+        overlay => {
+          overlay.setMap(null);
+        },
+      );
+
+      if (
+        selectedCircle
+      ) {
+        selectedCircle.setMap(
+          null,
+        );
+      }
+
+      if (
+        selectable &&
+        onMapPress
+      ) {
+        window.kakao.maps.event.removeListener(
+          map,
+          'click',
+          handleClick,
+        );
+      }
+    };
+  }, [
     markers,
-    selectable,
     selectedPoint,
+    selectedPointLabel,
     radius,
+    selectable,
     onMapPress,
   ]);
 
@@ -305,19 +525,10 @@ export default function AddressMap({
       >
         <Text
           style={
-            styles.errorTitle
-          }
-        >
-          지도 API 키가 없습니다
-        </Text>
-
-        <Text
-          style={
             styles.errorText
           }
         >
-          EXPO_PUBLIC_KAKAO_JS_KEY를
-          확인해주세요.
+          Kakao 지도 API 키를 확인해주세요.
         </Text>
       </View>
     );
@@ -325,14 +536,11 @@ export default function AddressMap({
 
   return (
     <div
-      ref={mapRef}
+      ref={mapContainerRef}
       style={{
         width: '100%',
         height: '100%',
-        minHeight: 320,
-        cursor: selectable
-          ? 'crosshair'
-          : 'default',
+        minHeight: 250,
       }}
     />
   );
@@ -341,22 +549,14 @@ export default function AddressMap({
 const styles =
   StyleSheet.create({
     errorContainer: {
-      width: '100%',
-      height: 320,
-      justifyContent: 'center',
+      flex: 1,
       alignItems: 'center',
-      backgroundColor: '#F5F7F5',
-    },
-
-    errorTitle: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: '#111111',
-      marginBottom: 6,
+      justifyContent: 'center',
+      backgroundColor: '#F7F7F7',
     },
 
     errorText: {
-      fontSize: 12,
-      color: '#6B7280',
+      fontSize: 13,
+      color: '#DC2626',
     },
   });
