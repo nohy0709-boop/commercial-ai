@@ -1,10 +1,22 @@
 import {
+    COLORS,
+} from '@/constants/colors';
+
+import {
     AnalysisHistoryItem,
     deleteAnalysis,
     getAnalysisHistory,
 } from '@/services/analysisHistory';
 
-import { COLORS } from '@/constants/colors';
+import {
+    getCurrentUser,
+    signOut,
+} from '@/services/auth';
+
+import {
+    getStartupNeeds,
+    StartupNeeds,
+} from '@/services/startupNeeds';
 
 import {
     useFocusEffect,
@@ -27,43 +39,6 @@ import {
     View,
 } from 'react-native';
 
-type StartupNeed = {
-  businessType: string;
-
-  budget: string;
-
-  preferredAreas: string[];
-
-  priorities: string[];
-
-  targetCustomer: string;
-
-  updatedAt: string;
-};
-
-const MOCK_STARTUP_NEED: StartupNeed = {
-  businessType: '카페',
-
-  budget: '5,000만원 이하',
-
-  preferredAreas: [
-    '나성동',
-    '어진동',
-  ],
-
-  priorities: [
-    '유동인구',
-    '매출',
-    '경쟁도',
-  ],
-
-  targetCustomer:
-    '20~30대 직장인',
-
-  updatedAt:
-    '2026-09-13',
-};
-
 export default function MyScreen() {
   const router =
     useRouter();
@@ -77,6 +52,28 @@ export default function MyScreen() {
     >([]);
 
   const [
+    startupNeed,
+    setStartupNeed,
+  ] =
+    useState<
+      StartupNeeds | null
+    >(
+      null,
+    );
+
+  const [
+    nickname,
+    setNickname,
+  ] =
+    useState('');
+
+  const [
+    email,
+    setEmail,
+  ] =
+    useState('');
+
+  const [
     loading,
     setLoading,
   ] =
@@ -84,29 +81,61 @@ export default function MyScreen() {
       true,
     );
 
-  const [
-    startupNeed,
-  ] =
-    useState<StartupNeed>(
-      MOCK_STARTUP_NEED,
-    );
-
-  const loadHistory =
+  const loadData =
     useCallback(async () => {
       try {
         setLoading(
           true,
         );
 
-        const data =
-          await getAnalysisHistory();
+        const user =
+          await getCurrentUser();
+
+        /**
+         * 로그인 안 되어 있으면
+         * 로그인 화면으로 이동
+         */
+        if (
+          !user
+        ) {
+          router.replace(
+            '/auth/login',
+          );
+
+          return;
+        }
+
+        setEmail(
+          user.email ??
+            '',
+        );
+
+        setNickname(
+          user.user_metadata
+            ?.nickname ??
+            '사용자',
+        );
+
+        const [
+          historyData,
+          needsData,
+        ] =
+          await Promise.all([
+            getAnalysisHistory(),
+
+            getStartupNeeds(),
+          ]);
 
         setHistories(
-          data,
+          historyData,
+        );
+
+        setStartupNeed(
+          needsData,
         );
       } catch (error) {
         console.error(
-          '분석 기록 조회 실패:',
+          'MY 데이터 조회 실패:',
           error,
         );
       } finally {
@@ -114,12 +143,16 @@ export default function MyScreen() {
           false,
         );
       }
-    }, []);
+    }, [
+      router,
+    ]);
 
   useFocusEffect(
     useCallback(() => {
-      loadHistory();
-    }, [loadHistory]),
+      loadData();
+    }, [
+      loadData,
+    ]),
   );
 
   const favoriteHistories =
@@ -130,7 +163,9 @@ export default function MyScreen() {
             item.isFavorite ===
             true,
         ),
-      [histories],
+      [
+        histories,
+      ],
     );
 
   const recentHistories =
@@ -153,83 +188,127 @@ export default function MyScreen() {
             0,
             3,
           ),
-      [histories],
+      [
+        histories,
+      ],
     );
 
-  const formatDate = (
-    dateString: string,
-  ) => {
-    const date =
-      new Date(
-        dateString,
+  const formatDate =
+    (
+      dateString: string,
+    ) => {
+      const date =
+        new Date(
+          dateString,
+        );
+
+      const year =
+        date.getFullYear();
+
+      const month =
+        String(
+          date.getMonth() +
+            1,
+        ).padStart(
+          2,
+          '0',
+        );
+
+      const day =
+        String(
+          date.getDate(),
+        ).padStart(
+          2,
+          '0',
+        );
+
+      return `${year}.${month}.${day}`;
+    };
+
+  const getTypeLabel =
+    (
+      type: AnalysisHistoryItem['type'],
+    ) => {
+      switch (
+        type
+      ) {
+        case 'comparison':
+          return '비교 분석';
+
+        case 'location':
+          return '입지 추천';
+
+        case 'owned':
+          return '보유 입지 분석';
+
+        default:
+          return '분석';
+      }
+    };
+
+  const handleLogout =
+    () => {
+      Alert.alert(
+        '로그아웃',
+        '로그아웃할까요?',
+        [
+          {
+            text:
+              '취소',
+
+            style:
+              'cancel',
+          },
+
+          {
+            text:
+              '로그아웃',
+
+            onPress:
+              async () => {
+                try {
+                  await signOut();
+
+                  router.replace(
+                    '/auth/login',
+                  );
+                } catch (error) {
+                  console.error(
+                    '로그아웃 실패:',
+                    error,
+                  );
+                }
+              },
+          },
+        ],
       );
+    };
 
-    const year =
-      date.getFullYear();
+  const handleDelete =
+    (
+      id: string,
+    ) => {
+      Alert.alert(
+        '분석 기록 삭제',
+        '이 분석 결과를 삭제할까요?',
+        [
+          {
+            text:
+              '취소',
 
-    const month =
-      String(
-        date.getMonth() +
-          1,
-      ).padStart(
-        2,
-        '0',
-      );
+            style:
+              'cancel',
+          },
 
-    const day =
-      String(
-        date.getDate(),
-      ).padStart(
-        2,
-        '0',
-      );
+          {
+            text:
+              '삭제',
 
-    return `${year}.${month}.${day}`;
-  };
+            style:
+              'destructive',
 
-  const getTypeLabel = (
-    type: AnalysisHistoryItem['type'],
-  ) => {
-    switch (type) {
-      case 'comparison':
-        return '비교 분석';
-
-      case 'location':
-        return '입지 추천';
-
-      case 'owned':
-        return '보유 입지 분석';
-
-      default:
-        return '분석';
-    }
-  };
-
-  const handleDelete = (
-    id: string,
-  ) => {
-    Alert.alert(
-      '분석 기록 삭제',
-      '이 분석 결과를 삭제할까요?',
-      [
-        {
-          text:
-            '취소',
-
-          style:
-            'cancel',
-        },
-
-        {
-          text:
-            '삭제',
-
-          style:
-            'destructive',
-
-          onPress:
-            async () => {
-              try {
+            onPress:
+              async () => {
                 await deleteAnalysis(
                   id,
                 );
@@ -242,22 +321,11 @@ export default function MyScreen() {
                         id,
                     ),
                 );
-              } catch (error) {
-                console.error(
-                  '삭제 실패:',
-                  error,
-                );
-
-                Alert.alert(
-                  '오류',
-                  '분석 기록을 삭제하지 못했습니다.',
-                );
-              }
-            },
-        },
-      ],
-    );
-  };
+              },
+          },
+        ],
+      );
+    };
 
   const handleView =
     (
@@ -392,6 +460,25 @@ export default function MyScreen() {
       });
     };
 
+  if (
+    loading
+  ) {
+    return (
+      <View
+        style={
+          styles.fullLoading
+        }
+      >
+        <ActivityIndicator
+          size="large"
+          color={
+            COLORS.primary
+          }
+        />
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={
@@ -406,286 +493,315 @@ export default function MyScreen() {
     >
       <View
         style={
-          styles.header
-        }
-      >
-        <Text
-          style={
-            styles.title
-          }
-        >
-          MY
-        </Text>
-
-        <Text
-          style={
-            styles.description
-          }
-        >
-          나의 창업 기준과 분석 기록을
-          한곳에서 관리해보세요.
-        </Text>
-      </View>
-
-      <View
-        style={
-          styles.needCard
+          styles.profileHeader
         }
       >
         <View
           style={
-            styles.sectionHeader
-          }
-        >
-          <View>
-            <Text
-              style={
-                styles.sectionEyebrow
-              }
-            >
-              MY STARTUP
-            </Text>
-
-            <Text
-              style={
-                styles.sectionTitle
-              }
-            >
-              나의 창업 니즈
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={
-              styles.editButton
-            }
-            activeOpacity={
-              0.8
-            }
-            onPress={() => {
-              console.log(
-                '창업 니즈 수정',
-              );
-            }}
-          >
-            <Text
-              style={
-                styles.editButtonText
-              }
-            >
-              수정
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View
-          style={
-            styles.needMainRow
-          }
-        >
-          <View
-            style={
-              styles.needMainItem
-            }
-          >
-            <Text
-              style={
-                styles.needLabel
-              }
-            >
-              희망 업종
-            </Text>
-
-            <Text
-              style={
-                styles.needValue
-              }
-            >
-              {
-                startupNeed.businessType
-              }
-            </Text>
-          </View>
-
-          <View
-            style={
-              styles.needMainItem
-            }
-          >
-            <Text
-              style={
-                styles.needLabel
-              }
-            >
-              예산
-            </Text>
-
-            <Text
-              style={
-                styles.needValue
-              }
-            >
-              {
-                startupNeed.budget
-              }
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={
-            styles.needBlock
+            styles.profileInfo
           }
         >
           <Text
             style={
-              styles.needLabel
+              styles.title
             }
           >
-            선호 지역
-          </Text>
-
-          <View
-            style={
-              styles.chipRow
-            }
-          >
-            {startupNeed.preferredAreas.map(
-              area => (
-                <View
-                  key={
-                    area
-                  }
-                  style={
-                    styles.grayChip
-                  }
-                >
-                  <Text
-                    style={
-                      styles.grayChipText
-                    }
-                  >
-                    {
-                      area
-                    }
-                  </Text>
-                </View>
-              ),
-            )}
-          </View>
-        </View>
-
-        <View
-          style={
-            styles.needBlock
-          }
-        >
-          <Text
-            style={
-              styles.needLabel
-            }
-          >
-            중요하게 보는 기준
-          </Text>
-
-          {startupNeed.priorities.map(
-            (
-              priority,
-              index,
-            ) => (
-              <View
-                key={
-                  priority
-                }
-                style={
-                  styles.priorityRow
-                }
-              >
-                <View
-                  style={
-                    styles.priorityNumber
-                  }
-                >
-                  <Text
-                    style={
-                      styles.priorityNumberText
-                    }
-                  >
-                    {
-                      index +
-                      1
-                    }
-                  </Text>
-                </View>
-
-                <Text
-                  style={
-                    styles.priorityText
-                  }
-                >
-                  {
-                    priority
-                  }
-                </Text>
-              </View>
-            ),
-          )}
-        </View>
-
-        <View
-          style={
-            styles.needBlock
-          }
-        >
-          <Text
-            style={
-              styles.needLabel
-            }
-          >
-            주요 고객층
+            MY
           </Text>
 
           <Text
             style={
-              styles.needText
+              styles.nickname
+            }
+          >
+            {nickname}님
+          </Text>
+
+          <Text
+            style={
+              styles.email
             }
           >
             {
-              startupNeed.targetCustomer
+              email
             }
           </Text>
         </View>
 
         <TouchableOpacity
           style={
-            styles.historyLinkButton
+            styles.logoutButton
           }
-          activeOpacity={
-            0.8
+          onPress={
+            handleLogout
           }
-          onPress={() => {
-            console.log(
-              '니즈 변경 내역',
-            );
-          }}
         >
           <Text
             style={
-              styles.historyLinkText
+              styles.logoutText
             }
           >
-            니즈 변경 내역 보기
+            로그아웃
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {startupNeed ? (
+        <View
+          style={
+            styles.needCard
+          }
+        >
+          <View
+            style={
+              styles.sectionHeader
+            }
+          >
+            <View>
+              <Text
+                style={
+                  styles.sectionEyebrow
+                }
+              >
+                MY STARTUP
+              </Text>
+
+              <Text
+                style={
+                  styles.sectionTitle
+                }
+              >
+                나의 창업 니즈
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={
+                styles.editButton
+              }
+              onPress={() =>
+                router.push(
+                  '/auth/needs-setup',
+                )
+              }
+            >
+              <Text
+                style={
+                  styles.editButtonText
+                }
+              >
+                수정
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View
+            style={
+              styles.needMainRow
+            }
+          >
+            <View
+              style={
+                styles.needMainItem
+              }
+            >
+              <Text
+                style={
+                  styles.needLabel
+                }
+              >
+                희망 업종
+              </Text>
+
+              <Text
+                style={
+                  styles.needValue
+                }
+              >
+                {
+                  startupNeed.businessType
+                }
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.needMainItem
+              }
+            >
+              <Text
+                style={
+                  styles.needLabel
+                }
+              >
+                예산
+              </Text>
+
+              <Text
+                style={
+                  styles.needValue
+                }
+              >
+                {
+                  startupNeed.budget
+                }
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={
+              styles.needBlock
+            }
+          >
+            <Text
+              style={
+                styles.needLabel
+              }
+            >
+              선호 지역
+            </Text>
+
+            <View
+              style={
+                styles.chipRow
+              }
+            >
+              {startupNeed.preferredAreas.map(
+                area => (
+                  <View
+                    key={
+                      area
+                    }
+                    style={
+                      styles.grayChip
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.grayChipText
+                      }
+                    >
+                      {
+                        area
+                      }
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          </View>
+
+          <View
+            style={
+              styles.needBlock
+            }
+          >
+            <Text
+              style={
+                styles.needLabel
+              }
+            >
+              중요하게 보는 기준
+            </Text>
+
+            {startupNeed.priorities.map(
+              (
+                priority,
+                index,
+              ) => (
+                <View
+                  key={
+                    priority
+                  }
+                  style={
+                    styles.priorityRow
+                  }
+                >
+                  <View
+                    style={
+                      styles.priorityNumber
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.priorityNumberText
+                      }
+                    >
+                      {
+                        index +
+                        1
+                      }
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={
+                      styles.priorityText
+                    }
+                  >
+                    {
+                      priority
+                    }
+                  </Text>
+                </View>
+              ),
+            )}
+          </View>
+
+          <View
+            style={
+              styles.needBlock
+            }
+          >
+            <Text
+              style={
+                styles.needLabel
+              }
+            >
+              주요 고객층
+            </Text>
+
+            <Text
+              style={
+                styles.needText
+              }
+            >
+              {
+                startupNeed.targetCustomer
+              }
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={
+            styles.emptyNeedsCard
+          }
+          onPress={() =>
+            router.push(
+              '/auth/needs-setup',
+            )
+          }
+        >
+          <Text
+            style={
+              styles.emptyNeedsTitle
+            }
+          >
+            창업 니즈를 설정해주세요
           </Text>
 
           <Text
             style={
-              styles.historyLinkArrow
+              styles.emptyNeedsDescription
             }
           >
-            ›
+            희망 업종과 지역을 설정하면
+            맞춤 분석에 활용할 수 있어요.
           </Text>
         </TouchableOpacity>
-      </View>
+      )}
 
       <View
         style={
@@ -783,10 +899,7 @@ export default function MyScreen() {
 
       <TouchableOpacity
         style={
-          styles.menuCard
-        }
-        activeOpacity={
-          0.8
+          styles.favoriteCard
         }
         onPress={() =>
           router.push(
@@ -796,64 +909,57 @@ export default function MyScreen() {
       >
         <View
           style={
-            styles.menuTop
+            styles.favoriteIconBox
           }
         >
-          <View
-            style={
-              styles.menuIcon
-            }
-          >
-            <Text
-              style={
-                styles.menuIconText
-              }
-            >
-              ♥
-            </Text>
-          </View>
-
-          <View
-            style={
-              styles.menuBody
-            }
-          >
-            <Text
-              style={
-                styles.menuTitle
-              }
-            >
-              찜한 분석
-            </Text>
-
-            <Text
-              style={
-                styles.menuDescription
-              }
-            >
-              마음에 든 분석 결과를
-              따로 모아볼 수 있어요.
-            </Text>
-          </View>
-
           <Text
             style={
-              styles.menuCount
+              styles.favoriteIcon
             }
           >
-            {
-              favoriteHistories.length
-            }
-          </Text>
-
-          <Text
-            style={
-              styles.menuArrow
-            }
-          >
-            ›
+            ♥
           </Text>
         </View>
+
+        <View
+          style={
+            styles.favoriteBody
+          }
+        >
+          <Text
+            style={
+              styles.favoriteTitle
+            }
+          >
+            찜한 분석
+          </Text>
+
+          <Text
+            style={
+              styles.favoriteDescription
+            }
+          >
+            마음에 든 분석 결과를 따로 모아볼 수 있어요.
+          </Text>
+        </View>
+
+        <Text
+          style={
+            styles.favoriteCount
+          }
+        >
+          {
+            favoriteHistories.length
+          }
+        </Text>
+
+        <Text
+          style={
+            styles.arrow
+          }
+        >
+          ›
+        </Text>
       </TouchableOpacity>
 
       <View
@@ -878,29 +984,8 @@ export default function MyScreen() {
         </Text>
       </View>
 
-      {loading ? (
-        <View
-          style={
-            styles.loadingBox
-          }
-        >
-          <ActivityIndicator
-            size="large"
-            color={
-              COLORS.primary
-            }
-          />
-
-          <Text
-            style={
-              styles.loadingText
-            }
-          >
-            분석 기록을 불러오고 있어요
-          </Text>
-        </View>
-      ) : recentHistories.length ===
-        0 ? (
+      {recentHistories.length ===
+      0 ? (
         <View
           style={
             styles.emptyBox
@@ -927,9 +1012,7 @@ export default function MyScreen() {
               styles.emptyDescription
             }
           >
-            분석 상세 화면에서 하트를
-            누르거나 결과를 저장하면
-            여기에 표시됩니다.
+            분석 결과를 저장하면 여기에 표시됩니다.
           </Text>
         </View>
       ) : (
@@ -964,31 +1047,15 @@ export default function MyScreen() {
                   </Text>
                 </View>
 
-                <View
+                <Text
                   style={
-                    styles.dateRow
+                    styles.date
                   }
                 >
-                  {history.isFavorite && (
-                    <Text
-                      style={
-                        styles.favoriteIcon
-                      }
-                    >
-                      ♥
-                    </Text>
+                  {formatDate(
+                    history.createdAt,
                   )}
-
-                  <Text
-                    style={
-                      styles.date
-                    }
-                  >
-                    {formatDate(
-                      history.createdAt,
-                    )}
-                  </Text>
-                </View>
+                </Text>
               </View>
 
               <Text
@@ -1007,12 +1074,11 @@ export default function MyScreen() {
                 }
               >
                 {history.regions.map(
-                  (
-                    region,
-                    index,
-                  ) => (
+                  region => (
                     <View
-                      key={`${region}-${index}`}
+                      key={
+                        region
+                      }
                       style={
                         styles.regionChip
                       }
@@ -1040,9 +1106,6 @@ export default function MyScreen() {
                   style={
                     styles.deleteButton
                   }
-                  activeOpacity={
-                    0.7
-                  }
                   onPress={() =>
                     handleDelete(
                       history.id,
@@ -1061,9 +1124,6 @@ export default function MyScreen() {
                 <TouchableOpacity
                   style={
                     styles.viewButton
-                  }
-                  activeOpacity={
-                    0.8
                   }
                   onPress={() =>
                     handleView(
@@ -1084,53 +1144,25 @@ export default function MyScreen() {
           ),
         )
       )}
-
-      <TouchableOpacity
-        style={
-          styles.bottomMenuCard
-        }
-        activeOpacity={
-          0.8
-        }
-        onPress={() => {
-          console.log(
-            '니즈 변경 내역',
-          );
-        }}
-      >
-        <View>
-          <Text
-            style={
-              styles.bottomMenuTitle
-            }
-          >
-            니즈 변경 내역
-          </Text>
-
-          <Text
-            style={
-              styles.bottomMenuDescription
-            }
-          >
-            창업 기준을 어떻게 변경해왔는지
-            확인할 수 있어요.
-          </Text>
-        </View>
-
-        <Text
-          style={
-            styles.menuArrow
-          }
-        >
-          ›
-        </Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles =
   StyleSheet.create({
+    fullLoading: {
+      flex: 1,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        COLORS.background,
+    },
+
     screen: {
       flex: 1,
 
@@ -1139,7 +1171,8 @@ const styles =
     },
 
     container: {
-      width: '100%',
+      width:
+        '100%',
 
       maxWidth: 900,
 
@@ -1151,10 +1184,23 @@ const styles =
       paddingBottom: 60,
     },
 
-    header: {
+    profileHeader: {
       marginTop: 10,
 
       marginBottom: 24,
+
+      flexDirection:
+        'row',
+
+      justifyContent:
+        'space-between',
+
+      alignItems:
+        'flex-start',
+    },
+
+    profileInfo: {
+      flex: 1,
     },
 
     title: {
@@ -1167,12 +1213,48 @@ const styles =
         COLORS.text,
     },
 
-    description: {
-      marginTop: 7,
+    nickname: {
+      marginTop: 8,
 
-      fontSize: 14,
+      fontSize: 16,
 
-      lineHeight: 21,
+      fontWeight:
+        '900',
+
+      color:
+        COLORS.text,
+    },
+
+    email: {
+      marginTop: 3,
+
+      fontSize: 11,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    logoutButton: {
+      paddingVertical: 8,
+
+      paddingHorizontal: 13,
+
+      borderRadius: 999,
+
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.border,
+
+      backgroundColor:
+        '#FFFFFF',
+    },
+
+    logoutText: {
+      fontSize: 11,
+
+      fontWeight:
+        '800',
 
       color:
         COLORS.textSecondary,
@@ -1396,41 +1478,39 @@ const styles =
         COLORS.text,
     },
 
-    historyLinkButton: {
-      marginTop: 20,
+    emptyNeedsCard: {
+      padding: 22,
 
-      paddingTop: 16,
+      borderRadius: 20,
 
-      borderTopWidth: 1,
+      borderWidth: 1,
 
-      borderTopColor:
-        '#E4EEE6',
+      borderColor:
+        '#DCEFE0',
 
-      flexDirection:
-        'row',
+      backgroundColor:
+        '#F7FCF8',
 
-      alignItems:
-        'center',
-
-      justifyContent:
-        'space-between',
+      marginBottom: 18,
     },
 
-    historyLinkText: {
-      fontSize: 12,
+    emptyNeedsTitle: {
+      fontSize: 16,
 
       fontWeight:
-        '800',
+        '900',
 
       color:
-        COLORS.primary,
+        COLORS.text,
     },
 
-    historyLinkArrow: {
-      fontSize: 20,
+    emptyNeedsDescription: {
+      marginTop: 5,
+
+      fontSize: 12,
 
       color:
-        COLORS.primary,
+        COLORS.textSecondary,
     },
 
     summaryCard: {
@@ -1470,15 +1550,12 @@ const styles =
 
       color:
         COLORS.primary,
-
-      marginBottom: 5,
     },
 
     summaryLabel: {
-      fontSize: 11,
+      marginTop: 5,
 
-      fontWeight:
-        '700',
+      fontSize: 11,
 
       color:
         COLORS.textSecondary,
@@ -1493,7 +1570,13 @@ const styles =
         '#DCEFE0',
     },
 
-    menuCard: {
+    favoriteCard: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
       padding: 17,
 
       borderRadius: 18,
@@ -1509,15 +1592,7 @@ const styles =
       marginBottom: 28,
     },
 
-    menuTop: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-    },
-
-    menuIcon: {
+    favoriteIconBox: {
       width: 42,
 
       height: 42,
@@ -1536,18 +1611,18 @@ const styles =
       marginRight: 13,
     },
 
-    menuIconText: {
-      fontSize: 20,
-
+    favoriteIcon: {
       color:
         '#E54861',
+
+      fontSize: 20,
     },
 
-    menuBody: {
+    favoriteBody: {
       flex: 1,
     },
 
-    menuTitle: {
+    favoriteTitle: {
       fontSize: 15,
 
       fontWeight:
@@ -1557,18 +1632,16 @@ const styles =
         COLORS.text,
     },
 
-    menuDescription: {
+    favoriteDescription: {
       marginTop: 3,
 
       fontSize: 11,
-
-      lineHeight: 17,
 
       color:
         COLORS.textSecondary,
     },
 
-    menuCount: {
+    favoriteCount: {
       fontSize: 16,
 
       fontWeight:
@@ -1576,11 +1649,11 @@ const styles =
 
       color:
         COLORS.primary,
-
-      marginRight: 8,
     },
 
-    menuArrow: {
+    arrow: {
+      marginLeft: 8,
+
       fontSize: 24,
 
       color:
@@ -1597,18 +1670,44 @@ const styles =
         COLORS.primary,
     },
 
-    loadingBox: {
-      minHeight: 220,
+    emptyBox: {
+      minHeight: 230,
 
       alignItems:
         'center',
 
       justifyContent:
         'center',
+
+      borderRadius: 20,
+
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.border,
+
+      backgroundColor:
+        COLORS.surface,
     },
 
-    loadingText: {
+    emptyIcon: {
+      fontSize: 36,
+    },
+
+    emptyTitle: {
       marginTop: 12,
+
+      fontSize: 16,
+
+      fontWeight:
+        '900',
+
+      color:
+        COLORS.text,
+    },
+
+    emptyDescription: {
+      marginTop: 6,
 
       fontSize: 12,
 
@@ -1664,23 +1763,6 @@ const styles =
         COLORS.primary,
     },
 
-    dateRow: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      gap: 6,
-    },
-
-    favoriteIcon: {
-      fontSize: 13,
-
-      color:
-        '#E54861',
-    },
-
     date: {
       fontSize: 11,
 
@@ -1726,9 +1808,6 @@ const styles =
     regionText: {
       fontSize: 11,
 
-      fontWeight:
-        '700',
-
       color:
         COLORS.textSecondary,
     },
@@ -1740,13 +1819,6 @@ const styles =
       gap: 9,
 
       marginTop: 18,
-
-      paddingTop: 15,
-
-      borderTopWidth: 1,
-
-      borderTopColor:
-        '#EEEEEE',
     },
 
     deleteButton: {
@@ -1766,16 +1838,10 @@ const styles =
 
       justifyContent:
         'center',
-
-      backgroundColor:
-        '#FFFFFF',
     },
 
     deleteText: {
       fontSize: 12,
-
-      fontWeight:
-        '700',
 
       color:
         COLORS.textSecondary,
@@ -1806,103 +1872,5 @@ const styles =
 
       color:
         '#111111',
-    },
-
-    emptyBox: {
-      minHeight: 230,
-
-      borderRadius: 20,
-
-      borderWidth: 1,
-
-      borderColor:
-        COLORS.border,
-
-      backgroundColor:
-        COLORS.surface,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
-      marginBottom: 20,
-    },
-
-    emptyIcon: {
-      fontSize: 36,
-
-      marginBottom: 12,
-    },
-
-    emptyTitle: {
-      fontSize: 16,
-
-      fontWeight:
-        '900',
-
-      color:
-        COLORS.text,
-    },
-
-    emptyDescription: {
-      marginTop: 6,
-
-      fontSize: 12,
-
-      lineHeight: 18,
-
-      textAlign:
-        'center',
-
-      color:
-        COLORS.textSecondary,
-    },
-
-    bottomMenuCard: {
-      marginTop: 8,
-
-      padding: 18,
-
-      borderRadius: 18,
-
-      borderWidth: 1,
-
-      borderColor:
-        COLORS.border,
-
-      backgroundColor:
-        COLORS.surface,
-
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'space-between',
-    },
-
-    bottomMenuTitle: {
-      fontSize: 15,
-
-      fontWeight:
-        '900',
-
-      color:
-        COLORS.text,
-    },
-
-    bottomMenuDescription: {
-      marginTop: 5,
-
-      fontSize: 11,
-
-      lineHeight: 17,
-
-      color:
-        COLORS.textSecondary,
     },
   });
