@@ -13,52 +13,46 @@ import {
 } from '@/services/commercialAnalysis';
 
 import { generateAIExplanation } from '@/services/aiExplanation';
+import type { Coordinates } from '@/services/geocoding';
+import { searchLocation } from '@/services/geocoding';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
 type DetailedLocation = {
   label: string;
-
   dongName: string;
-
   coordinates: {
     lat: number;
     lng: number;
   };
-
   radius: number;
 };
 
 type RankedResult =
   ScoredCommercialAnalysisResult & {
     rank: number;
-
     analysisType?: 'point';
-
     dongName?: string;
-
     latitude?: number;
-
     longitude?: number;
-
     radius?: number;
-
     isEstimated?: boolean;
   };
 
 type GroupedResult = {
   businessName: string;
-
   items: RankedResult[];
 };
 
@@ -83,6 +77,54 @@ function getLevelLabel(
   }
 
   return '낮음';
+}
+
+function getCompetitionLabel(
+  score: number,
+): string {
+  if (score >= 75) return '경쟁 여유';
+  if (score >= 50) return '경쟁 보통';
+  if (score >= 25) return '경쟁 있음';
+  return '경쟁 치열';
+}
+
+function getOneLineSummary(
+  result: ScoredCommercialAnalysisResult,
+): string {
+  const reasons = [
+    {
+      text: '유동인구가 풍부해요',
+      score:
+        result.floatingPopulationScore,
+    },
+    {
+      text: '점포당 소비 규모가 커요',
+      score:
+        result.averageSalesScore,
+    },
+    {
+      text: '경쟁 부담이 적은 편이에요',
+      score:
+        result.competitionScore,
+    },
+    {
+      text: '생활인구가 꾸준해요',
+      score:
+        result.livingPopulationScore,
+    },
+    {
+      text: '접근성이 좋아요',
+      score:
+        result.accessibilityScore,
+    },
+  ];
+
+  const top = [...reasons].sort(
+    (a, b) =>
+      b.score - a.score,
+  )[0];
+
+  return top.text;
 }
 
 function parseDetailedLocations(
@@ -118,6 +160,87 @@ function parseDetailedLocations(
 
     return [];
   }
+}
+
+function CardMapThumbnail({
+  coords,
+}: {
+  coords: Coordinates | undefined;
+}) {
+  if (
+    Platform.OS === 'web' ||
+    !coords
+  ) {
+    return (
+      <View
+        style={
+          styles.mapFallback
+        }
+      >
+        <Text
+          style={
+            styles.mapFallbackText
+          }
+        >
+          📍
+        </Text>
+      </View>
+    );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const MapView =
+    require(
+      'react-native-maps',
+    ).default;
+
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const {
+    Marker,
+  } =
+    require(
+      'react-native-maps',
+    );
+
+  return (
+    <MapView
+      style={
+        styles.cardMap
+      }
+      pointerEvents="none"
+      scrollEnabled={
+        false
+      }
+      zoomEnabled={
+        false
+      }
+      pitchEnabled={
+        false
+      }
+      rotateEnabled={
+        false
+      }
+      initialRegion={{
+        latitude:
+          coords.lat,
+        longitude:
+          coords.lng,
+        latitudeDelta:
+          0.02,
+        longitudeDelta:
+          0.02,
+      }}
+    >
+      <Marker
+        coordinate={{
+          latitude:
+            coords.lat,
+          longitude:
+            coords.lng,
+        }}
+      />
+    </MapView>
+  );
 }
 
 export default function RegionResultScreen() {
@@ -161,10 +284,7 @@ export default function RegionResultScreen() {
     setTopAiSummary,
   ] =
     useState<
-      Record<
-        string,
-        string
-      >
+      Record<string, string>
     >({});
 
   const [
@@ -172,9 +292,25 @@ export default function RegionResultScreen() {
     setTopAiLoading,
   ] =
     useState<
+      Record<string, boolean>
+    >({});
+
+  const [
+    activeTab,
+    setActiveTab,
+  ] =
+    useState<
+      string | null
+    >(null);
+
+  const [
+    areaCoordinates,
+    setAreaCoordinates,
+  ] =
+    useState<
       Record<
         string,
-        boolean
+        Coordinates
       >
     >({});
 
@@ -241,17 +377,64 @@ export default function RegionResultScreen() {
           ),
       );
 
+    Promise.all(
+      targetAreas.map(
+        async area => {
+          try {
+            const coords =
+              await searchLocation(
+                `세종특별자치시 ${area.name}`,
+              );
+
+            return [
+              area.name,
+              coords,
+            ] as const;
+          } catch (error) {
+            console.error(
+              `${area.name} 좌표 조회 실패`,
+              error,
+            );
+
+            return [
+              area.name,
+              null,
+            ] as const;
+          }
+        },
+      ),
+    ).then(results => {
+      const map: Record<
+        string,
+        Coordinates
+      > = {};
+
+      results.forEach(
+        (
+          [
+            name,
+            coords,
+          ],
+        ) => {
+          if (coords) {
+            map[name] =
+              coords;
+          }
+        },
+      );
+
+      setAreaCoordinates(
+        map,
+      );
+    });
+
     const run =
       async () => {
         try {
           setLoading(true);
-
           setErrorMessage('');
-
           setGroupedResults([]);
-
           setTopAiSummary({});
-
           setTopAiLoading({});
 
           const groups: GroupedResult[] =
@@ -263,11 +446,6 @@ export default function RegionResultScreen() {
             const analysisResults: any[] =
               [];
 
-            /**
-             * ================================
-             * 동 전체 분석
-             * ================================
-             */
             for (
               const area of targetAreas
             ) {
@@ -275,15 +453,10 @@ export default function RegionResultScreen() {
                 const result =
                   await analyzeCommercialArea(
                     area.name,
-
                     area.code,
-
                     business.name,
-
                     business.lclsCode,
-
                     business.mclsCode,
-
                     business.sclsCode,
                   );
 
@@ -309,11 +482,6 @@ export default function RegionResultScreen() {
               }
             }
 
-            /**
-             * ================================
-             * 지도 선택 지점 + 반경 분석
-             * ================================
-             */
             for (
               const location of selectedDetailedLocations
             ) {
@@ -336,23 +504,14 @@ export default function RegionResultScreen() {
                 const result =
                   await analyzeCommercialPoint(
                     location.label,
-
                     location.dongName,
-
                     areaInfo.code,
-
                     location.coordinates.lat,
-
                     location.coordinates.lng,
-
                     location.radius,
-
                     business.name,
-
                     business.lclsCode,
-
                     business.mclsCode,
-
                     business.sclsCode,
                   );
 
@@ -379,8 +538,7 @@ export default function RegionResultScreen() {
             }
 
             if (
-              analysisResults.length ===
-              0
+              analysisResults.length === 0
             ) {
               continue;
             }
@@ -393,7 +551,6 @@ export default function RegionResultScreen() {
             groups.push({
               businessName:
                 business.name,
-
               items:
                 scoredResults.map(
                   (
@@ -401,7 +558,6 @@ export default function RegionResultScreen() {
                     index,
                   ) => ({
                     ...result,
-
                     rank:
                       index + 1,
                   }),
@@ -412,8 +568,7 @@ export default function RegionResultScreen() {
           }
 
           if (
-            groups.length ===
-            0
+            groups.length === 0
           ) {
             setErrorMessage(
               '분석 결과를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.',
@@ -426,9 +581,11 @@ export default function RegionResultScreen() {
             groups,
           );
 
-          /**
-           * 업종별 1위 AI 요약
-           */
+          setActiveTab(
+            groups[0]?.businessName ??
+              null,
+          );
+
           groups.forEach(
             group => {
               const top =
@@ -441,7 +598,6 @@ export default function RegionResultScreen() {
               setTopAiLoading(
                 prev => ({
                   ...prev,
-
                   [group.businessName]:
                     true,
                 }),
@@ -451,34 +607,24 @@ export default function RegionResultScreen() {
                 {
                   지역:
                     top.areaName,
-
                   업종:
                     group.businessName,
-
                   유동인구:
                     top.floatingPopulation,
-
                   생활인구:
                     top.livingPopulation,
-
                   점포수:
                     top.storeCount,
-
                   경쟁밀도:
                     top.competitionDensity,
-
                   전체카드소비:
                     top.salesAmount,
-
                   점포당카드소비:
                     top.averageSalesPerStore,
-
                   버스정류장수:
                     top.busStopCount,
-
                   적합도점수:
                     top.suitabilityScore,
-
                   순위:
                     top.rank,
                 },
@@ -488,7 +634,6 @@ export default function RegionResultScreen() {
                     setTopAiSummary(
                       prev => ({
                         ...prev,
-
                         [group.businessName]:
                           explanation.recommendationReason,
                       }),
@@ -508,7 +653,6 @@ export default function RegionResultScreen() {
                     setTopAiLoading(
                       prev => ({
                         ...prev,
-
                         [group.businessName]:
                           false,
                       }),
@@ -542,96 +686,72 @@ export default function RegionResultScreen() {
     detailedLocationsParam,
   ]);
 
-  /**
-   * 결과 카드 클릭
-   */
   const handleCardPress = (
     businessName: string,
     result: RankedResult,
-    totalCount: number,
+    allItems: RankedResult[],
   ) => {
     router.push({
       pathname:
         '/market-analysis/region-result-detail',
-
       params: {
         businessName,
-
         areaName:
           result.areaName,
-
         rank:
           String(
             result.rank,
           ),
-
         totalCount:
           String(
-            totalCount,
+            allItems.length,
           ),
-
         suitabilityScore:
           String(
             result.suitabilityScore,
           ),
-
         floatingPopulation:
           String(
             result.floatingPopulation,
           ),
-
         livingPopulation:
           String(
             result.livingPopulation,
           ),
-
         storeCount:
           String(
             result.storeCount,
           ),
-
         competitionDensity:
           String(
             result.competitionDensity,
           ),
-
         salesAmount:
           String(
             result.salesAmount,
           ),
-
         averageSalesPerStore:
           String(
             result.averageSalesPerStore,
           ),
-
         busStopCount:
           String(
             result.busStopCount,
           ),
-
         livingPopulationChangeRate:
           String(
             result.livingPopulationChangeRate,
           ),
-
         floatingPopulationChangeRate:
           String(
             result.floatingPopulationChangeRate,
           ),
-
-        /**
-         * 지도 반경 결과일 경우
-         * 상세화면에서도 사용할 값
-         */
         analysisType:
           result.analysisType ??
           'area',
-
         dongName:
           result.dongName ??
           result.areaName,
-
         latitude:
           result.latitude !==
           undefined
@@ -639,7 +759,6 @@ export default function RegionResultScreen() {
                 result.latitude,
               )
             : '',
-
         longitude:
           result.longitude !==
           undefined
@@ -647,7 +766,6 @@ export default function RegionResultScreen() {
                 result.longitude,
               )
             : '',
-
         radius:
           result.radius !==
           undefined
@@ -655,9 +773,77 @@ export default function RegionResultScreen() {
                 result.radius,
               )
             : '',
+        floatingPopulationScore:
+          String(
+            result.floatingPopulationScore,
+          ),
+        salesScore:
+          String(
+            result.salesScore,
+          ),
+        averageSalesScore:
+          String(
+            result.averageSalesScore,
+          ),
+        competitionScore:
+          String(
+            result.competitionScore,
+          ),
+        livingPopulationScore:
+          String(
+            result.livingPopulationScore,
+          ),
+        livingPopulationChangeScore:
+          String(
+            result.livingPopulationChangeScore,
+          ),
+        floatingPopulationChangeScore:
+          String(
+            result.floatingPopulationChangeScore,
+          ),
+        accessibilityScore:
+          String(
+            result.accessibilityScore,
+          ),
+        compareData:
+          JSON.stringify(
+            allItems.map(
+              item => ({
+                areaName:
+                  item.areaName,
+                rank:
+                  item.rank,
+                floatingPopulationScore:
+                  item.floatingPopulationScore,
+                salesScore:
+                  item.salesScore,
+                averageSalesScore:
+                  item.averageSalesScore,
+                competitionScore:
+                  item.competitionScore,
+                livingPopulationScore:
+                  item.livingPopulationScore,
+                livingPopulationChangeScore:
+                  item.livingPopulationChangeScore,
+                floatingPopulationChangeScore:
+                  item.floatingPopulationChangeScore,
+                accessibilityScore:
+                  item.accessibilityScore,
+              }),
+            ),
+          ),
       },
     });
   };
+
+  const visibleGroups =
+    groupedResults.length > 1
+      ? groupedResults.filter(
+          group =>
+            group.businessName ===
+            activeTab,
+        )
+      : groupedResults;
 
   return (
     <ScrollView
@@ -681,7 +867,7 @@ export default function RegionResultScreen() {
             styles.title
           }
         >
-          분석 결과
+          입지 추천 결과
         </Text>
 
         <Text
@@ -689,8 +875,7 @@ export default function RegionResultScreen() {
             styles.subTitle
           }
         >
-          업종별 지역 적합도
-          순위를 확인해보세요
+          데이터와 AI 분석을 통해 적합한 입지를 추천해드려요
         </Text>
       </View>
 
@@ -712,8 +897,7 @@ export default function RegionResultScreen() {
               styles.loadingText
             }
           >
-            상권 데이터를
-            분석하는 중...
+            상권 데이터를 분석하는 중...
           </Text>
 
           <Text
@@ -721,16 +905,13 @@ export default function RegionResultScreen() {
               styles.loadingSubText
             }
           >
-            여러 업종이나 지역을
-            선택한 경우 시간이
-            걸릴 수 있어요.
+            여러 업종이나 지역을 선택한 경우 시간이 걸릴 수 있어요.
           </Text>
         </View>
       )}
 
       {!loading &&
-        errorMessage !==
-          '' && (
+        errorMessage !== '' && (
           <View
             style={
               styles.errorBox
@@ -741,8 +922,7 @@ export default function RegionResultScreen() {
                 styles.errorTitle
               }
             >
-              분석 결과를
-              불러오지 못했어요
+              분석 결과를 불러오지 못했어요
             </Text>
 
             <Text
@@ -758,9 +938,59 @@ export default function RegionResultScreen() {
         )}
 
       {!loading &&
-        errorMessage ===
-          '' &&
-        groupedResults.map(
+        errorMessage === '' &&
+        groupedResults.length > 1 && (
+          <View
+            style={
+              styles.tabRow
+            }
+          >
+            {groupedResults.map(
+              group => {
+                const isActive =
+                  activeTab ===
+                  group.businessName;
+
+                return (
+                  <TouchableOpacity
+                    key={
+                      group.businessName
+                    }
+                    style={[
+                      styles.tabButton,
+                      isActive &&
+                        styles.tabButtonActive,
+                    ]}
+                    activeOpacity={
+                      0.7
+                    }
+                    onPress={() =>
+                      setActiveTab(
+                        group.businessName,
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.tabButtonText,
+                        isActive &&
+                          styles.tabButtonTextActive,
+                      ]}
+                    >
+                      {
+                        group.businessName
+                      }
+                    </Text>
+                  </TouchableOpacity>
+                );
+              },
+            )}
+          </View>
+        )}
+
+      {!loading &&
+        errorMessage === '' &&
+        visibleGroups.map(
           group => (
             <View
               key={
@@ -772,20 +1002,20 @@ export default function RegionResultScreen() {
             >
               <View
                 style={
-                  styles.businessHeader
+                  styles.businessChip
                 }
               >
                 <Text
                   style={
-                    styles.businessSmallTitle
+                    styles.businessChipLabel
                   }
                 >
-                  선택 업종
+                  선택한 업종
                 </Text>
 
                 <Text
                   style={
-                    styles.businessTitle
+                    styles.businessChipName
                   }
                 >
                   {
@@ -793,6 +1023,22 @@ export default function RegionResultScreen() {
                   }
                 </Text>
               </View>
+
+              <Text
+                style={
+                  styles.groupTitle
+                }
+              >
+                {`${group.businessName} 업종에 적합한 입지 TOP ${group.items.length}를 분석했어요!`}
+              </Text>
+
+              <Text
+                style={
+                  styles.groupDescription
+                }
+              >
+                유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.
+              </Text>
 
               {(topAiLoading[
                 group.businessName
@@ -810,8 +1056,7 @@ export default function RegionResultScreen() {
                       styles.aiCalloutTitle
                     }
                   >
-                    ✨ 이런 지역이
-                    가장 적합해요!
+                    💡 AI 한줄 요약
                   </Text>
 
                   {topAiLoading[
@@ -834,8 +1079,7 @@ export default function RegionResultScreen() {
                           styles.aiCalloutLoadingText
                         }
                       >
-                        AI가 요약하는
-                        중...
+                        AI가 요약하는 중...
                       </Text>
                     </View>
                   ) : (
@@ -857,8 +1101,7 @@ export default function RegionResultScreen() {
               {group.items.map(
                 result => {
                   const isFirst =
-                    result.rank ===
-                    1;
+                    result.rank === 1;
 
                   const isPoint =
                     result.analysisType ===
@@ -869,40 +1112,62 @@ export default function RegionResultScreen() {
                       key={`${group.businessName}-${result.areaName}-${result.rank}`}
                       style={[
                         styles.card,
-
                         isFirst &&
                           styles.firstCard,
                       ]}
                       onPress={() =>
                         handleCardPress(
                           group.businessName,
-
                           result,
-
-                          group.items.length,
+                          group.items,
                         )
                       }
                     >
                       <View
-                        style={[
-                          styles.rankBadge,
-
-                          isFirst &&
-                            styles.rankBadgeFirst,
-                        ]}
+                        style={
+                          styles.cardImageWrap
+                        }
                       >
-                        <Text
-                          style={[
-                            styles.rankText,
+                        {isPoint &&
+                        result.latitude !== undefined &&
+                        result.longitude !== undefined ? (
+                          <CardMapThumbnail
+                            coords={{
+                              lat:
+                                result.latitude,
+                              lng:
+                                result.longitude,
+                            }}
+                          />
+                        ) : (
+                          <CardMapThumbnail
+                            coords={
+                              areaCoordinates[
+                                result.areaName
+                              ]
+                            }
+                          />
+                        )}
 
+                        <View
+                          style={[
+                            styles.rankBadge,
                             isFirst &&
-                              styles.rankTextFirst,
+                              styles.rankBadgeFirst,
                           ]}
                         >
-                          {
-                            result.rank
-                          }
-                        </Text>
+                          <Text
+                            style={[
+                              styles.rankText,
+                              isFirst &&
+                                styles.rankTextFirst,
+                            ]}
+                          >
+                            {
+                              result.rank
+                            }
+                          </Text>
+                        </View>
                       </View>
 
                       <View
@@ -1003,13 +1268,9 @@ export default function RegionResultScreen() {
                                 styles.tagText
                               }
                             >
-                              {
-                                group.businessName
-                              }{' '}
-                              {
-                                result.storeCount
-                              }
-                              개
+                              {getCompetitionLabel(
+                                result.competitionScore,
+                              )}
                             </Text>
                           </View>
 
@@ -1029,15 +1290,31 @@ export default function RegionResultScreen() {
                             </View>
                           )}
                         </View>
-                      </View>
 
-                      <Text
-                        style={
-                          styles.arrow
-                        }
-                      >
-                        ›
-                      </Text>
+                        <View
+                          style={
+                            styles.cardBottomRow
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.oneLineSummary
+                            }
+                          >
+                            {getOneLineSummary(
+                              result,
+                            )}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.arrow
+                            }
+                          >
+                            ›
+                          </Text>
+                        </View>
+                      </View>
                     </Pressable>
                   );
                 },
@@ -1053,14 +1330,12 @@ const styles =
   StyleSheet.create({
     screen: {
       flex: 1,
-
       backgroundColor:
         COLORS.background,
     },
 
     container: {
       padding: 20,
-
       paddingBottom: 40,
     },
 
@@ -1070,164 +1345,181 @@ const styles =
 
     title: {
       fontSize: 26,
-
       fontWeight: '900',
-
       color:
         COLORS.text,
-
       marginBottom: 6,
     },
 
     subTitle: {
-      fontSize: 14,
-
+      fontSize: 13,
       color:
         COLORS.textSecondary,
     },
 
     loadingBox: {
       marginTop: 40,
-
       padding: 28,
-
       alignItems:
         'center',
-
       borderRadius: 20,
-
       backgroundColor:
         COLORS.surface,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
     },
 
     loadingText: {
       marginTop: 14,
-
       fontSize: 15,
-
       fontWeight: '800',
-
       color:
         COLORS.text,
     },
 
     loadingSubText: {
       marginTop: 6,
-
       fontSize: 12,
-
       lineHeight: 18,
-
       textAlign:
         'center',
-
       color:
         COLORS.textSecondary,
     },
 
     errorBox: {
       padding: 18,
-
       borderRadius: 18,
-
       backgroundColor:
         '#FFF3F3',
     },
 
     errorTitle: {
       fontSize: 15,
-
       fontWeight: '800',
-
       color:
         '#B42318',
-
       marginBottom: 6,
     },
 
     error: {
       fontSize: 13,
-
       lineHeight: 19,
-
       color:
         '#D14343',
     },
 
     businessSection: {
-      marginBottom: 26,
+      marginBottom: 30,
     },
 
-    businessHeader: {
-      marginBottom: 14,
+    tabRow: {
+      flexDirection:
+        'row',
+      flexWrap:
+        'wrap',
+      gap: 8,
+      marginBottom: 18,
+    },
 
-      paddingVertical: 16,
-
-      paddingHorizontal: 18,
-
-      borderRadius: 18,
-
+    tabButton: {
+      paddingVertical: 9,
+      paddingHorizontal: 16,
+      borderRadius: 20,
       backgroundColor:
-        '#111111',
+        COLORS.surface,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
     },
 
-    businessSmallTitle: {
-      fontSize: 11,
+    tabButtonActive: {
+      backgroundColor:
+        COLORS.primary,
+      borderColor:
+        COLORS.primary,
+    },
 
-      fontWeight: '600',
-
+    tabButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
       color:
-        '#9CA3AF',
-
-      marginBottom: 4,
+        COLORS.textSecondary,
     },
 
-    businessTitle: {
-      fontSize: 20,
-
-      fontWeight: '900',
-
+    tabButtonTextActive: {
       color:
         '#FFFFFF',
     },
 
-    aiCallout: {
-      marginBottom: 14,
-
-      padding: 16,
-
-      borderRadius: 16,
-
+    businessChip: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      gap: 8,
+      alignSelf:
+        'flex-start',
       backgroundColor:
         '#F1FFF5',
+      borderRadius: 14,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      marginBottom: 14,
+    },
 
+    businessChipLabel: {
+      fontSize: 11,
+      color:
+        COLORS.textSecondary,
+    },
+
+    businessChipName: {
+      fontSize: 14,
+      fontWeight: '900',
+      color:
+        COLORS.primary,
+    },
+
+    groupTitle: {
+      fontSize: 16,
+      fontWeight: '900',
+      color:
+        COLORS.text,
+      marginBottom: 4,
+    },
+
+    groupDescription: {
+      fontSize: 12,
+      color:
+        COLORS.textSecondary,
+      marginBottom: 16,
+      lineHeight: 18,
+    },
+
+    aiCallout: {
+      marginBottom: 14,
+      padding: 16,
+      borderRadius: 16,
+      backgroundColor:
+        '#EFF6FF',
       borderWidth: 1,
-
       borderColor:
-        '#D8F5E2',
+        '#DBEAFE',
     },
 
     aiCalloutTitle: {
       fontSize: 13,
-
       fontWeight: '800',
-
       color:
-        COLORS.primary,
-
+        '#1D4ED8',
       marginBottom: 6,
     },
 
     aiCalloutText: {
       fontSize: 13,
-
       lineHeight: 19,
-
       color:
         COLORS.text,
     },
@@ -1235,67 +1527,73 @@ const styles =
     aiCalloutLoading: {
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       gap: 8,
     },
 
     aiCalloutLoadingText: {
       fontSize: 12,
-
       color:
         COLORS.textSecondary,
     },
 
     card: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      padding: 14,
-
-      marginBottom: 10,
-
-      borderRadius: 16,
-
+      borderRadius: 18,
+      marginBottom: 14,
       backgroundColor:
         COLORS.surface,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
+      overflow: 'hidden',
     },
 
     firstCard: {
       borderColor:
         COLORS.primary,
+      borderWidth: 2,
+    },
 
+    cardImageWrap: {
+      position:
+        'relative',
+    },
+
+    cardMap: {
+      width: '100%',
+      height: 130,
+    },
+
+    mapFallback: {
+      width: '100%',
+      height: 130,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
       backgroundColor:
-        '#FFFFFF',
+        COLORS.lightGray,
+    },
+
+    mapFallbackText: {
+      fontSize: 28,
     },
 
     rankBadge: {
-      width: 30,
-
-      height: 30,
-
-      borderRadius: 15,
-
+      position:
+        'absolute',
+      top: 10,
+      left: 10,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       backgroundColor:
-        COLORS.lightGray,
-
+        'rgba(17,17,17,0.75)',
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
-      marginRight: 12,
     },
 
     rankBadgeFirst: {
@@ -1305,11 +1603,9 @@ const styles =
 
     rankText: {
       fontSize: 13,
-
       fontWeight: '800',
-
       color:
-        COLORS.textSecondary,
+        '#FFFFFF',
     },
 
     rankTextFirst: {
@@ -1318,40 +1614,31 @@ const styles =
     },
 
     cardBody: {
-      flex: 1,
+      padding: 14,
     },
 
     cardTopRow: {
       flexDirection:
         'row',
-
       justifyContent:
         'space-between',
-
       alignItems:
         'center',
-
       marginBottom: 8,
     },
 
     areaName: {
       fontSize: 16,
-
       fontWeight: '800',
-
       color:
         COLORS.text,
-
       flexShrink: 1,
     },
 
     pointInfo: {
       marginTop: 3,
-
       fontSize: 11,
-
       fontWeight: '600',
-
       color:
         COLORS.primary,
     },
@@ -1359,91 +1646,88 @@ const styles =
     scoreBox: {
       flexDirection:
         'row',
-
       alignItems:
         'flex-end',
-
       marginLeft: 8,
     },
 
     scoreValue: {
       fontSize: 18,
-
       fontWeight: '900',
-
       color:
         COLORS.primary,
     },
 
     scoreUnit: {
       fontSize: 12,
-
       fontWeight: '700',
-
       color:
         COLORS.text,
-
       marginLeft: 1,
-
       marginBottom: 2,
     },
 
     tagRow: {
       flexDirection:
         'row',
-
       flexWrap:
         'wrap',
-
       gap: 6,
+      marginBottom: 8,
     },
 
     tag: {
       paddingVertical: 4,
-
       paddingHorizontal: 10,
-
       borderRadius: 10,
-
       backgroundColor:
         COLORS.background,
     },
 
     tagText: {
       fontSize: 11,
-
-      fontWeight: '600',
-
+      fontWeight: '700',
       color:
         COLORS.textSecondary,
     },
 
     pointTag: {
       paddingVertical: 4,
-
       paddingHorizontal: 10,
-
       borderRadius: 10,
-
       backgroundColor:
         '#F1FFF5',
     },
 
     pointTagText: {
       fontSize: 11,
-
       fontWeight: '700',
-
       color:
         COLORS.primary,
     },
 
-    arrow: {
-      fontSize: 24,
+    cardBottomRow: {
+      flexDirection:
+        'row',
+      justifyContent:
+        'space-between',
+      alignItems:
+        'center',
+    },
 
+    oneLineSummary: {
+      flex: 1,
+      fontSize: 12,
       color:
         COLORS.textSecondary,
+      lineHeight: 17,
+    },
 
+    arrow: {
+      fontSize: 22,
+      fontWeight: '700',
+      color:
+        COLORS.textSecondary,
       marginLeft: 8,
     },
   });
