@@ -666,22 +666,41 @@ export default function RegionSelectionScreen() {
       : areaMarkers;
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={
-        styles.scrollContent
-      }
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.screen}>
+      {/* 상단 앱바 + 스테퍼 */}
+      <View style={styles.appBar}>
+        <View style={styles.appBarTopRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.appBarTitle}>지역 선택</Text>
+        </View>
+
+        <View style={styles.stepper}>
+          <Text style={styles.stepDone}>✓ 1 업종 선택</Text>
+          <Text style={styles.stepArrow}>›</Text>
+          <Text style={styles.stepActive}>2 지역 선택</Text>
+          <Text style={styles.stepArrow}>›</Text>
+          <Text style={styles.stepInactive}>3 분석 결과</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          styles.scrollContent
+        }
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.content}>
         {/* HEADER */}
 
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>
-            지역 선택
-          </Text>
-
           <Text style={styles.headerSub}>
             분석하고 싶은 세종시 지역을
             선택해주세요
@@ -1670,7 +1689,8 @@ export default function RegionSelectionScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -1679,6 +1699,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
+  appBar: {
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  appBarTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    marginLeft: -6,
+  },
+  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 12,
+    gap: 6,
+  },
+  stepDone: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  stepActive: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  stepInactive: { fontSize: 12, color: '#9CA3AF' },
+  stepArrow: { fontSize: 12, color: '#9CA3AF' },
+
+  scroll: { flex: 1 },
 
   scrollContent: {
     width: '100%',
@@ -1694,14 +1749,7 @@ const styles = StyleSheet.create({
 
   header: {
     alignItems: 'center',
-    marginBottom: 28,
-  },
-
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: COLORS.text,
-    marginBottom: 7,
+    marginBottom: 22,
   },
 
   headerSub: {
@@ -1714,7 +1762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: '#ECFBEF',
+    backgroundColor: COLORS.primaryLight,
   },
 
   headerBadgeText: {
@@ -1794,12 +1842,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.background,
   },
 
   modeButtonActive: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F1FFF5',
+    backgroundColor: COLORS.primaryLight,
   },
 
   modeIcon: {
@@ -1825,7 +1873,7 @@ const styles = StyleSheet.create({
 
   mapContainer: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.border,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
@@ -1836,7 +1884,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FAFBFA',
+    backgroundColor: COLORS.background,
   },
 
   mapTitle: {
@@ -1868,7 +1916,7 @@ const styles = StyleSheet.create({
     padding: 13,
     marginBottom: 14,
     borderRadius: 12,
-    backgroundColor: '#F5F8F5',
+    backgroundColor: COLORS.lightGray,
   },
 
   loadingText: {
@@ -1878,9 +1926,9 @@ const styles = StyleSheet.create({
 
   detailBox: {
     borderWidth: 1,
-    borderColor: '#DCEFE0',
+    borderColor: COLORS.border,
     borderRadius: 16,
-    backgroundColor: '#FAFFFB',
+    backgroundColor: COLORS.primaryLight,
     padding: 17,
     marginBottom: 18,
   },
@@ -1908,7 +1956,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     fontSize: 11,
-    color: '#F59E0B',
+    color: COLORS.warning,
     fontWeight: '700',
   },
 
@@ -1932,12 +1980,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
 
   radiusButtonActive: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F0FFF4',
+    backgroundColor: COLORS.primaryLight,
   },
 
   radiusText: {
@@ -1964,7 +2012,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
 
   cancelButtonText: {
@@ -1977,7 +2025,7 @@ const styles = StyleSheet.create({
     flex: 2,
     minHeight: 48,
     borderRadius: 13,
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1985,7 +2033,7 @@ const styles = StyleSheet.create({
   fullAddButton: {
     minHeight: 48,
     borderRadius: 13,
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1993,7 +2041,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   quickTitle: {
@@ -2023,12 +2071,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
 
   regionChipSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F0FFF4',
+    backgroundColor: COLORS.primaryLight,
   },
 
   regionText: {
@@ -2063,7 +2111,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 15,
     fontSize: 14,
     color: COLORS.text,
@@ -2084,7 +2132,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: '#DC2626',
+    color: COLORS.danger,
     fontSize: 12,
     marginTop: 10,
   },
@@ -2100,8 +2148,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DCEFE0',
-    backgroundColor: '#F5FCF6',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.primaryLight,
     marginBottom: 16,
   },
 
@@ -2131,7 +2179,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: '#E9F8EC',
+    backgroundColor: COLORS.surface,
   },
 
   summaryChipText: {
@@ -2150,7 +2198,7 @@ const styles = StyleSheet.create({
   analyzeButton: {
     minHeight: 56,
     borderRadius: 16,
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2162,7 +2210,7 @@ const styles = StyleSheet.create({
   analyzeButtonText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   analyzeButtonTextDisabled: {

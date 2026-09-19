@@ -1,6 +1,6 @@
 import AddressMap, {
   MapMarkerData,
-} from '@/components/address-map.web';
+} from '@/components/address-map';
 
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
@@ -11,7 +11,7 @@ import {
   useRouter,
 } from 'expo-router';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -165,13 +165,36 @@ export default function SuitabilityRegionScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={
-        styles.scrollContent
-      }
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.screen}>
+      {/* 상단 앱바 + 스테퍼 */}
+      <View style={styles.appBar}>
+        <View style={styles.appBarTopRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.appBarTitle}>지역 선택</Text>
+        </View>
+
+        <View style={styles.stepper}>
+          <Text style={styles.stepDone}>✓ 1 업종 선택</Text>
+          <Text style={styles.stepArrow}>›</Text>
+          <Text style={styles.stepActive}>2 지역 선택</Text>
+          <Text style={styles.stepArrow}>›</Text>
+          <Text style={styles.stepInactive}>3 분석 결과</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          styles.scrollContent
+        }
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.content}>
         {/* HEADER */}
         <View
@@ -563,7 +586,8 @@ export default function SuitabilityRegionScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -572,6 +596,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
+  appBar: {
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  appBarTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    marginLeft: -6,
+  },
+  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 12,
+    gap: 6,
+  },
+  stepDone: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  stepActive: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  stepInactive: { fontSize: 12, color: '#9CA3AF' },
+  stepArrow: { fontSize: 12, color: '#9CA3AF' },
+
+  scroll: { flex: 1 },
 
   scrollContent: {
     width: '100%',
@@ -588,8 +647,8 @@ const styles = StyleSheet.create({
   /* HEADER */
 
   headerSection: {
-    marginTop: 10,
-    marginBottom: 26,
+    marginTop: 4,
+    marginBottom: 22,
   },
 
   smallTitle: {
@@ -623,7 +682,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: COLORS.lime,
+    backgroundColor: COLORS.primaryLight,
   },
 
   badgeText: {
@@ -704,7 +763,7 @@ const styles = StyleSheet.create({
 
   mapContainer: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.border,
 
     borderRadius: 16,
 
@@ -720,10 +779,10 @@ const styles = StyleSheet.create({
 
     padding: 14,
 
-    backgroundColor: '#FAFBFA',
+    backgroundColor: COLORS.background,
 
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFEC',
+    borderBottomColor: COLORS.border,
   },
 
   mapTitle: {
@@ -744,7 +803,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 999,
 
-    backgroundColor: '#E9F8EC',
+    backgroundColor: COLORS.primaryLight,
   },
 
   mapCountText: {
@@ -755,7 +814,7 @@ const styles = StyleSheet.create({
 
   mapArea: {
     height: 330,
-    backgroundColor: '#F4F7F4',
+    backgroundColor: COLORS.background,
   },
 
   /* REGION */
@@ -794,12 +853,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
 
   regionChipSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F0FFF4',
+    backgroundColor: COLORS.primaryLight,
   },
 
   regionText: {
@@ -833,9 +892,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
 
     borderWidth: 1,
-    borderColor: '#DCEFE0',
+    borderColor: COLORS.border,
 
-    backgroundColor: '#F5FCF6',
+    backgroundColor: COLORS.primaryLight,
   },
 
   summaryChipRow: {
@@ -854,10 +913,10 @@ const styles = StyleSheet.create({
 
     borderRadius: 999,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
 
     borderWidth: 1,
-    borderColor: '#DCEFE0',
+    borderColor: COLORS.border,
   },
 
   summaryChipText: {
@@ -884,10 +943,10 @@ const styles = StyleSheet.create({
 
     borderRadius: 16,
 
-    backgroundColor: '#F7F9F7',
+    backgroundColor: COLORS.background,
 
     borderWidth: 1,
-    borderColor: '#E6EAE6',
+    borderColor: COLORS.border,
   },
 
   infoIconBox: {
@@ -899,7 +958,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: '#E9F8EC',
+    backgroundColor: COLORS.primaryLight,
 
     marginRight: 11,
   },
@@ -936,7 +995,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: COLORS.primary,
   },
 
   analyzeButtonDisabled: {
@@ -946,7 +1005,7 @@ const styles = StyleSheet.create({
   analyzeButtonText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   analyzeButtonTextDisabled: {

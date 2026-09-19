@@ -2,7 +2,7 @@ import { COLORS } from '@/constants/colors';
 import type { EventName } from '@/data/mockShortTermData';
 import { ALL_EVENTS } from '@/data/mockShortTermData';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -39,172 +39,196 @@ export default function EventRecommendScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerSection}>
-        <Text style={styles.smallTitle}>
-          단기 상권 분석
-        </Text>
+    <View style={styles.screen}>
+      <View style={styles.appBar}>
+        <View style={styles.appBarTopRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.appBarTitle}>행사 / 지역 선택</Text>
+        </View>
 
-        <Text style={styles.header}>
-          행사 / 지역 선택
-        </Text>
-
-        <Text style={styles.description}>
-          상권을 분석할 행사를 선택해주세요.
-        </Text>
-
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            여러 개 선택 가능
-          </Text>
+        <View style={styles.stepper}>
+          <Text style={styles.stepActive}>1 행사 선택</Text>
+          <Text style={styles.stepArrow}>›</Text>
+          <Text style={styles.stepInactive}>2 분석 결과</Text>
         </View>
       </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          분석 행사
-        </Text>
+      <View style={styles.container}>
+        <View style={styles.headerSection}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>단기 상권 분석</Text>
+          </View>
 
-        <Text style={styles.selectedCount}>
-          {selectedEvents.length}개 선택
-        </Text>
-      </View>
+          <Text style={styles.description}>
+            상권을 분석할 행사를 선택해주세요.
+          </Text>
+        </View>
 
-      <FlatList
-        data={ALL_EVENTS}
-        keyExtractor={item => item}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        renderItem={({item}) => {
-          const selected =
-            selectedEvents.includes(item);
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            분석 행사
+          </Text>
 
-          return (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                selected && styles.itemSelected,
-              ]}
-              activeOpacity={0.7}
-              onPress={() => toggleEvent(item)}
-            >
-              <View style={styles.itemTextBox}>
-                <Text
+          <Text style={styles.selectedCount}>
+            {selectedEvents.length}개 선택
+          </Text>
+        </View>
+
+        <FlatList
+          data={ALL_EVENTS}
+          keyExtractor={item => item}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          renderItem={({item}) => {
+            const selected =
+              selectedEvents.includes(item);
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.item,
+                  selected && styles.itemSelected,
+                ]}
+                activeOpacity={0.7}
+                onPress={() => toggleEvent(item)}
+              >
+                <View style={styles.itemTextBox}>
+                  <Text
+                    style={[
+                      styles.itemText,
+                      selected &&
+                        styles.itemTextSelected,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+
+                  <Text style={styles.itemDescription}>
+                    행사 주변 상권 분석
+                  </Text>
+                </View>
+
+                <View
                   style={[
-                    styles.itemText,
+                    styles.checkCircle,
                     selected &&
-                      styles.itemTextSelected,
+                      styles.checkCircleSelected,
                   ]}
                 >
-                  {item}
-                </Text>
+                  {selected && (
+                    <Text style={styles.checkMark}>
+                      ✓
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
 
-                <Text style={styles.itemDescription}>
-                  행사 주변 상권 분석
-                </Text>
-              </View>
+        {selectedEvents.length > 0 && (
+          <View style={styles.selectionSummary}>
+            <Text style={styles.selectionSummaryLabel}>
+              선택한 행사
+            </Text>
 
-              <View
-                style={[
-                  styles.checkCircle,
-                  selected &&
-                    styles.checkCircleSelected,
-                ]}
-              >
-                {selected && (
-                  <Text style={styles.checkMark}>
-                    ✓
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
+            <Text style={styles.selectionSummaryValue}>
+              {selectedEvents.join(', ')}
+            </Text>
+          </View>
+        )}
 
-      {selectedEvents.length > 0 && (
-        <View style={styles.selectionSummary}>
-          <Text style={styles.selectionSummaryLabel}>
-            선택한 행사
-          </Text>
-
-          <Text style={styles.selectionSummaryValue}>
-            {selectedEvents.join(', ')}
-          </Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={[
-          styles.analyzeButton,
-          selectedEvents.length === 0 &&
-            styles.analyzeButtonDisabled,
-        ]}
-        activeOpacity={0.8}
-        disabled={selectedEvents.length === 0}
-        onPress={handleAnalyze}
-      >
-        <Text
+        <TouchableOpacity
           style={[
-            styles.analyzeButtonText,
+            styles.analyzeButton,
             selectedEvents.length === 0 &&
-              styles.analyzeButtonTextDisabled,
+              styles.analyzeButtonDisabled,
           ]}
+          activeOpacity={0.8}
+          disabled={selectedEvents.length === 0}
+          onPress={handleAnalyze}
         >
-          {selectedEvents.length === 0
-            ? '행사를 선택해주세요'
-            : `선택한 ${selectedEvents.length}개 행사 분석하기 →`}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            style={[
+              styles.analyzeButtonText,
+              selectedEvents.length === 0 &&
+                styles.analyzeButtonTextDisabled,
+            ]}
+          >
+            {selectedEvents.length === 0
+              ? '행사를 선택해주세요'
+              : `선택한 ${selectedEvents.length}개 행사 분석하기 →`}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: COLORS.background },
+
+  appBar: {
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  appBarTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    marginLeft: -6,
+  },
+  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 12,
+    gap: 6,
+  },
+  stepActive: { fontSize: 12, fontWeight: '700', color: COLORS.warning },
+  stepInactive: { fontSize: 12, color: '#9CA3AF' },
+  stepArrow: { fontSize: 12, color: '#9CA3AF' },
+
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: COLORS.background,
   },
 
   headerSection: {
-    marginTop: 10,
     marginBottom: 26,
   },
 
-  smallTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.primary,
-    marginBottom: 6,
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.warningLight,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    marginBottom: 12,
   },
-
-  header: {
-    fontSize: 27,
-    fontWeight: '900',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
+  badgeText: { fontSize: 11, fontWeight: '800', color: COLORS.warning },
 
   description: {
     fontSize: 14,
     lineHeight: 21,
     color: COLORS.textSecondary,
-  },
-
-  badge: {
-    alignSelf: 'flex-start',
-    marginTop: 12,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: COLORS.lime,
-  },
-
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.primary,
   },
 
   sectionHeader: {
@@ -223,7 +247,7 @@ const styles = StyleSheet.create({
   selectedCount: {
     fontSize: 12,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: COLORS.warning,
   },
 
   listContent: {
@@ -249,8 +273,8 @@ const styles = StyleSheet.create({
   },
 
   itemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#F1FFF5',
+    borderColor: COLORS.warning,
+    backgroundColor: COLORS.warningLight,
   },
 
   itemTextBox: {
@@ -265,7 +289,7 @@ const styles = StyleSheet.create({
   },
 
   itemTextSelected: {
-    color: COLORS.primary,
+    color: COLORS.warning,
   },
 
   itemDescription: {
@@ -290,8 +314,8 @@ const styles = StyleSheet.create({
   },
 
   checkCircleSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
+    borderColor: COLORS.warning,
+    backgroundColor: COLORS.warning,
   },
 
   checkMark: {
@@ -307,7 +331,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 16,
 
-    backgroundColor: '#F7F7F7',
+    backgroundColor: COLORS.lightGray,
 
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -333,7 +357,7 @@ const styles = StyleSheet.create({
 
     alignItems: 'center',
 
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: COLORS.warning,
   },
 
   analyzeButtonDisabled: {
@@ -343,7 +367,7 @@ const styles = StyleSheet.create({
   analyzeButtonText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   analyzeButtonTextDisabled: {

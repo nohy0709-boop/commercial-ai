@@ -1,112 +1,402 @@
-import * as Device from 'expo-device';
+import { COLORS } from '@/constants/colors';
 import { Link } from 'expo-router';
-import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+type Feature = {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+};
+
+const FEATURES: Feature[] = [
+  {
+    href: '/market-analysis/industry',
+    icon: '🧭',
+    title: '업종으로 입지 찾기',
+    description:
+      '창업할 업종을 먼저 정했다면, 어떤 지역이 적합한지 비교해드려요.',
+  },
+  {
+    href: '/market-analysis/location-recommend',
+    icon: '🏢',
+    title: '내 위치에 맞는 업종 찾기',
+    description:
+      '이미 고려 중인 위치가 있다면, 그곳에 어울리는 업종을 분석해드려요.',
+  },
+  {
+    href: '/market-analysis/suitability',
+    icon: '📊',
+    title: '업종·지역 비교 분석',
+    description:
+      '업종과 여러 후보 지역을 함께 선택해 어디가 더 적합한지 비교해요.',
+  },
+];
 
 export default function HomeScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-        <Link href="/market-analysis" asChild>
-          <TouchableOpacity style={styles.actionButton}>
-            <ThemedText type="code">장기 상권 분석 바로가기</ThemedText>
-          </TouchableOpacity>
-        </Link>
-        <Link href="/short-term-analysis" asChild>
-          <TouchableOpacity style={styles.actionButton}>
-            <ThemedText type="code">단기 상권 분석 바로가기</ThemedText>
-          </TouchableOpacity>
-        </Link>
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* 상단 앱바 */}
+      <View style={styles.appBar}>
+        <View style={styles.logoRow}>
+          <View style={styles.logoBadge}>
+            <Text style={styles.logoBadgeText}>📍</Text>
+          </View>
+          <Text style={styles.logoText}>어디 차리지</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero */}
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}>
+            <Text style={styles.heroBadgeIcon}>✨</Text>
+            <Text style={styles.heroBadgeText}>
+              공공데이터 기반 AI 상권 분석
+            </Text>
+          </View>
+          <Text style={styles.heroTitle}>
+            내 가게, 어디에{'\n'}차리면 좋을까?
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            데이터와 AI로 후보 상권을 비교해보세요.{'\n'}
+            창업 성공을 보장하지는 않지만, 더 나은 선택을 도와드릴게요.
+          </Text>
+        </View>
+
+        {/* 핵심 분석 기능 */}
+        <Text style={styles.sectionLabel}>핵심 분석 기능</Text>
+        <View style={styles.featureList}>
+          {FEATURES.map((feature, index) => (
+            <Link key={feature.href} href={feature.href as any} asChild>
+              <TouchableOpacity style={styles.featureCard} activeOpacity={0.85}>
+                <View style={styles.featureIconBox}>
+                  <Text style={styles.featureIcon}>{feature.icon}</Text>
+                </View>
+
+                <View style={styles.featureTopRow}>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureIndex}>{index + 1}</Text>
+                </View>
+
+                <Text style={styles.featureDescription}>
+                  {feature.description}
+                </Text>
+
+                <View style={styles.featureCta}>
+                  <Text style={styles.featureCtaText}>시작하기</Text>
+                  <Text style={styles.featureCtaArrow}>→</Text>
+                </View>
+              </TouchableOpacity>
+            </Link>
+          ))}
+        </View>
+
+        {/* 단기 상권 분석 */}
+        <View style={styles.shortTermCard}>
+          <View style={styles.shortTermIconBox}>
+            <Text style={styles.shortTermIcon}>📅</Text>
+          </View>
+
+          <View style={styles.shortTermTextBox}>
+            <View style={styles.shortTermTitleRow}>
+              <Text style={styles.shortTermTitle}>단기 상권 분석</Text>
+              <View style={styles.shortTermTag}>
+                <Text style={styles.shortTermTagText}>행사·팝업</Text>
+              </View>
+            </View>
+            <Text style={styles.shortTermDescription}>
+              단기 운영 예정인 팝업스토어나 행사 기간 상권을 빠르게
+              확인해요.
+            </Text>
+          </View>
+
+          <Link href="/short-term-analysis" asChild>
+            <TouchableOpacity style={styles.shortTermButton} activeOpacity={0.8}>
+              <Text style={styles.shortTermButtonText}>분석하기</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        {/* 서비스 안내 */}
+        <View style={styles.infoBox}>
+          <View style={styles.infoTitleRow}>
+            <Text style={styles.infoTitleIcon}>ℹ️</Text>
+            <Text style={styles.infoTitle}>서비스 안내</Text>
+          </View>
+          <Text style={styles.infoText}>
+            이 서비스는 공공데이터 기반의 상권 분석 도구로,{' '}
+            <Text style={styles.infoTextStrong}>
+              창업 성공을 보장하지 않습니다.
+            </Text>{' '}
+            제공되는 분석 결과는 의사결정에 참고하는 보조 자료로 활용하세요.
+            분석 대상 지역은 세종시 14개 행정동 기준입니다.
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    backgroundColor: COLORS.background,
   },
-  heroSection: {
+  screen: {
+    flex: 1,
+  },
+  container: {
+    padding: 20,
+    paddingBottom: 40,
+    maxWidth: Platform.OS === 'web' ? 720 : undefined,
+    width: '100%',
+    alignSelf: 'center',
+  },
+
+  appBar: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
   },
-  title: {
-    textAlign: 'center',
+  logoBadgeText: {
+    fontSize: 14,
   },
-  code: {
+  logoText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  hero: {
+    paddingTop: 24,
+    paddingBottom: 20,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  heroBadgeIcon: {
+    fontSize: 11,
+  },
+  heroBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.text,
+    lineHeight: 36,
+    marginBottom: 12,
+  },
+  heroSubtitle: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
+  },
+
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 14,
+    marginTop: 8,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+
+  featureList: {
+    gap: 10,
+    marginBottom: 24,
   },
-  actionButton: {
-    marginTop: 16,
-    paddingVertical: 10,
+  featureCard: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    padding: 18,
+  },
+  featureIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  featureIcon: {
+    fontSize: 20,
+  },
+  featureTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  featureTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    lineHeight: 21,
+  },
+  featureIndex: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginLeft: 8,
+    marginTop: 2,
+  },
+  featureDescription: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 19,
+  },
+  featureCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 14,
+  },
+  featureCtaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  featureCtaArrow: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+
+  shortTermCard: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 20,
+  },
+  shortTermIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.warningLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  shortTermIcon: {
+    fontSize: 18,
+  },
+  shortTermTextBox: {
+    marginBottom: 14,
+  },
+  shortTermTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  shortTermTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  shortTermTag: {
+    backgroundColor: COLORS.warningLight,
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+  },
+  shortTermTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.warning,
+  },
+  shortTermDescription: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  shortTermButton: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 9,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#EAF2FF',
+  },
+  shortTermButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  infoBox: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 16,
+    padding: 18,
+  },
+  infoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  infoTitleIcon: {
+    fontSize: 13,
+  },
+  infoTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: COLORS.primaryDark,
+  },
+  infoTextStrong: {
+    fontWeight: '800',
   },
 });
