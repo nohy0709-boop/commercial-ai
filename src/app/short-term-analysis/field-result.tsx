@@ -1,16 +1,18 @@
 import { COLORS } from '@/constants/colors';
 import type { EventName, OperatingField } from '@/data/mockShortTermData';
 import { getRankedShortTermResults } from '@/data/mockShortTermData';
-import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
 export default function FieldResultScreen() {
+  const router = useRouter();
+
   const {field, events} = useLocalSearchParams<{
     field: OperatingField;
     events: string;
@@ -30,19 +32,30 @@ export default function FieldResultScreen() {
     getRankedShortTermResults(combos);
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.headerSection}>
-        <Text style={styles.smallTitle}>
-          단기 상권 분석 결과
-        </Text>
+    <View style={styles.screen}>
+      <View style={styles.appBar}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.appBarTitle}>행사 적합도 순위</Text>
+          <Text style={styles.appBarSubtitle}>{field}</Text>
+        </View>
+      </View>
 
-        <Text style={styles.title}>
-          행사 적합도 순위
-        </Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+      <View style={styles.headerSection}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>단기 상권 분석 결과</Text>
+        </View>
 
         <Text style={styles.description}>
           <Text style={styles.fieldName}>
@@ -152,40 +165,55 @@ export default function FieldResultScreen() {
           </View>
         );
       })}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.background,
+  screen: { flex: 1, backgroundColor: COLORS.background },
+
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginLeft: -6,
+  },
+  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  appBarSubtitle: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
+
+  scroll: { flex: 1 },
 
   container: {
     padding: 20,
     paddingBottom: 40,
-    backgroundColor: COLORS.background,
   },
 
   headerSection: {
-    marginTop: 10,
     marginBottom: 22,
   },
 
-  smallTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.primary,
-    marginBottom: 6,
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.warningLight,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    marginBottom: 12,
   },
-
-  title: {
-    fontSize: 27,
-    fontWeight: '900',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
+  badgeText: { fontSize: 11, fontWeight: '800', color: COLORS.warning },
 
   description: {
     fontSize: 14,
@@ -221,7 +249,7 @@ const styles = StyleSheet.create({
   },
 
   firstCard: {
-    borderColor: COLORS.primary,
+    borderColor: COLORS.warning,
   },
 
   cardHeader: {
@@ -240,7 +268,7 @@ const styles = StyleSheet.create({
   },
 
   rankBadgeFirst: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.warning,
   },
 
   rank: {
@@ -266,7 +294,7 @@ const styles = StyleSheet.create({
   bestText: {
     fontSize: 11,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: COLORS.warning,
     marginTop: 4,
   },
 
@@ -280,10 +308,10 @@ const styles = StyleSheet.create({
 
     borderRadius: 15,
 
-    backgroundColor: '#F1FFF5',
+    backgroundColor: COLORS.warningLight,
 
     borderWidth: 1,
-    borderColor: '#D8F5E2',
+    borderColor: '#FDE9C8',
   },
 
   scoreLabel: {
@@ -295,7 +323,7 @@ const styles = StyleSheet.create({
   score: {
     fontSize: 22,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: COLORS.warning,
   },
 
   scoreUnit: {
@@ -317,7 +345,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 13,
 
-    backgroundColor: '#F7F9F7',
+    backgroundColor: COLORS.background,
 
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -342,7 +370,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 15,
 
-    backgroundColor: '#F7F7F7',
+    backgroundColor: COLORS.lightGray,
   },
 
   reasonTitle: {

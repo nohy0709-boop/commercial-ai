@@ -22,9 +22,10 @@ import {
 
 import {
   useLocalSearchParams,
+  useRouter,
 } from "expo-router";
 
-import React, {
+import {
   useEffect,
   useState,
 } from "react";
@@ -59,6 +60,8 @@ function renderEmphasizedText(text: string, textStyle: object) {
 }
 
 export default function LocationRecommendResultScreen() {
+  const router = useRouter();
+
   const { region } =
     useLocalSearchParams<{
       region: string;
@@ -386,14 +389,31 @@ export default function LocationRecommendResultScreen() {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={
-        styles.container
-      }
-      showsVerticalScrollIndicator={
-        false
-      }
-    >
+    <View style={styles.screen}>
+      {/* 상단 앱바 */}
+      <View style={styles.appBar}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.appBarTitle}>업종 추천 결과</Text>
+          <Text style={styles.appBarSubtitle}>{region}</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          styles.container
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
+      >
       <Text
         style={
           styles.smallTitle
@@ -424,13 +444,9 @@ export default function LocationRecommendResultScreen() {
           styles.summaryBox
         }
       >
-        <Text
-          style={
-            styles.summaryLabel
-          }
-        >
-          가장 추천하는 업종
-        </Text>
+        <View style={styles.summaryPill}>
+          <Text style={styles.summaryPillText}>가장 추천하는 업종</Text>
+        </View>
 
         <Text
           style={
@@ -443,17 +459,6 @@ export default function LocationRecommendResultScreen() {
 
         <Text
           style={
-            styles.summaryScore
-          }
-        >
-          추천점수{" "}
-          {results[0]
-            ?.recommendationScore}
-          점
-        </Text>
-
-        <Text
-          style={
             styles.summaryReason
           }
         >
@@ -462,6 +467,18 @@ export default function LocationRecommendResultScreen() {
               results[0]
             )}
         </Text>
+
+        <View style={styles.summaryScoreRow}>
+          <Text
+            style={
+              styles.summaryScore
+            }
+          >
+            {results[0]
+              ?.recommendationScore}
+          </Text>
+          <Text style={styles.summaryScoreUnit}>점 추천점수</Text>
+        </View>
       </View>
 
       <Text
@@ -1096,17 +1113,44 @@ export default function LocationRecommendResultScreen() {
           );
         }
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles =
   StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+
+    appBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    backButton: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+      marginLeft: -6,
+    },
+    backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+    appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+    appBarSubtitle: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
+
+    scroll: { flex: 1 },
+
     container: {
       padding: 20,
       paddingBottom: 50,
-      backgroundColor:
-        COLORS.background,
     },
 
     centerContainer: {
@@ -1136,13 +1180,13 @@ const styles =
     },
 
     errorText: {
-      color: "#D64545",
+      color: COLORS.danger,
       fontSize: 15,
       textAlign: "center",
     },
 
     smallTitle: {
-      marginTop: 12,
+      marginTop: 4,
       fontSize: 13,
       fontWeight: "700",
       color:
@@ -1168,43 +1212,64 @@ const styles =
 
     summaryBox: {
       backgroundColor:
-        "#111111",
+        COLORS.surface,
       borderRadius: 18,
       padding: 22,
       marginBottom: 30,
       borderWidth: 1,
       borderColor:
-        "#252525",
+        COLORS.border,
     },
 
-    summaryLabel: {
-      fontSize: 12,
-      color:
-        "#A8B0A9",
+    summaryPill: {
+      alignSelf: 'flex-start',
+      backgroundColor: COLORS.primaryLight,
+      borderRadius: 999,
+      paddingVertical: 5,
+      paddingHorizontal: 12,
+      marginBottom: 10,
+    },
+
+    summaryPillText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: COLORS.primary,
     },
 
     summaryBusiness: {
-      fontSize: 28,
+      fontSize: 26,
       fontWeight: "900",
       color:
-        "#FFFFFF",
-      marginTop: 5,
-    },
-
-    summaryScore: {
-      fontSize: 15,
-      fontWeight: "800",
-      color:
-        COLORS.neonLime,
-      marginTop: 6,
+        COLORS.text,
     },
 
     summaryReason: {
       fontSize: 12,
       lineHeight: 18,
       color:
-        "#C8CEC9",
+        COLORS.textSecondary,
       marginTop: 8,
+    },
+
+    summaryScoreRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 5,
+      marginTop: 14,
+    },
+
+    summaryScore: {
+      fontSize: 24,
+      fontWeight: "900",
+      color:
+        COLORS.primary,
+    },
+
+    summaryScoreUnit: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: COLORS.textSecondary,
+      marginBottom: 3,
     },
 
     sectionTitle: {
@@ -1255,7 +1320,7 @@ const styles =
       paddingHorizontal: 9,
       borderRadius: 12,
       backgroundColor:
-        COLORS.lime,
+        COLORS.primaryLight,
     },
 
     rank: {
@@ -1302,7 +1367,7 @@ const styles =
     previewItem: {
       flex: 1,
       backgroundColor:
-        "#F7F9F7",
+        COLORS.background,
       borderRadius: 12,
       padding: 10,
       borderWidth: 1,
@@ -1329,13 +1394,13 @@ const styles =
       paddingVertical: 10,
       borderRadius: 12,
       backgroundColor:
-        COLORS.neonLime,
+        COLORS.primary,
     },
 
     expandText: {
       textAlign: "center",
       color:
-        COLORS.text,
+        '#FFFFFF',
       fontSize: 12,
       fontWeight: "900",
     },
@@ -1392,13 +1457,13 @@ const styles =
       alignItems:
         "center",
       backgroundColor:
-        "#F1FFF5",
+        COLORS.primaryLight,
       borderRadius: 14,
       padding: 16,
       marginTop: 10,
       borderWidth: 1,
       borderColor:
-        "#D8F5E2",
+        COLORS.border,
     },
 
     finalScoreLabel: {
@@ -1424,7 +1489,7 @@ const styles =
       alignItems: 'center',
     },
     aiButtonText: {fontSize: 13, fontWeight: '800', color: COLORS.primary},
-    aiError: {fontSize: 12, color: '#D64545', marginTop: 10},
+    aiError: {fontSize: 12, color: COLORS.danger, marginTop: 10},
     aiBox: {
       marginTop: 14,
       paddingTop: 14,

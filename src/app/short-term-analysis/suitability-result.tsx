@@ -1,16 +1,18 @@
 import { COLORS } from '@/constants/colors';
 import type { EventName, OperatingField } from '@/data/mockShortTermData';
 import { getShortTermResult } from '@/data/mockShortTermData';
-import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
 export default function ShortTermSuitabilityResultScreen() {
+  const router = useRouter();
+
   const {field, eventName} = useLocalSearchParams<{
     field: OperatingField;
     eventName: EventName;
@@ -54,19 +56,30 @@ export default function ShortTermSuitabilityResultScreen() {
   ];
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.headerSection}>
-        <Text style={styles.smallTitle}>
-          단기 상권 적합성 분석
-        </Text>
+    <View style={styles.screen}>
+      <View style={styles.appBar}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.appBarTitle}>{`${eventName} · ${field}`}</Text>
+          <Text style={styles.appBarSubtitle}>단기 상권 적합성 분석</Text>
+        </View>
+      </View>
 
-        <Text style={styles.title}>
-          {`${eventName} · ${field}`}
-        </Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+      <View style={styles.headerSection}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>단기 상권 분석</Text>
+        </View>
 
         <Text style={styles.description}>
           선택한 행사와 운영 분야의 적합도를 분석했어요.
@@ -131,15 +144,36 @@ export default function ShortTermSuitabilityResultScreen() {
           ),
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.background,
+  screen: { flex: 1, backgroundColor: COLORS.background },
+
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginLeft: -6,
+  },
+  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  appBarSubtitle: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
+
+  scroll: { flex: 1 },
 
   container: {
     padding: 20,
@@ -147,23 +181,18 @@ const styles = StyleSheet.create({
   },
 
   headerSection: {
-    marginTop: 10,
     marginBottom: 20,
   },
 
-  smallTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.primary,
-    marginBottom: 6,
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.warningLight,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    marginBottom: 12,
   },
-
-  title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
+  badgeText: { fontSize: 11, fontWeight: '800', color: COLORS.warning },
 
   description: {
     fontSize: 13,
@@ -181,10 +210,10 @@ const styles = StyleSheet.create({
 
     borderRadius: 18,
 
-    backgroundColor: '#F1FFF5',
+    backgroundColor: COLORS.warningLight,
 
     borderWidth: 1,
-    borderColor: '#D8F5E2',
+    borderColor: '#FDE9C8',
   },
 
   scoreLabel: {
@@ -200,14 +229,14 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '900',
 
-    color: COLORS.primary,
+    color: COLORS.warning,
   },
 
   scoreUnit: {
     fontSize: 17,
     fontWeight: '800',
 
-    color: COLORS.primary,
+    color: COLORS.warning,
   },
 
   table: {
@@ -275,7 +304,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 4,
 
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.warning,
 
     marginRight: 9,
   },
@@ -299,7 +328,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 3,
 
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.warning,
 
     marginTop: 7,
     marginRight: 9,

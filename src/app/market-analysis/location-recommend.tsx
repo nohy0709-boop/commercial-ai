@@ -1,4 +1,4 @@
-import AddressMap from '@/components/address-map.web';
+import AddressMap from '@/components/address-map';
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
 
@@ -10,7 +10,7 @@ import {
 
 import { useRouter } from 'expo-router';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -211,23 +211,40 @@ export default function LocationRecommendScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={
-        styles.scrollContent
-      }
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.screen}>
+      {/* 상단 앱바 + 스테퍼 */}
+      <View style={styles.appBar}>
+        <View style={styles.appBarTopRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.appBarTitle}>보유 입지 업종 추천</Text>
+        </View>
+
+        <View style={styles.stepper}>
+          <Text style={styles.stepActive}>1 장소 입력</Text>
+          <Text style={styles.stepArrow}>›</Text>
+          <Text style={styles.stepInactive}>2 추천 결과</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          styles.scrollContent
+        }
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.content}>
         {/* HEADER */}
         <View style={styles.headerSection}>
           <Text style={styles.smallTitle}>
             장기 상권 분석
-          </Text>
-
-          <Text style={styles.title}>
-            보유 입지 업종 추천
           </Text>
 
           <Text style={styles.description}>
@@ -562,7 +579,8 @@ export default function LocationRecommendScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -571,6 +589,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
+  appBar: {
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  appBarTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    marginLeft: -6,
+  },
+  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 12,
+    gap: 6,
+  },
+  stepActive: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  stepInactive: { fontSize: 12, color: '#9CA3AF' },
+  stepArrow: { fontSize: 12, color: '#9CA3AF' },
+
+  scroll: { flex: 1 },
 
   scrollContent: {
     width: '100%',
@@ -585,8 +637,8 @@ const styles = StyleSheet.create({
   },
 
   headerSection: {
-    marginTop: 10,
-    marginBottom: 26,
+    marginTop: 4,
+    marginBottom: 22,
   },
 
   smallTitle: {
@@ -596,14 +648,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  title: {
-    fontSize: 27,
-    fontWeight: '900',
-    color: COLORS.text,
-  },
-
   description: {
-    marginTop: 8,
+    marginTop: 4,
     fontSize: 14,
     lineHeight: 21,
     color: COLORS.textSecondary,
@@ -675,7 +721,7 @@ const styles = StyleSheet.create({
 
     paddingHorizontal: 15,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
 
     color: COLORS.text,
     fontSize: 14,
@@ -708,19 +754,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
 
     borderWidth: 1,
-    borderColor: '#FFDADA',
+    borderColor: COLORS.danger,
 
-    backgroundColor: '#FFF5F5',
+    backgroundColor: COLORS.dangerLight,
   },
 
   errorText: {
     fontSize: 12,
-    color: '#D14343',
+    color: COLORS.danger,
   },
 
   mapContainer: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.border,
 
     borderRadius: 16,
 
@@ -734,7 +780,7 @@ const styles = StyleSheet.create({
 
     padding: 14,
 
-    backgroundColor: '#FAFBFA',
+    backgroundColor: COLORS.background,
   },
 
   mapTitle: {
@@ -759,7 +805,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 999,
 
-    backgroundColor: '#E9F8EC',
+    backgroundColor: COLORS.primaryLight,
   },
 
   dongBadgeText: {
@@ -774,11 +820,11 @@ const styles = StyleSheet.create({
     padding: 15,
 
     borderWidth: 1,
-    borderColor: '#DCEFE0',
+    borderColor: COLORS.border,
 
     borderRadius: 14,
 
-    backgroundColor: '#FAFFFB',
+    backgroundColor: COLORS.primaryLight,
   },
 
   locationInfoLabel: {
@@ -816,12 +862,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
 
   radiusButtonActive: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F0FFF4',
+    backgroundColor: COLORS.primaryLight,
   },
 
   radiusText: {
@@ -842,7 +888,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 12,
 
-    backgroundColor: '#F7F9F7',
+    backgroundColor: COLORS.background,
   },
 
   radiusHelpText: {
@@ -856,11 +902,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
 
     borderWidth: 1,
-    borderColor: '#DCEFE0',
+    borderColor: COLORS.border,
 
     borderRadius: 18,
 
-    backgroundColor: '#F5FCF6',
+    backgroundColor: COLORS.primaryLight,
   },
 
   summaryLabel: {
@@ -907,7 +953,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: COLORS.primary,
   },
 
   analyzeButtonDisabled: {
@@ -917,7 +963,7 @@ const styles = StyleSheet.create({
   analyzeButtonText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   analyzeButtonTextDisabled: {

@@ -14,7 +14,7 @@ import {
 import type { NearbyStore } from '@/services/storeApi';
 import { getStoreList } from '@/services/storeApi';
 
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   useEffect,
@@ -241,6 +241,8 @@ function MultiAreaLineChart({
 }
 
 export default function RegionResultDetailScreen() {
+  const router = useRouter();
+
   const params =
     useLocalSearchParams<{
       businessName: string;
@@ -1006,19 +1008,35 @@ export default function RegionResultDetailScreen() {
   }));
 
   return (
-    <ScrollView
-      style={
-        styles.screen
-      }
-      contentContainerStyle={
-        styles.container
-      }
-      showsVerticalScrollIndicator={
-        false
-      }
-    >
+    <View style={styles.screen}>
+      {/* 상단 앱바 */}
+      <View style={styles.appBar}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.appBarTitle}>상세 분석</Text>
+          <Text style={styles.appBarSubtitle}>
+            {areaName} · {businessName}
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          styles.container
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
+      >
       {/* =========================
-          HEADER
+          HEADER (LEVEL 1)
       ========================== */}
 
       <View
@@ -1041,7 +1059,7 @@ export default function RegionResultDetailScreen() {
                 styles.rankPillText
               }
             >
-              {rank}위
+              {rank}위 추천
             </Text>
           </View>
 
@@ -1054,7 +1072,7 @@ export default function RegionResultDetailScreen() {
           </Text>
         </View>
 
-        {/* 지역 이름 + 하트 */}
+        {/* 지역 이름 + 점수/하트 */}
         <View
           style={
             styles.titleRow
@@ -1073,6 +1091,14 @@ export default function RegionResultDetailScreen() {
               {`${areaName} 일대`}
             </Text>
 
+            <Text
+              style={
+                styles.headerBusiness
+              }
+            >
+              {businessName}
+            </Text>
+
             {isPointAnalysis &&
               radius && (
                 <Text
@@ -1086,33 +1112,55 @@ export default function RegionResultDetailScreen() {
               )}
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.favoriteButton,
+          <View style={styles.scoreCol}>
+            <Text
+              style={
+                styles.scoreValue
+              }
+            >
+              {
+                suitabilityScore
+              }
+            </Text>
 
-              favorite &&
-                styles.favoriteButtonActive,
-            ]}
-            activeOpacity={
-              0.8
-            }
-            disabled={
-              favoriteLoading
-            }
-            onPress={
-              handleFavorite
-            }
-          >
-            {favoriteLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={
-                  favorite
-                    ? '#FFFFFF'
-                    : '#E54861'
-                }
-              />
-            ) : (
+            <Text
+              style={
+                styles.scoreLabel
+              }
+            >
+              종합 적합도
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.favoriteButton,
+
+            favorite &&
+              styles.favoriteButtonActive,
+          ]}
+          activeOpacity={
+            0.8
+          }
+          disabled={
+            favoriteLoading
+          }
+          onPress={
+            handleFavorite
+          }
+        >
+          {favoriteLoading ? (
+            <ActivityIndicator
+              size="small"
+              color={
+                favorite
+                  ? '#FFFFFF'
+                  : '#E54861'
+              }
+            />
+          ) : (
+            <>
               <Text
                 style={[
                   styles.favoriteText,
@@ -1125,51 +1173,17 @@ export default function RegionResultDetailScreen() {
                   ? '♥'
                   : '♡'}
               </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <Text
-          style={
-            styles.headerBusiness
-          }
-        >
-          {
-            businessName
-          }
-        </Text>
-
-        <View
-          style={
-            styles.scoreRow
-          }
-        >
-          <Text
-            style={
-              styles.scoreLabel
-            }
-          >
-            종합 적합도
-          </Text>
-
-          <Text
-            style={
-              styles.scoreValue
-            }
-          >
-            {
-              suitabilityScore
-            }
-          </Text>
-
-          <Text
-            style={
-              styles.scoreUnit
-            }
-          >
-            / 100
-          </Text>
-        </View>
+              <Text
+                style={[
+                  styles.favoriteLabel,
+                  favorite && styles.favoriteLabelActive,
+                ]}
+              >
+                {favorite ? '찜한 분석' : '분석 찜하기'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* =========================
@@ -1674,16 +1688,21 @@ export default function RegionResultDetailScreen() {
 
       <View
         style={
-          styles.sectionBox
+          styles.aiSectionBox
         }
       >
-        <Text
-          style={
-            styles.sectionTitle
-          }
-        >
-          AI 분석 요약
-        </Text>
+        <View style={styles.aiSectionTitleRow}>
+          <View style={styles.aiIconBox}>
+            <Text style={styles.aiIconText}>✨</Text>
+          </View>
+          <Text
+            style={
+              styles.aiSectionTitle
+            }
+          >
+            AI 상권 인사이트
+          </Text>
+        </View>
 
         {aiLoading && (
           <View
@@ -1694,7 +1713,7 @@ export default function RegionResultDetailScreen() {
             <ActivityIndicator
               size="small"
               color={
-                COLORS.primary
+                COLORS.ai
               }
             />
 
@@ -1806,7 +1825,7 @@ export default function RegionResultDetailScreen() {
               >
                 <Text
                   style={
-                    styles.detailToggleText
+                    styles.detailToggleTextAi
                   }
                 >
                   {detailExpanded
@@ -1856,7 +1875,8 @@ export default function RegionResultDetailScreen() {
             </>
           )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -1942,6 +1962,29 @@ const styles =
         COLORS.background,
     },
 
+    appBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    backButton: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+      marginLeft: -6,
+    },
+    backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
+    appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+    appBarSubtitle: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
+
+    scroll: { flex: 1 },
+
     container: {
       padding: 20,
 
@@ -1950,7 +1993,9 @@ const styles =
 
     headerCard: {
       backgroundColor:
-        '#111111',
+        COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
 
       borderRadius: 20,
 
@@ -1968,12 +2013,12 @@ const styles =
 
       gap: 10,
 
-      marginBottom: 10,
+      marginBottom: 12,
     },
 
     rankPill: {
       backgroundColor:
-        COLORS.primary,
+        COLORS.primaryLight,
 
       borderRadius: 12,
 
@@ -1984,7 +2029,7 @@ const styles =
 
     rankPillText: {
       color:
-        '#FFFFFF',
+        COLORS.primary,
 
       fontSize: 12,
 
@@ -2004,12 +2049,13 @@ const styles =
         'row',
 
       alignItems:
-        'center',
+        'flex-start',
 
       justifyContent:
         'space-between',
 
       gap: 12,
+      marginBottom: 16,
     },
 
     titleArea: {
@@ -2018,9 +2064,9 @@ const styles =
 
     headerTitle: {
       color:
-        '#FFFFFF',
+        COLORS.text,
 
-      fontSize: 24,
+      fontSize: 22,
 
       fontWeight:
         '900',
@@ -2028,8 +2074,15 @@ const styles =
       marginBottom: 4,
     },
 
+    headerBusiness: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 14,
+    },
+
     pointSubtitle: {
-      marginTop: 2,
+      marginTop: 6,
 
       fontSize: 11,
 
@@ -2037,29 +2090,46 @@ const styles =
         '700',
 
       color:
-        '#A7F3D0',
+        COLORS.primary,
+    },
+
+    scoreCol: {
+      alignItems: 'flex-end',
+    },
+
+    scoreValue: {
+      color:
+        COLORS.primary,
+
+      fontSize: 28,
+
+      fontWeight:
+        '900',
+    },
+
+    scoreLabel: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 11,
+      marginTop: 2,
     },
 
     favoriteButton: {
-      width: 44,
-
-      height: 44,
-
-      borderRadius: 22,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      borderRadius: 14,
 
       backgroundColor:
-        '#FFFFFF',
+        COLORS.background,
 
       borderWidth: 1,
 
       borderColor:
-        '#E5E7EB',
+        COLORS.border,
     },
 
     favoriteButtonActive: {
@@ -2071,9 +2141,8 @@ const styles =
     },
 
     favoriteText: {
-      fontSize: 27,
-
-      lineHeight: 31,
+      fontSize: 18,
+      lineHeight: 20,
 
       color:
         '#E54861',
@@ -2084,53 +2153,14 @@ const styles =
         '#FFFFFF',
     },
 
-    headerBusiness: {
-      color:
-        '#D1D5DB',
-
-      fontSize: 14,
-
-      marginTop: 6,
-
-      marginBottom: 16,
-    },
-
-    scoreRow: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'flex-end',
-
-      gap: 6,
-    },
-
-    scoreLabel: {
-      color:
-        '#9CA3AF',
-
-      fontSize: 12,
-
-      marginBottom: 4,
-    },
-
-    scoreValue: {
-      color:
-        COLORS.neonLime,
-
-      fontSize: 30,
-
-      fontWeight:
-        '900',
-    },
-
-    scoreUnit: {
-      color:
-        '#9CA3AF',
-
+    favoriteLabel: {
       fontSize: 13,
+      fontWeight: '700',
+      color: COLORS.textSecondary,
+    },
 
-      marginBottom: 4,
+    favoriteLabelActive: {
+      color: '#FFFFFF',
     },
 
     metricGrid: {
@@ -2284,7 +2314,7 @@ const styles =
       borderRadius: 10,
 
       backgroundColor:
-        '#F5FCF6',
+        COLORS.primaryLight,
 
       fontSize: 11,
 
@@ -2328,7 +2358,7 @@ const styles =
       fontSize: 12,
 
       color:
-        '#D14343',
+        COLORS.danger,
     },
 
     storesEmpty: {
@@ -2393,6 +2423,39 @@ const styles =
         COLORS.text,
     },
 
+    aiSectionBox: {
+      backgroundColor: COLORS.aiLight,
+      borderWidth: 1,
+      borderColor: 'rgba(14,165,233,0.2)',
+      borderRadius: 18,
+      padding: 18,
+      marginBottom: 16,
+    },
+
+    aiSectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 12,
+    },
+
+    aiIconBox: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      backgroundColor: COLORS.ai,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    aiIconText: { fontSize: 13 },
+
+    aiSectionTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: COLORS.ai,
+    },
+
     aiReasonText: {
       fontSize: 13,
 
@@ -2426,7 +2489,7 @@ const styles =
       gap: 8,
 
       backgroundColor:
-        '#F1FFF5',
+        COLORS.primaryLight,
 
       borderRadius: 10,
 
@@ -2435,7 +2498,7 @@ const styles =
 
     chunkIconGood: {
       color:
-        '#1B9C4F',
+        COLORS.primary,
 
       fontWeight:
         '900',
@@ -2451,7 +2514,7 @@ const styles =
       lineHeight: 18,
 
       color:
-        '#1B4332',
+        COLORS.primaryDark,
     },
 
     chunkRowWarn: {
@@ -2464,7 +2527,7 @@ const styles =
       gap: 8,
 
       backgroundColor:
-        '#FFF8E8',
+        COLORS.warningLight,
 
       borderRadius: 10,
 
@@ -2473,7 +2536,7 @@ const styles =
 
     chunkIconWarn: {
       color:
-        '#B45309',
+        COLORS.warning,
 
       fontWeight:
         '900',
@@ -2507,6 +2570,12 @@ const styles =
 
       color:
         COLORS.textSecondary,
+    },
+
+    detailToggleTextAi: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: COLORS.ai,
     },
 
     aiDetailSection: {
