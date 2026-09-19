@@ -15,6 +15,35 @@ export interface NearbyStore {
 
 /**
  * =====================================================
+ * 간단한 메모리 캐시
+ * =====================================================
+ *
+ * 같은 앱 실행 중
+ * 같은 동 + 같은 업종 목록을 다시 조회하면
+ * API를 재호출하지 않고 저장된 결과 사용
+ */
+const storeListCache =
+  new Map<
+    string,
+    NearbyStore[]
+  >();
+
+function makeStoreCacheKey(
+  adongCode: string,
+  lclsCode: string,
+  mclsCode?: string,
+  sclsCode?: string,
+) {
+  return [
+    adongCode,
+    lclsCode,
+    mclsCode ?? '',
+    sclsCode ?? '',
+  ].join('|');
+}
+
+/**
+ * =====================================================
  * 동 단위 동일 업종 점포 수
  * =====================================================
  */
@@ -55,7 +84,7 @@ export async function getStoreCount(
   }
 
   console.log(
-    'API 요청 URL:',
+    '점포 수 API 요청:',
     url,
   );
 
@@ -70,11 +99,6 @@ export async function getStoreCount(
 
   const data =
     await response.json();
-
-  console.log(
-    'API 응답:',
-    data,
-  );
 
   if (
     data?.header?.resultCode !==
@@ -108,8 +132,7 @@ function convertStoreItem(
   item: any,
 ): NearbyStore | null {
   /**
-   * 공공데이터 응답 버전에 따라
-   * 좌표 필드명이 달라질 가능성을 대비
+   * API 응답 필드명이 조금 다를 경우를 대비
    */
   const lat =
     Number(
@@ -126,9 +149,6 @@ function convertStoreItem(
         item?.x,
     );
 
-  /**
-   * 좌표가 정상 숫자가 아니면 제외
-   */
   if (
     !Number.isFinite(lat) ||
     !Number.isFinite(lng)
@@ -149,9 +169,9 @@ function convertStoreItem(
       '이름 정보 없음',
 
     address:
-      item?.rdnmAdr ||
-      item?.lnoAdr ||
-      item?.address ||
+      item?.rdnmAdr ??
+      item?.lnoAdr ??
+      item?.address ??
       '주소 정보 없음',
 
     lat,
@@ -185,13 +205,6 @@ async function getStoreListPage(
     );
   }
 
-  /**
-   * serviceKey는 직접 URL에 붙임.
-   *
-   * URLSearchParams를 사용할 경우
-   * 이미 인코딩된 serviceKey가
-   * %252F 등의 형태로 이중 인코딩될 수 있음.
-   */
   let url =
     BASE_URL +
     `?serviceKey=${serviceKey}` +
@@ -213,8 +226,7 @@ async function getStoreListPage(
   }
 
   console.log(
-    '점포 목록 API 요청:',
-    url,
+    `점포 목록 API 요청 page=${pageNo}`,
   );
 
   const response =
@@ -228,21 +240,6 @@ async function getStoreListPage(
 
   const data =
     await response.json();
-
-  console.log(
-    '점포 목록 API 전체 응답:',
-    data,
-  );
-
-  console.log(
-    '점포 목록 body:',
-    data?.body,
-  );
-
-  console.log(
-    '점포 목록 items:',
-    data?.body?.items,
-  );
 
   if (
     data?.header?.resultCode !==
@@ -258,12 +255,10 @@ async function getStoreListPage(
    * API 응답 형태가
    *
    * body.items.item
-   *
    * 또는
-   *
    * body.items
    *
-   * 둘 중 어느 형태여도 처리
+   * 둘 다 처리
    */
   const rawItems =
     data?.body?.items?.item ??
@@ -275,29 +270,13 @@ async function getStoreListPage(
   if (
     Array.isArray(rawItems)
   ) {
-    list =
-      rawItems;
+    list = rawItems;
   } else if (
     rawItems &&
     typeof rawItems ===
       'object'
   ) {
-    list =
-      [rawItems];
-  }
-
-  console.log(
-    '실제 점포 item 개수:',
-    list.length,
-  );
-
-  if (
-    list.length > 0
-  ) {
-    console.log(
-      '첫 번째 점포 원본:',
-      list[0],
-    );
+    list = [rawItems];
   }
 
   const stores =
@@ -311,11 +290,6 @@ async function getStoreListPage(
         ): store is NearbyStore =>
           store !== null,
       );
-
-  console.log(
-    '좌표 변환 완료 점포 수:',
-    stores.length,
-  );
 
   return {
     stores,
@@ -333,14 +307,6 @@ async function getStoreListPage(
  * =====================================================
  * 실제 점포 목록 조회
  * =====================================================
- *
- * maxItems를 지정하지 않으면
- * 해당 동의 점포 목록을 페이지네이션해서 전부 가져옴.
- *
- * maxItems = 10
- * → 상세 화면에서 10개만 표시 가능.
- *
- * 반경 분석에서는 maxItems를 전달하지 않음.
  */
 export async function getStoreList(
   adongCode: string,
@@ -350,21 +316,54 @@ export async function getStoreList(
   maxItems?: number,
 ): Promise<NearbyStore[]> {
   /**
-   * API 한 페이지 최대 조회량
+   * 상세화면처럼 일부만 필요하면
+   * 캐시를 사용하지 않고 필요한 만큼만 조회
    */
-  const PAGE_SIZE =
-    1000;
+  if (maxItems) {
+    const result =
+      await getStoreListPage(
+        adongCode,
+        lclsCode,
+        mclsCode,
+        sclsCode,
+        1,
+        maxItems,
+      );
+
+    return result.stores.slice(
+      0,
+      maxItems,
+    );
+  }
 
   /**
-   * 상세화면처럼 10개만 필요하면
-   * 처음부터 10개만 요청
+   * 반경 분석처럼
+   * 동 전체 목록이 필요한 경우 캐시 사용
    */
-  const firstPageSize =
-    maxItems &&
-    maxItems <
-      PAGE_SIZE
-      ? maxItems
-      : PAGE_SIZE;
+  const cacheKey =
+    makeStoreCacheKey(
+      adongCode,
+      lclsCode,
+      mclsCode,
+      sclsCode,
+    );
+
+  const cached =
+    storeListCache.get(
+      cacheKey,
+    );
+
+  if (cached) {
+    console.log(
+      '점포 목록 캐시 사용:',
+      cacheKey,
+    );
+
+    return cached;
+  }
+
+  const PAGE_SIZE =
+    1000;
 
   const firstPage =
     await getStoreListPage(
@@ -373,24 +372,9 @@ export async function getStoreList(
       mclsCode,
       sclsCode,
       1,
-      firstPageSize,
+      PAGE_SIZE,
     );
 
-  /**
-   * maxItems가 있으면
-   * 첫 페이지 결과만 사용
-   */
-  if (maxItems) {
-    return firstPage.stores.slice(
-      0,
-      maxItems,
-    );
-  }
-
-  /**
-   * 반경 분석용:
-   * 전체 점포 목록 필요
-   */
   const allStores: NearbyStore[] =
     [
       ...firstPage.stores,
@@ -431,12 +415,21 @@ export async function getStoreList(
     allStores.length,
   );
 
+  /**
+   * 같은 앱 실행 중
+   * 다시 사용할 수 있도록 저장
+   */
+  storeListCache.set(
+    cacheKey,
+    allStores,
+  );
+
   return allStores;
 }
 
 /**
  * =====================================================
- * 좌표 두 개 사이 거리
+ * 좌표 두 개 사이 거리 계산
  * =====================================================
  *
  * Haversine 공식
@@ -509,11 +502,6 @@ export function getDistanceInMeters(
  * =====================================================
  * 지정 반경 내 실제 점포 목록
  * =====================================================
- *
- * 예:
- * 300m
- * 500m
- * 1000m
  */
 export async function getStoresInRadius(
   centerLat: number,
@@ -526,11 +514,6 @@ export async function getStoresInRadius(
   mclsCode?: string,
   sclsCode?: string,
 ): Promise<NearbyStore[]> {
-  /**
-   * 반경 분석에서는
-   * 동 전체 목록을 받아야 하므로
-   * maxItems를 전달하지 않음
-   */
   const stores =
     await getStoreList(
       adongCode,
@@ -541,7 +524,9 @@ export async function getStoresInRadius(
 
   const nearbyStores =
     stores.filter(
-      store => {
+      (
+        store,
+      ) => {
         const distance =
           getDistanceInMeters(
             centerLat,
@@ -563,8 +548,7 @@ export async function getStoresInRadius(
   );
 
   console.log(
-    `반경 ${radius}m 내 점포:`,
-    nearbyStores.length,
+    `반경 ${radius}m 내 점포: ${nearbyStores.length}`,
   );
 
   return nearbyStores;
@@ -600,4 +584,20 @@ export async function getStoreCountInRadius(
     );
 
   return stores.length;
+}
+
+/**
+ * =====================================================
+ * 캐시 초기화
+ * =====================================================
+ *
+ * 개발 중 데이터가 갱신됐거나
+ * 강제로 재조회하고 싶을 때 사용 가능
+ */
+export function clearStoreListCache() {
+  storeListCache.clear();
+
+  console.log(
+    '점포 목록 캐시 초기화 완료',
+  );
 }

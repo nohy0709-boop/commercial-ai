@@ -1,31 +1,79 @@
 import type {
-    CommercialAnalysisResult,
+  CommercialAnalysisResult,
+  PointCommercialAnalysisResult,
 } from "./commercialAnalysis";
 
-export type BusinessRecommendationResult =
-  CommercialAnalysisResult & {
-    businessName: string;
+/**
+ * 좌표 기반 분석에서 추가로 들어오는 정보
+ *
+ * 동 전체 분석에서는 없을 수 있으므로 optional 처리
+ */
+type PointAnalysisMetadata = {
+  dongName?: string;
 
-    averageSalesScore: number;
-    competitionScore: number;
-    salesScore: number;
+  latitude?: number;
+  longitude?: number;
 
-    recommendationScore: number;
+  radius?: number;
 
-    rank: number;
-  };
+  analysisType?: "point";
 
-type BusinessAnalysisInput = {
-  businessName: string;
-  analysis: CommercialAnalysisResult;
+  radiusStoreCount?: number;
+
+  isEstimated?: boolean;
 };
 
-// 일반 정규화
+/**
+ * =====================================================
+ * 업종 추천 최종 결과
+ * =====================================================
+ *
+ * 기존 동 단위 분석 결과 +
+ * 좌표 기반 분석 메타데이터 +
+ * 추천 점수
+ */
+export type BusinessRecommendationResult =
+  CommercialAnalysisResult &
+    PointAnalysisMetadata & {
+      businessName: string;
+
+      averageSalesScore: number;
+      competitionScore: number;
+      salesScore: number;
+
+      recommendationScore: number;
+
+      rank: number;
+    };
+
+/**
+ * =====================================================
+ * 추천 계산 입력 타입
+ * =====================================================
+ *
+ * 기존 동 전체 분석과
+ * 좌표 기반 분석 모두 받을 수 있음
+ */
+type BusinessAnalysisInput = {
+  businessName: string;
+
+  analysis:
+    | CommercialAnalysisResult
+    | PointCommercialAnalysisResult;
+};
+
+/**
+ * =====================================================
+ * 일반 정규화
+ * =====================================================
+ *
+ * 값이 클수록 높은 점수
+ */
 function normalize(
   value: number,
   min: number,
-  max: number
-) {
+  max: number,
+): number {
   if (max === min) {
     return 100;
   }
@@ -37,12 +85,20 @@ function normalize(
   );
 }
 
-// 낮을수록 높은 점수
+/**
+ * =====================================================
+ * 역방향 정규화
+ * =====================================================
+ *
+ * 값이 낮을수록 높은 점수
+ *
+ * 경쟁밀도 등에 사용
+ */
 function normalizeReverse(
   value: number,
   min: number,
-  max: number
-) {
+  max: number,
+): number {
   if (max === min) {
     return 100;
   }
@@ -54,133 +110,251 @@ function normalizeReverse(
   );
 }
 
+/**
+ * =====================================================
+ * 입지 기반 업종 추천 점수 계산
+ * =====================================================
+ */
 export function calculateBusinessRecommendationScores(
-  items: BusinessAnalysisInput[]
+  items: BusinessAnalysisInput[],
 ): BusinessRecommendationResult[] {
   if (items.length === 0) {
     return [];
   }
 
+  /**
+   * =====================================================
+   * 비교에 사용할 데이터
+   * =====================================================
+   */
+
+  /**
+   * 점포당 카드소비
+   */
   const averageSalesValues =
     items.map(
-      (item) =>
-        item.analysis.averageSalesPerStore
+      item =>
+        item.analysis
+          .averageSalesPerStore,
     );
 
+  /**
+   * 경쟁밀도
+   */
   const competitionValues =
     items.map(
-      (item) =>
-        item.analysis.competitionDensity
+      item =>
+        item.analysis
+          .competitionDensity,
     );
 
+  /**
+   * 전체 카드소비
+   *
+   * 좌표 기반 분석에서는
+   * 선택 위치 반경에 맞게 보정된 값
+   */
   const salesValues =
     items.map(
-      (item) =>
-        item.analysis.salesAmount
+      item =>
+        item.analysis
+          .salesAmount,
     );
 
+  /**
+   * =====================================================
+   * 최소 / 최대값
+   * =====================================================
+   */
   const minAverageSales =
-    Math.min(...averageSalesValues);
+    Math.min(
+      ...averageSalesValues,
+    );
 
   const maxAverageSales =
-    Math.max(...averageSalesValues);
+    Math.max(
+      ...averageSalesValues,
+    );
 
   const minCompetition =
-    Math.min(...competitionValues);
+    Math.min(
+      ...competitionValues,
+    );
 
   const maxCompetition =
-    Math.max(...competitionValues);
+    Math.max(
+      ...competitionValues,
+    );
 
   const minSales =
-    Math.min(...salesValues);
+    Math.min(
+      ...salesValues,
+    );
 
   const maxSales =
-    Math.max(...salesValues);
+    Math.max(
+      ...salesValues,
+    );
 
+  /**
+   * =====================================================
+   * 업종별 점수 계산
+   * =====================================================
+   */
   const scoredResults =
-    items.map((item) => {
-      // 점포 하나당 소비가 높을수록 좋음
-      const averageSalesScore =
-        normalize(
-          item.analysis.averageSalesPerStore,
-          minAverageSales,
-          maxAverageSales
-        );
+    items.map(
+      item => {
+        /**
+         * 점포 하나당 소비가
+         * 높을수록 좋은 점수
+         */
+        const averageSalesScore =
+          normalize(
+            item.analysis
+              .averageSalesPerStore,
 
-      // 경쟁밀도는 낮을수록 좋음
-      const competitionScore =
-        normalizeReverse(
-          item.analysis.competitionDensity,
-          minCompetition,
-          maxCompetition
-        );
+            minAverageSales,
 
-      // 해당 업종의 전체 소비 규모
-      const salesScore =
-        normalize(
-          item.analysis.salesAmount,
-          minSales,
-          maxSales
-        );
+            maxAverageSales,
+          );
 
-      /*
-        입지 기반 업종 추천 가중치
+        /**
+         * 경쟁밀도는
+         * 낮을수록 좋은 점수
+         */
+        const competitionScore =
+          normalizeReverse(
+            item.analysis
+              .competitionDensity,
 
-        점포당 카드소비 : 40%
-        경쟁도           : 35%
-        전체 카드소비    : 25%
+            minCompetition,
 
-        같은 지역에서는
-        생활인구/유동인구/접근성이
-        모든 업종에 동일하므로
-        순위 계산에는 사용하지 않음.
-      */
+            maxCompetition,
+          );
 
-      const recommendationScore =
-        averageSalesScore * 0.4 +
-        competitionScore * 0.35 +
-        salesScore * 0.25;
+        /**
+         * 해당 위치에서
+         * 해당 업종의 소비 규모
+         */
+        const salesScore =
+          normalize(
+            item.analysis
+              .salesAmount,
 
-      return {
-        ...item.analysis,
+            minSales,
 
-        businessName:
-          item.businessName,
+            maxSales,
+          );
 
-        averageSalesScore:
-          Number(
-            averageSalesScore.toFixed(1)
-          ),
+        /**
+         * =====================================================
+         * 입지 기반 업종 추천 가중치
+         * =====================================================
+         *
+         * 점포당 카드소비 : 40%
+         * 경쟁도           : 35%
+         * 전체 카드소비    : 25%
+         *
+         * 현재 생활인구 /
+         * 유동인구 /
+         * 접근성 데이터는
+         *
+         * 동 데이터를 기반으로
+         * 세부 위치에 맞게 추정한 값이므로
+         *
+         * 일단 업종 추천 순위에는
+         * 직접 사용하지 않음.
+         */
+        const recommendationScore =
+          averageSalesScore *
+            0.4 +
+          competitionScore *
+            0.35 +
+          salesScore *
+            0.25;
 
-        competitionScore:
-          Number(
-            competitionScore.toFixed(1)
-          ),
+        return {
+          /**
+           * 분석 결과 전체 유지
+           *
+           * PointCommercialAnalysisResult라면
+           *
+           * latitude
+           * longitude
+           * radius
+           * isEstimated
+           *
+           * 등의 정보도 같이 들어옴.
+           */
+          ...item.analysis,
 
-        salesScore:
-          Number(
-            salesScore.toFixed(1)
-          ),
+          businessName:
+            item.businessName,
 
-        recommendationScore:
-          Number(
-            recommendationScore.toFixed(1)
-          ),
+          averageSalesScore:
+            Number(
+              averageSalesScore.toFixed(
+                1,
+              ),
+            ),
 
-        rank: 0,
-      };
-    });
+          competitionScore:
+            Number(
+              competitionScore.toFixed(
+                1,
+              ),
+            ),
 
+          salesScore:
+            Number(
+              salesScore.toFixed(
+                1,
+              ),
+            ),
+
+          recommendationScore:
+            Number(
+              recommendationScore.toFixed(
+                1,
+              ),
+            ),
+
+          /**
+           * 정렬 후 다시 부여
+           */
+          rank: 0,
+        };
+      },
+    );
+
+  /**
+   * =====================================================
+   * 추천 점수 높은 순 정렬
+   * =====================================================
+   */
   scoredResults.sort(
-    (a, b) =>
+    (
+      a,
+      b,
+    ) =>
       b.recommendationScore -
-      a.recommendationScore
+      a.recommendationScore,
   );
 
+  /**
+   * =====================================================
+   * 최종 순위 부여
+   * =====================================================
+   */
   return scoredResults.map(
-    (item, index) => ({
+    (
+      item,
+      index,
+    ) => ({
       ...item,
-      rank: index + 1,
-    })
+
+      rank:
+        index + 1,
+    }),
   );
 }
