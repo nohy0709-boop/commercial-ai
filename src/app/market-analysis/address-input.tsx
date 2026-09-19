@@ -1,19 +1,27 @@
-import AddressMap from '@/components/address-map.web';
+import AddressMap from '@/components/address-map';
 import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
 
 import type { Coordinates } from '@/services/geocoding';
+
 import {
   getDongFromCoords,
   searchLocation,
 } from '@/services/geocoding';
 
+import {
+  getCurrentLocation,
+} from '@/services/currentLocation';
+
 import { useRouter } from 'expo-router';
 
-import React, { useState } from 'react';
+import {
+  useState,
+} from 'react';
 
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   ScrollView,
   StyleSheet,
@@ -34,6 +42,11 @@ export default function AddressInputScreen() {
     useState(false);
 
   const [
+    currentLocationLoading,
+    setCurrentLocationLoading,
+  ] = useState(false);
+
+  const [
     errorMessage,
     setErrorMessage,
   ] = useState('');
@@ -46,95 +59,204 @@ export default function AddressInputScreen() {
   const [
     matchedDong,
     setMatchedDong,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    locationAccuracy,
+    setLocationAccuracy,
+  ] = useState<number | null>(
+    null,
+  );
 
   /**
    * 주소 / 건물명 검색
    */
-  const handleSearch =
-    async () => {
-      Keyboard.dismiss();
+  const handleSearch = async () => {
+    Keyboard.dismiss();
 
-      const query =
-        address.trim();
+    const query =
+      address.trim();
 
-      if (!query) {
+    if (!query) {
+      setErrorMessage(
+        '주소 또는 장소명을 입력해주세요.',
+      );
+
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      setErrorMessage('');
+      setMatchedDong(null);
+      setCoords(null);
+      setLocationAccuracy(null);
+
+      /**
+       * 사용자가 "나성동 주민센터"처럼
+       * 세종을 생략한 경우 자동으로 붙임
+       */
+      let searchQuery =
+        query;
+
+      if (
+        !query.includes(
+          '세종',
+        )
+      ) {
+        searchQuery =
+          `세종특별자치시 ${query}`;
+      }
+
+      /**
+       * 주소 검색
+       */
+      const location =
+        await searchLocation(
+          searchQuery,
+        );
+
+      if (!location) {
         setErrorMessage(
-          '주소 또는 장소명을 입력해주세요.',
+          '위치를 찾을 수 없습니다. 주소나 건물명을 다시 확인해주세요.',
         );
 
         return;
       }
 
+      /**
+       * 좌표 저장
+       *
+       * 실제 세부 상권 분석에서는
+       * 이 좌표가 핵심 기준이 됨.
+       */
+      setCoords(location);
+
+      /**
+       * 좌표 → 행정동
+       *
+       * 행정동은 데이터 연결용으로 사용하고,
+       * 실제 분석 위치는 위/경도를 유지한다.
+       */
+      const region =
+        await getDongFromCoords(
+          location.lat,
+          location.lng,
+        );
+
+      if (!region) {
+        setErrorMessage(
+          '행정동 정보를 확인할 수 없습니다.',
+        );
+
+        return;
+      }
+
+      /**
+       * 프로젝트에서 지원하는
+       * 세종시 동인지 확인
+       */
+      const known =
+        sejongAreas.find(
+          area =>
+            area.name ===
+            region.dongName,
+        );
+
+      if (!known) {
+        setErrorMessage(
+          `'${region.dongName}'은(는) 아직 데이터가 준비된 지역이 아니에요.`,
+        );
+
+        return;
+      }
+
+      setMatchedDong(
+        known.name,
+      );
+    } catch (error) {
+      console.error(
+        '주소 검색 오류:',
+        error,
+      );
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : '위치 검색 중 오류가 발생했습니다.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * 현재 GPS 위치 사용
+   */
+  const handleCurrentLocation =
+    async () => {
+      Keyboard.dismiss();
+
       try {
-        setLoading(true);
+        setCurrentLocationLoading(
+          true,
+        );
 
         setErrorMessage('');
         setMatchedDong(null);
         setCoords(null);
+        setLocationAccuracy(null);
 
         /**
-         * 사용자가 "나성동 주민센터"처럼
-         * 세종을 생략한 경우 자동으로 붙임
+         * GPS 좌표 획득
          */
-        let searchQuery =
-          query;
-
-        if (
-          !query.includes(
-            '세종',
-          )
-        ) {
-          searchQuery =
-            `세종특별자치시 ${query}`;
-        }
+        const current =
+          await getCurrentLocation();
 
         /**
-         * 주소 검색 → 실패하면
-         * 키워드 검색
+         * 기존 프로젝트 좌표 타입에 맞춰 저장
          */
-        const location =
-          await searchLocation(
-            searchQuery,
-          );
+        const location: Coordinates = {
+          lat:
+            current.latitude,
 
-        if (!location) {
-          setErrorMessage(
-            '위치를 찾을 수 없습니다. 주소나 건물명을 다시 확인해주세요.',
-          );
+          lng:
+            current.longitude,
+        };
 
-          return;
-        }
+        setCoords(
+          location,
+        );
 
-        /**
-         * 좌표 저장
-         * → 지도에 표시
-         */
-        setCoords(location);
+        setLocationAccuracy(
+          current.accuracy,
+        );
 
         /**
-         * 좌표 → 행정동
+         * 현재 좌표 → 행정동
          */
         const region =
           await getDongFromCoords(
-            location.lat,
-            location.lng,
+            current.latitude,
+            current.longitude,
           );
 
         if (!region) {
+          setCoords(null);
+
           setErrorMessage(
-            '행정동 정보를 확인할 수 없습니다.',
+            '현재 위치의 행정동 정보를 확인할 수 없습니다.',
           );
 
           return;
         }
 
         /**
-         * 프로젝트에서 지원하는
-         * 세종시 동인지 확인
+         * 현재 프로젝트가 지원하는
+         * 세종시 지역인지 확인
          */
         const known =
           sejongAreas.find(
@@ -144,8 +266,10 @@ export default function AddressInputScreen() {
           );
 
         if (!known) {
+          setCoords(null);
+
           setErrorMessage(
-            `'${region.dongName}'은(는) 아직 데이터가 준비된 지역이 아니에요.`,
+            `현재 위치인 '${region.dongName}'은(는) 아직 데이터가 준비된 지역이 아니에요.`,
           );
 
           return;
@@ -154,19 +278,59 @@ export default function AddressInputScreen() {
         setMatchedDong(
           known.name,
         );
+
+        /**
+         * 화면 표시용 텍스트
+         *
+         * 실제 분석에는 이 문자열이 아니라
+         * 위도 / 경도가 전달됨.
+         */
+        setAddress(
+          `현재 위치 · ${known.name}`,
+        );
+
+        console.log(
+          '현재 GPS 위치:',
+          {
+            latitude:
+              current.latitude,
+
+            longitude:
+              current.longitude,
+
+            accuracy:
+              current.accuracy,
+
+            dong:
+              known.name,
+          },
+        );
       } catch (error) {
         console.error(
-          '주소 검색 오류:',
+          '현재 위치 확인 오류:',
           error,
         );
 
+        if (
+          error instanceof Error &&
+          error.message ===
+            'LOCATION_PERMISSION_DENIED'
+        ) {
+          Alert.alert(
+            '위치 권한이 필요해요',
+            '현재 위치 기반 상권 탐색을 사용하려면 위치 권한을 허용해주세요.',
+          );
+
+          return;
+        }
+
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : '위치 검색 중 오류가 발생했습니다.',
+          '현재 위치를 확인할 수 없습니다. 잠시 후 다시 시도해주세요.',
         );
       } finally {
-        setLoading(false);
+        setCurrentLocationLoading(
+          false,
+        );
       }
     };
 
@@ -187,16 +351,25 @@ export default function AddressInputScreen() {
           '/market-analysis/location-recommend-result',
 
         params: {
+          /**
+           * 현재는 기존 분석 데이터 연결을 위해
+           * 행정동도 함께 전달
+           */
           region:
             matchedDong,
 
-          // 나중에 세부 분석용으로 사용할 수 있게
-          // 실제 좌표도 같이 전달
+          /**
+           * 실제 세부 위치 분석의 핵심 데이터
+           */
           latitude:
-            String(coords.lat),
+            String(
+              coords.lat,
+            ),
 
           longitude:
-            String(coords.lng),
+            String(
+              coords.lng,
+            ),
 
           address:
             address.trim(),
@@ -211,7 +384,9 @@ export default function AddressInputScreen() {
       }
     >
       <ScrollView
-        style={styles.screen}
+        style={
+          styles.screen
+        }
         contentContainerStyle={
           styles.scrollContent
         }
@@ -221,7 +396,9 @@ export default function AddressInputScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View
-          style={styles.content}
+          style={
+            styles.content
+          }
         >
           {/* HEADER */}
 
@@ -251,9 +428,9 @@ export default function AddressInputScreen() {
                 styles.description
               }
             >
-              보유한 장소의 주소나 건물명을
-              검색하면 지도에서 위치를
-              확인할 수 있어요.
+              주소나 건물명을 검색하거나
+              현재 위치를 사용해 세부 위치를
+              기준으로 상권을 분석할 수 있어요.
             </Text>
 
             <View
@@ -289,13 +466,17 @@ export default function AddressInputScreen() {
                 </Text>
               </View>
 
-              <View>
+              <View
+                style={
+                  styles.sectionHeaderText
+                }
+              >
                 <Text
                   style={
                     styles.sectionTitle
                   }
                 >
-                  장소 검색
+                  장소 선택
                 </Text>
 
                 <Text
@@ -303,10 +484,111 @@ export default function AddressInputScreen() {
                     styles.sectionDescription
                   }
                 >
-                  주소 또는 건물명을 입력해주세요
+                  주소를 검색하거나 현재 위치를
+                  사용할 수 있어요
                 </Text>
               </View>
             </View>
+
+            {/* 현재 위치 버튼 */}
+
+            <TouchableOpacity
+              style={[
+                styles.currentLocationButton,
+
+                currentLocationLoading &&
+                  styles.disabledButton,
+              ]}
+              activeOpacity={
+                0.8
+              }
+              onPress={
+                handleCurrentLocation
+              }
+              disabled={
+                currentLocationLoading
+              }
+            >
+              {currentLocationLoading ? (
+                <>
+                  <ActivityIndicator
+                    size="small"
+                    color={
+                      COLORS.primary
+                    }
+                  />
+
+                  <Text
+                    style={
+                      styles.currentLocationButtonText
+                    }
+                  >
+                    현재 위치 확인 중...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text
+                    style={
+                      styles.currentLocationIcon
+                    }
+                  >
+                    📍
+                  </Text>
+
+                  <View
+                    style={
+                      styles.currentLocationTextBox
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.currentLocationButtonText
+                      }
+                    >
+                      내 현재 위치 사용
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.currentLocationDescription
+                      }
+                    >
+                      GPS를 이용해 현재 위치를
+                      정확하게 확인해요
+                    </Text>
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View
+              style={
+                styles.orRow
+              }
+            >
+              <View
+                style={
+                  styles.orLine
+                }
+              />
+
+              <Text
+                style={
+                  styles.orText
+                }
+              >
+                또는
+              </Text>
+
+              <View
+                style={
+                  styles.orLine
+                }
+              />
+            </View>
+
+            {/* 주소 검색 */}
 
             <View
               style={
@@ -340,6 +622,9 @@ export default function AddressInputScreen() {
                 }
                 onPress={
                   handleSearch
+                }
+                disabled={
+                  loading
                 }
               >
                 {loading ? (
@@ -405,7 +690,11 @@ export default function AddressInputScreen() {
                   </Text>
                 </View>
 
-                <View>
+                <View
+                  style={
+                    styles.sectionHeaderText
+                  }
+                >
                   <Text
                     style={
                       styles.sectionTitle
@@ -419,13 +708,13 @@ export default function AddressInputScreen() {
                       styles.sectionDescription
                     }
                   >
-                    검색한 위치가 맞는지 지도에서
+                    선택한 위치가 맞는지 지도에서
                     확인해주세요
                   </Text>
                 </View>
               </View>
 
-              {/* 실제 Kakao 지도 */}
+              {/* 지도 */}
 
               <View
                 style={
@@ -466,13 +755,17 @@ export default function AddressInputScreen() {
                       styles.locationTop
                     }
                   >
-                    <View>
+                    <View
+                      style={
+                        styles.locationTextBox
+                      }
+                    >
                       <Text
                         style={
                           styles.locationLabel
                         }
                       >
-                        검색한 장소
+                        선택한 장소
                       </Text>
 
                       <Text
@@ -506,9 +799,58 @@ export default function AddressInputScreen() {
                       styles.locationDescription
                     }
                   >
-                    해당 위치는 세종특별자치시{' '}
+                    해당 좌표는 세종특별자치시{' '}
                     {matchedDong}으로 인식되었습니다.
                   </Text>
+
+                  <View
+                    style={
+                      styles.coordinateBox
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.coordinateLabel
+                      }
+                    >
+                      세부 분석 좌표
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.coordinateText
+                      }
+                    >
+                      위도{' '}
+                      {
+                        coords.lat.toFixed(
+                          6,
+                        )
+                      }
+                      {'  ·  '}
+                      경도{' '}
+                      {
+                        coords.lng.toFixed(
+                          6,
+                        )
+                      }
+                    </Text>
+
+                    {locationAccuracy !==
+                      null && (
+                      <Text
+                        style={
+                          styles.accuracyText
+                        }
+                      >
+                        GPS 위치 정확도 약{' '}
+                        {Math.round(
+                          locationAccuracy,
+                        )}
+                        m
+                      </Text>
+                    )}
+                  </View>
                 </View>
               )}
             </View>
@@ -542,7 +884,11 @@ export default function AddressInputScreen() {
                     </Text>
                   </View>
 
-                  <View>
+                  <View
+                    style={
+                      styles.sectionHeaderText
+                    }
+                  >
                     <Text
                       style={
                         styles.resultTitle
@@ -556,8 +902,8 @@ export default function AddressInputScreen() {
                         styles.resultDescription
                       }
                     >
-                      이 위치에 어울리는 업종을
-                      추천해드릴게요
+                      이 좌표를 기준으로 세부 상권
+                      데이터를 분석해요
                     </Text>
                   </View>
                 </View>
@@ -572,7 +918,7 @@ export default function AddressInputScreen() {
                       styles.selectedLocationLabel
                     }
                   >
-                    선택한 지역
+                    기준 행정동
                   </Text>
 
                   <Text
@@ -583,6 +929,20 @@ export default function AddressInputScreen() {
                     {
                       matchedDong
                     }
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.selectedCoordinate
+                    }
+                  >
+                    {coords.lat.toFixed(
+                      6,
+                    )}
+                    ,{' '}
+                    {coords.lng.toFixed(
+                      6,
+                    )}
                   </Text>
                 </View>
 
@@ -725,6 +1085,10 @@ const styles =
         18,
     },
 
+    sectionHeaderText: {
+      flex: 1,
+    },
+
     stepBadge: {
       width: 30,
 
@@ -771,6 +1135,97 @@ const styles =
 
     sectionDescription: {
       fontSize: 12,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    currentLocationButton: {
+      width: '100%',
+
+      minHeight: 72,
+
+      borderRadius:
+        14,
+
+      borderWidth: 1,
+
+      borderColor:
+        '#CFE9D6',
+
+      backgroundColor:
+        '#F7FFF9',
+
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      paddingHorizontal:
+        16,
+
+      paddingVertical:
+        13,
+
+      gap: 12,
+    },
+
+    disabledButton: {
+      opacity: 0.65,
+    },
+
+    currentLocationIcon: {
+      fontSize: 24,
+    },
+
+    currentLocationTextBox: {
+      flex: 1,
+    },
+
+    currentLocationButtonText: {
+      fontSize: 14,
+
+      fontWeight:
+        '900',
+
+      color:
+        COLORS.primary,
+    },
+
+    currentLocationDescription: {
+      marginTop: 3,
+
+      fontSize: 11,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    orRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      marginVertical:
+        16,
+
+      gap: 10,
+    },
+
+    orLine: {
+      flex: 1,
+
+      height: 1,
+
+      backgroundColor:
+        COLORS.border,
+    },
+
+    orText: {
+      fontSize: 11,
 
       color:
         COLORS.textSecondary,
@@ -901,6 +1356,12 @@ const styles =
 
       justifyContent:
         'space-between',
+
+      gap: 10,
+    },
+
+    locationTextBox: {
+      flex: 1,
     },
 
     locationLabel: {
@@ -951,6 +1412,50 @@ const styles =
       marginTop: 12,
 
       fontSize: 12,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    coordinateBox: {
+      marginTop: 12,
+
+      padding: 12,
+
+      borderRadius:
+        10,
+
+      backgroundColor:
+        '#FFFFFF',
+    },
+
+    coordinateLabel: {
+      fontSize: 10,
+
+      fontWeight:
+        '700',
+
+      color:
+        COLORS.textSecondary,
+
+      marginBottom:
+        4,
+    },
+
+    coordinateText: {
+      fontSize: 12,
+
+      fontWeight:
+        '700',
+
+      color:
+        COLORS.text,
+    },
+
+    accuracyText: {
+      marginTop: 4,
+
+      fontSize: 10,
 
       color:
         COLORS.textSecondary,
@@ -1038,6 +1543,15 @@ const styles =
 
       color:
         COLORS.primary,
+    },
+
+    selectedCoordinate: {
+      marginTop: 5,
+
+      fontSize: 11,
+
+      color:
+        COLORS.textSecondary,
     },
 
     analyzeButton: {
