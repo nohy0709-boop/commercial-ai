@@ -1,6 +1,7 @@
-import React, {
+import {
   useEffect,
   useRef,
+  useState,
 } from 'react';
 
 import {
@@ -63,10 +64,25 @@ export default function AddressMap({
     );
 
   const mapRef =
-    useRef<any>(null);
+    useRef<any>(
+      null,
+    );
 
   /**
-   * Kakao Map SDK
+   * 지도 생성 완료 여부
+   */
+  const [
+    mapReady,
+    setMapReady,
+  ] =
+    useState(
+      false,
+    );
+
+  /**
+   * =====================================================
+   * Kakao SDK + 지도 최초 생성
+   * =====================================================
    */
   useEffect(() => {
     if (!KAKAO_JS_KEY) {
@@ -77,40 +93,87 @@ export default function AddressMap({
       return;
     }
 
-    const initializeMap = () => {
-      if (
-        !window.kakao ||
-        !window.kakao.maps
-      ) {
-        return;
-      }
-
-      window.kakao.maps.load(() => {
+    const initializeMap =
+      () => {
         if (
-          !mapContainerRef.current
+          !window.kakao ||
+          !window.kakao.maps
         ) {
           return;
         }
 
-        const center =
-          new window.kakao.maps.LatLng(
-            latitude,
-            longitude,
-          );
+        window.kakao.maps.load(
+          () => {
+            if (
+              !mapContainerRef.current
+            ) {
+              return;
+            }
 
-        if (!mapRef.current) {
-          mapRef.current =
-            new window.kakao.maps.Map(
-              mapContainerRef.current,
-              {
-                center,
-                level: 4,
+            /**
+             * 이미 생성됐으면
+             * 다시 생성하지 않음
+             */
+            if (mapRef.current) {
+              setMapReady(
+                true,
+              );
+
+              return;
+            }
+
+            const center =
+              new window.kakao.maps.LatLng(
+                latitude,
+                longitude,
+              );
+
+            /**
+             * 지도 생성
+             */
+            mapRef.current =
+              new window.kakao.maps.Map(
+                mapContainerRef.current,
+                {
+                  center,
+                  level: 4,
+                },
+              );
+
+            /**
+             * DOM 크기가 확정된 다음
+             * 지도 영역 재계산
+             */
+            requestAnimationFrame(
+              () => {
+                if (
+                  !mapRef.current
+                ) {
+                  return;
+                }
+
+                mapRef.current.relayout();
+
+                mapRef.current.setCenter(
+                  center,
+                );
+
+                setMapReady(
+                  true,
+                );
+
+                console.log(
+                  '✅ Kakao Map 준비 완료',
+                );
               },
             );
-        }
-      });
-    };
+          },
+        );
+      };
 
+    /**
+     * 이미 SDK 로드 완료
+     */
     if (
       window.kakao &&
       window.kakao.maps
@@ -120,6 +183,9 @@ export default function AddressMap({
       return;
     }
 
+    /**
+     * 기존 script 존재
+     */
     const existingScript =
       document.getElementById(
         'kakao-map-sdk',
@@ -139,6 +205,9 @@ export default function AddressMap({
       };
     }
 
+    /**
+     * SDK 최초 로드
+     */
     const script =
       document.createElement(
         'script',
@@ -147,7 +216,8 @@ export default function AddressMap({
     script.id =
       'kakao-map-sdk';
 
-    script.async = true;
+    script.async =
+      true;
 
     script.src =
       `https://dapi.kakao.com/v2/maps/sdk.js` +
@@ -157,11 +227,12 @@ export default function AddressMap({
     script.onload =
       initializeMap;
 
-    script.onerror = () => {
-      console.error(
-        'Kakao Maps SDK 로드 실패',
-      );
-    };
+    script.onerror =
+      () => {
+        console.error(
+          'Kakao Maps SDK 로드 실패',
+        );
+      };
 
     document.head.appendChild(
       script,
@@ -169,16 +240,16 @@ export default function AddressMap({
   }, []);
 
   /**
-   * ★ 항상 부모가 넘겨준
-   * latitude / longitude를 중심으로 사용
-   *
-   * selectedPoint가 있다고 해서
-   * 파란핀 위치로 강제로 되돌리지 않음.
+   * =====================================================
+   * 지도 중심 변경
+   * =====================================================
    */
   useEffect(() => {
     if (
+      !mapReady ||
       !mapRef.current ||
-      !window.kakao
+      !window.kakao ||
+      !window.kakao.maps
     ) {
       return;
     }
@@ -195,15 +266,94 @@ export default function AddressMap({
   }, [
     latitude,
     longitude,
+    mapReady,
   ]);
 
   /**
-   * 마커 / 원 / 라벨
+   * =====================================================
+   * 지도 클릭 이벤트
+   * =====================================================
    */
   useEffect(() => {
     if (
+      !mapReady ||
       !mapRef.current ||
-      !window.kakao
+      !window.kakao ||
+      !window.kakao.maps
+    ) {
+      return;
+    }
+
+    if (
+      !selectable ||
+      !onMapPress
+    ) {
+      return;
+    }
+
+    const map =
+      mapRef.current;
+
+    const handleClick =
+      (
+        mouseEvent: any,
+      ) => {
+        const latLng =
+          mouseEvent.latLng;
+
+        const clickedLatitude =
+          latLng.getLat();
+
+        const clickedLongitude =
+          latLng.getLng();
+
+        console.log(
+          '✅ Kakao 지도 클릭:',
+          {
+            latitude:
+              clickedLatitude,
+
+            longitude:
+              clickedLongitude,
+          },
+        );
+
+        onMapPress(
+          clickedLatitude,
+          clickedLongitude,
+        );
+      };
+
+    window.kakao.maps.event.addListener(
+      map,
+      'click',
+      handleClick,
+    );
+
+    return () => {
+      window.kakao.maps.event.removeListener(
+        map,
+        'click',
+        handleClick,
+      );
+    };
+  }, [
+    mapReady,
+    selectable,
+    onMapPress,
+  ]);
+
+  /**
+   * =====================================================
+   * 마커 / 선택 위치 / 반경
+   * =====================================================
+   */
+  useEffect(() => {
+    if (
+      !mapReady ||
+      !mapRef.current ||
+      !window.kakao ||
+      !window.kakao.maps
     ) {
       return;
     }
@@ -219,9 +369,9 @@ export default function AddressMap({
       | null = null;
 
     /**
-     * =============================
-     * 동 전체 초록핀
-     * =============================
+     * =================================================
+     * 동 마커
+     * =================================================
      */
     markers.forEach(
       markerData => {
@@ -239,6 +389,7 @@ export default function AddressMap({
               align-items:center;
               justify-content:flex-end;
               pointer-events:none;
+              user-select:none;
             "
           >
             <div
@@ -253,6 +404,7 @@ export default function AddressMap({
                 color:#168A37;
                 white-space:nowrap;
                 box-shadow:0 2px 7px rgba(0,0,0,0.15);
+                pointer-events:none;
               "
             >
               ${markerData.name}
@@ -270,6 +422,7 @@ export default function AddressMap({
                 display:flex;
                 align-items:center;
                 justify-content:center;
+                pointer-events:none;
               "
             >
               <div
@@ -291,6 +444,7 @@ export default function AddressMap({
             content,
             xAnchor: 0.5,
             yAnchor: 1,
+            clickable: false,
           });
 
         createdOverlays.push(
@@ -300,9 +454,9 @@ export default function AddressMap({
     );
 
     /**
-     * =============================
-     * 지도 직접 선택 파란핀
-     * =============================
+     * =================================================
+     * 선택된 위치
+     * =================================================
      */
     if (selectedPoint) {
       const pointPosition =
@@ -323,20 +477,22 @@ export default function AddressMap({
             align-items:center;
             justify-content:flex-end;
             pointer-events:none;
+            user-select:none;
           "
         >
           <div
             style="
-              margin-bottom:6px;
+              margin-bottom:7px;
               background:#FFFFFF;
               border:2px solid #4285F4;
               border-radius:999px;
-              padding:6px 12px;
+              padding:7px 13px;
               font-size:12px;
               font-weight:800;
               color:#2563EB;
               white-space:nowrap;
-              box-shadow:0 2px 7px rgba(0,0,0,0.15);
+              box-shadow:0 3px 9px rgba(0,0,0,0.18);
+              pointer-events:none;
             "
           >
             ${label}
@@ -344,22 +500,23 @@ export default function AddressMap({
 
           <div
             style="
-              width:36px;
-              height:36px;
+              width:38px;
+              height:38px;
               background:#4285F4;
-              border:3px solid #FFFFFF;
+              border:4px solid #FFFFFF;
               border-radius:50% 50% 50% 0;
               transform:rotate(-45deg);
-              box-shadow:0 3px 8px rgba(0,0,0,0.28);
+              box-shadow:0 4px 10px rgba(0,0,0,0.30);
               display:flex;
               align-items:center;
               justify-content:center;
+              pointer-events:none;
             "
           >
             <div
               style="
-                width:10px;
-                height:10px;
+                width:11px;
+                height:11px;
                 background:#FFFFFF;
                 border-radius:50%;
               "
@@ -371,12 +528,20 @@ export default function AddressMap({
       const selectedOverlay =
         new window.kakao.maps.CustomOverlay({
           map,
+
           position:
             pointPosition,
+
           content:
             selectedContent,
+
           xAnchor: 0.5,
+
           yAnchor: 1,
+
+          clickable: false,
+
+          zIndex: 10,
         });
 
       createdOverlays.push(
@@ -401,7 +566,7 @@ export default function AddressMap({
             '#22A447',
 
           strokeOpacity:
-            0.85,
+            0.9,
 
           strokeStyle:
             'solid',
@@ -410,81 +575,47 @@ export default function AddressMap({
             '#A7F3B5',
 
           fillOpacity:
-            0.25,
+            0.23,
+
+          clickable:
+            false,
+
+          zIndex: 2,
         });
 
       /**
-       * 중요:
-       *
-       * 여기서 map.setCenter(pointPosition)
-       * 절대 하지 않음.
-       *
-       * 지도 중심은 무조건
-       * region.tsx의 mapCenter가 결정함.
+       * 선택 위치를 중심으로
        */
+      map.setCenter(
+        pointPosition,
+      );
 
       /**
-       * 반경을 바꿀 때만
-       * 줌 정도 조절
+       * 반경별 줌
        */
       if (radius === 300) {
-        map.setLevel(3);
+        map.setLevel(
+          3,
+        );
       } else if (
         radius === 500
       ) {
-        map.setLevel(4);
+        map.setLevel(
+          4,
+        );
       } else {
-        map.setLevel(5);
+        map.setLevel(
+          5,
+        );
       }
-    } else {
-      /**
-       * 파란핀 없을 때
-       * 일반 동 선택 확대 수준
-       */
-      if (
-        markers.length > 0
-      ) {
-        map.setLevel(4);
-      }
-    }
-
-    /**
-     * 지도 클릭
-     */
-    const handleClick = (
-      mouseEvent: any,
-    ) => {
-      if (
-        !selectable ||
-        !onMapPress
-      ) {
-        return;
-      }
-
-      const latLng =
-        mouseEvent.latLng;
-
-      onMapPress(
-        latLng.getLat(),
-        latLng.getLng(),
-      );
-    };
-
-    if (
-      selectable &&
-      onMapPress
-    ) {
-      window.kakao.maps.event.addListener(
-        map,
-        'click',
-        handleClick,
-      );
     }
 
     return () => {
       createdOverlays.forEach(
         overlay => {
-          overlay.setMap(null);
+          overlay.setMap(
+            null,
+          );
         },
       );
 
@@ -495,27 +626,59 @@ export default function AddressMap({
           null,
         );
       }
-
-      if (
-        selectable &&
-        onMapPress
-      ) {
-        window.kakao.maps.event.removeListener(
-          map,
-          'click',
-          handleClick,
-        );
-      }
     };
   }, [
+    mapReady,
     markers,
     selectedPoint,
     selectedPointLabel,
     radius,
-    selectable,
-    onMapPress,
   ]);
 
+  /**
+   * =====================================================
+   * 부모 영역 크기 변경 감지
+   * =====================================================
+   */
+  useEffect(() => {
+    if (
+      !mapContainerRef.current ||
+      typeof ResizeObserver ===
+        'undefined'
+    ) {
+      return;
+    }
+
+    const observer =
+      new ResizeObserver(
+        () => {
+          if (
+            !mapReady ||
+            !mapRef.current
+          ) {
+            return;
+          }
+
+          mapRef.current.relayout();
+        },
+      );
+
+    observer.observe(
+      mapContainerRef.current,
+    );
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [
+    mapReady,
+  ]);
+
+  /**
+   * =====================================================
+   * API KEY 오류
+   * =====================================================
+   */
   if (!KAKAO_JS_KEY) {
     return (
       <View
@@ -534,13 +697,52 @@ export default function AddressMap({
     );
   }
 
+  /**
+   * =====================================================
+   * 중요
+   *
+   * position:absolute 사용하지 않음.
+   *
+   * 부모 View의 크기 안에서만
+   * 지도가 렌더링되도록 함.
+   * =====================================================
+   */
   return (
     <div
-      ref={mapContainerRef}
+      ref={
+        mapContainerRef
+      }
       style={{
-        width: '100%',
-        height: '100%',
-        minHeight: 250,
+        width:
+          '100%',
+
+        height:
+          '100%',
+
+        minWidth: 0,
+
+        minHeight:
+          250,
+
+        position:
+          'relative',
+
+        display:
+          'block',
+
+        overflow:
+          'hidden',
+
+        pointerEvents:
+          'auto',
+
+        touchAction:
+          'auto',
+
+        cursor:
+          selectable
+            ? 'crosshair'
+            : 'grab',
       }}
     />
   );
@@ -550,13 +752,21 @@ const styles =
   StyleSheet.create({
     errorContainer: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#F7F7F7',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#F7F7F7',
     },
 
     errorText: {
       fontSize: 13,
-      color: '#DC2626',
+
+      color:
+        '#DC2626',
     },
   });

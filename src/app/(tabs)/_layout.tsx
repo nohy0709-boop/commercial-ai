@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 
 export default function TabLayout() {
   return (
@@ -8,16 +7,22 @@ export default function TabLayout() {
         headerShown: false,
 
         tabBarActiveTintColor: '#12A84F',
+
         tabBarInactiveTintColor: '#6B7280',
 
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
+
           borderTopWidth: 1,
-          borderTopColor: '#E9ECEF',
+
+          borderTopColor: '#E5E7EB',
+
+          height: 60,
         },
 
         tabBarLabelStyle: {
           fontSize: 12,
+
           fontWeight: '700',
         },
       }}
@@ -30,9 +35,9 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="explore"
+        name="map"
         options={{
-          title: '탐색',
+          title: '지도',
         }}
       />
 
