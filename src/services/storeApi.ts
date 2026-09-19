@@ -1,5 +1,11 @@
-const BASE_URL =
+const DONG_BASE_URL =
   'https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInDong';
+
+const RADIUS_BASE_URL =
+  'https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius';
+
+const RECTANGLE_BASE_URL =
+  'https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRectangle';
 
 export type StoreCountResult = {
   areaName: string;
@@ -7,20 +13,41 @@ export type StoreCountResult = {
 };
 
 export interface NearbyStore {
+  id?: string;
+
   name: string;
+
   address: string;
+
   lat: number;
+
   lng: number;
-};
+
+  lclsCode?: string;
+  lclsName?: string;
+
+  mclsCode?: string;
+  mclsName?: string;
+
+  sclsCode?: string;
+  sclsName?: string;
+
+  buildingName?: string;
+
+  floorNo?: string;
+}
+
+export interface StoreMapBounds {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
 
 /**
  * =====================================================
- * 간단한 메모리 캐시
+ * 캐시
  * =====================================================
- *
- * 같은 앱 실행 중
- * 같은 동 + 같은 업종 목록을 다시 조회하면
- * API를 재호출하지 않고 저장된 결과 사용
  */
 const storeListCache =
   new Map<
@@ -28,112 +55,44 @@ const storeListCache =
     NearbyStore[]
   >();
 
-function makeStoreCacheKey(
-  adongCode: string,
-  lclsCode: string,
-  mclsCode?: string,
-  sclsCode?: string,
-) {
-  return [
-    adongCode,
-    lclsCode,
-    mclsCode ?? '',
-    sclsCode ?? '',
-  ].join('|');
-}
+const radiusStoreCache =
+  new Map<
+    string,
+    NearbyStore[]
+  >();
+
+const rectangleStoreCache =
+  new Map<
+    string,
+    NearbyStore[]
+  >();
 
 /**
  * =====================================================
- * 동 단위 동일 업종 점포 수
+ * API KEY
  * =====================================================
  */
-export async function getStoreCount(
-  areaName: string,
-  adongCode: string,
-  lclsCode: string,
-  mclsCode?: string,
-  sclsCode?: string,
-): Promise<StoreCountResult> {
+function getServiceKey(): string {
   const serviceKey =
     process.env.EXPO_PUBLIC_STORE_API_KEY;
 
   if (!serviceKey) {
     throw new Error(
-      '공공데이터 API 키를 불러오지 못했습니다.',
+      '상가정보 공공데이터 API 키를 불러오지 못했습니다.',
     );
   }
 
-  let url =
-    BASE_URL +
-    `?serviceKey=${serviceKey}` +
-    '&pageNo=1' +
-    '&numOfRows=1' +
-    '&divId=adongCd' +
-    `&key=${adongCode}` +
-    `&indsLclsCd=${lclsCode}` +
-    '&type=json';
-
-  if (mclsCode) {
-    url +=
-      `&indsMclsCd=${mclsCode}`;
-  }
-
-  if (sclsCode) {
-    url +=
-      `&indsSclsCd=${sclsCode}`;
-  }
-
-  console.log(
-    '점포 수 API 요청:',
-    url,
-  );
-
-  const response =
-    await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(
-      `${areaName} 상가정보 요청 실패: ${response.status}`,
-    );
-  }
-
-  const data =
-    await response.json();
-
-  if (
-    data?.header?.resultCode !==
-    '00'
-  ) {
-    throw new Error(
-      `${areaName}: ${
-        data?.header?.resultMsg ??
-        'API 오류'
-      }`,
-    );
-  }
-
-  return {
-    areaName,
-
-    storeCount:
-      Number(
-        data?.body?.totalCount ??
-          0,
-      ),
-  };
+  return serviceKey.trim();
 }
 
 /**
  * =====================================================
- * API item -> NearbyStore 변환
+ * item → NearbyStore
  * =====================================================
  */
 function convertStoreItem(
   item: any,
 ): NearbyStore | null {
-  /**
-   * API 응답 필드명이 조금 다를 경우를 대비
-   */
   const lat =
     Number(
       item?.lat ??
@@ -153,15 +112,14 @@ function convertStoreItem(
     !Number.isFinite(lat) ||
     !Number.isFinite(lng)
   ) {
-    console.warn(
-      '좌표 없는 점포:',
-      item,
-    );
-
     return null;
   }
 
   return {
+    id:
+      item?.bizesId ??
+      undefined,
+
     name:
       item?.bizesNm ??
       item?.storeNm ??
@@ -175,108 +133,122 @@ function convertStoreItem(
       '주소 정보 없음',
 
     lat,
-
     lng,
+
+    lclsCode:
+      item?.indsLclsCd ??
+      undefined,
+
+    lclsName:
+      item?.indsLclsNm ??
+      undefined,
+
+    mclsCode:
+      item?.indsMclsCd ??
+      undefined,
+
+    mclsName:
+      item?.indsMclsNm ??
+      undefined,
+
+    sclsCode:
+      item?.indsSclsCd ??
+      undefined,
+
+    sclsName:
+      item?.indsSclsNm ??
+      undefined,
+
+    buildingName:
+      item?.bldNm ??
+      undefined,
+
+    floorNo:
+      item?.flrNo ??
+      undefined,
   };
 }
 
 /**
  * =====================================================
- * 점포 목록 1페이지 조회
+ * API 결과 코드
  * =====================================================
  */
-async function getStoreListPage(
-  adongCode: string,
-  lclsCode: string,
-  mclsCode: string | undefined,
-  sclsCode: string | undefined,
-  pageNo: number,
-  numOfRows: number,
-): Promise<{
-  stores: NearbyStore[];
-  totalCount: number;
-}> {
-  const serviceKey =
-    process.env.EXPO_PUBLIC_STORE_API_KEY;
-
-  if (!serviceKey) {
-    throw new Error(
-      '공공데이터 API 키를 불러오지 못했습니다.',
+function checkApiResult(
+  data: any,
+): 'success' | 'nodata' {
+  const resultCode =
+    String(
+      data?.header?.resultCode ??
+        '',
     );
-  }
 
-  let url =
-    BASE_URL +
-    `?serviceKey=${serviceKey}` +
-    `&pageNo=${pageNo}` +
-    `&numOfRows=${numOfRows}` +
-    '&divId=adongCd' +
-    `&key=${adongCode}` +
-    `&indsLclsCd=${lclsCode}` +
-    '&type=json';
-
-  if (mclsCode) {
-    url +=
-      `&indsMclsCd=${mclsCode}`;
-  }
-
-  if (sclsCode) {
-    url +=
-      `&indsSclsCd=${sclsCode}`;
-  }
-
-  console.log(
-    `점포 목록 API 요청 page=${pageNo}`,
-  );
-
-  const response =
-    await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(
-      `점포 목록 조회 실패: ${response.status}`,
+  const resultMsg =
+    String(
+      data?.header?.resultMsg ??
+        '',
     );
-  }
-
-  const data =
-    await response.json();
 
   if (
-    data?.header?.resultCode !==
-    '00'
+    resultCode === '00'
   ) {
-    throw new Error(
-      data?.header?.resultMsg ??
-        '점포 목록 API 오류',
-    );
+    return 'success';
   }
 
-  /**
-   * API 응답 형태가
-   *
-   * body.items.item
-   * 또는
-   * body.items
-   *
-   * 둘 다 처리
-   */
+  const upperMessage =
+    resultMsg.toUpperCase();
+
+  if (
+    upperMessage.includes(
+      'NODATA',
+    ) ||
+    upperMessage.includes(
+      'NO DATA',
+    )
+  ) {
+    return 'nodata';
+  }
+
+  throw new Error(
+    resultMsg ||
+      `상가정보 API 오류 (${resultCode})`,
+  );
+}
+
+/**
+ * =====================================================
+ * items 파싱
+ * =====================================================
+ */
+function parseStoreItems(
+  data: any,
+): {
+  stores: NearbyStore[];
+  totalCount: number;
+} {
   const rawItems =
     data?.body?.items?.item ??
     data?.body?.items ??
     [];
 
-  let list: any[] = [];
+  let list: any[] =
+    [];
 
   if (
-    Array.isArray(rawItems)
+    Array.isArray(
+      rawItems,
+    )
   ) {
-    list = rawItems;
+    list =
+      rawItems;
   } else if (
     rawItems &&
     typeof rawItems ===
       'object'
   ) {
-    list = [rawItems];
+    list = [
+      rawItems,
+    ];
   }
 
   const stores =
@@ -296,16 +268,283 @@ async function getStoreListPage(
 
     totalCount:
       Number(
-        data?.body
-          ?.totalCount ??
-          list.length,
+        data?.body?.totalCount ??
+          stores.length,
       ),
   };
 }
 
 /**
  * =====================================================
- * 실제 점포 목록 조회
+ * 동 단위 API 캐시키
+ * =====================================================
+ */
+function makeStoreCacheKey(
+  adongCode: string,
+  lclsCode: string,
+  mclsCode?: string,
+  sclsCode?: string,
+) {
+  return [
+    adongCode,
+    lclsCode,
+    mclsCode ?? '',
+    sclsCode ?? '',
+  ].join('|');
+}
+
+/**
+ * =====================================================
+ * 반경 API 캐시키
+ * =====================================================
+ */
+function makeRadiusCacheKey(
+  centerLat: number,
+  centerLng: number,
+  radius: number,
+  lclsCode: string,
+  mclsCode?: string,
+  sclsCode?: string,
+) {
+  return [
+    centerLat.toFixed(5),
+    centerLng.toFixed(5),
+    radius,
+    lclsCode,
+    mclsCode ?? '',
+    sclsCode ?? '',
+  ].join('|');
+}
+
+/**
+ * =====================================================
+ * 지도 영역 API 캐시키
+ *
+ * 너무 세밀하게 저장하면 지도를 조금 움직일 때마다
+ * 새 캐시가 만들어지므로 4자리까지만 사용
+ * =====================================================
+ */
+function makeRectangleCacheKey(
+  bounds: StoreMapBounds,
+) {
+  return [
+    bounds.south.toFixed(4),
+    bounds.west.toFixed(4),
+    bounds.north.toFixed(4),
+    bounds.east.toFixed(4),
+  ].join('|');
+}
+
+/**
+ * =====================================================
+ * 동 단위 점포 수
+ * 기존 상권분석 코드 호환용
+ * =====================================================
+ */
+export async function getStoreCount(
+  areaName: string,
+  adongCode: string,
+  lclsCode: string,
+  mclsCode?: string,
+  sclsCode?: string,
+): Promise<StoreCountResult> {
+  const serviceKey =
+    getServiceKey();
+
+  const params =
+    new URLSearchParams();
+
+  params.set(
+    'pageNo',
+    '1',
+  );
+
+  params.set(
+    'numOfRows',
+    '1',
+  );
+
+  params.set(
+    'divId',
+    'adongCd',
+  );
+
+  params.set(
+    'key',
+    adongCode,
+  );
+
+  params.set(
+    'indsLclsCd',
+    lclsCode,
+  );
+
+  params.set(
+    'type',
+    'json',
+  );
+
+  if (mclsCode) {
+    params.set(
+      'indsMclsCd',
+      mclsCode,
+    );
+  }
+
+  if (sclsCode) {
+    params.set(
+      'indsSclsCd',
+      sclsCode,
+    );
+  }
+
+  const url =
+    `${DONG_BASE_URL}` +
+    `?serviceKey=${serviceKey}` +
+    `&${params.toString()}`;
+
+  const response =
+    await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `${areaName} 상가정보 요청 실패: ${response.status}`,
+    );
+  }
+
+  const data =
+    await response.json();
+
+  const status =
+    checkApiResult(
+      data,
+    );
+
+  if (
+    status === 'nodata'
+  ) {
+    return {
+      areaName,
+      storeCount: 0,
+    };
+  }
+
+  return {
+    areaName,
+
+    storeCount:
+      Number(
+        data?.body?.totalCount ??
+          0,
+      ),
+  };
+}
+
+/**
+ * =====================================================
+ * 동 목록 한 페이지
+ * =====================================================
+ */
+async function getStoreListPage(
+  adongCode: string,
+  lclsCode: string,
+  mclsCode: string | undefined,
+  sclsCode: string | undefined,
+  pageNo: number,
+  numOfRows: number,
+): Promise<{
+  stores: NearbyStore[];
+  totalCount: number;
+}> {
+  const serviceKey =
+    getServiceKey();
+
+  const params =
+    new URLSearchParams();
+
+  params.set(
+    'pageNo',
+    String(pageNo),
+  );
+
+  params.set(
+    'numOfRows',
+    String(numOfRows),
+  );
+
+  params.set(
+    'divId',
+    'adongCd',
+  );
+
+  params.set(
+    'key',
+    adongCode,
+  );
+
+  params.set(
+    'indsLclsCd',
+    lclsCode,
+  );
+
+  params.set(
+    'type',
+    'json',
+  );
+
+  if (mclsCode) {
+    params.set(
+      'indsMclsCd',
+      mclsCode,
+    );
+  }
+
+  if (sclsCode) {
+    params.set(
+      'indsSclsCd',
+      sclsCode,
+    );
+  }
+
+  const url =
+    `${DONG_BASE_URL}` +
+    `?serviceKey=${serviceKey}` +
+    `&${params.toString()}`;
+
+  const response =
+    await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `점포 목록 조회 실패: ${response.status}`,
+    );
+  }
+
+  const data =
+    await response.json();
+
+  const status =
+    checkApiResult(
+      data,
+    );
+
+  if (
+    status === 'nodata'
+  ) {
+    return {
+      stores: [],
+      totalCount: 0,
+    };
+  }
+
+  return parseStoreItems(
+    data,
+  );
+}
+
+/**
+ * =====================================================
+ * 기존 동 전체 점포 목록
  * =====================================================
  */
 export async function getStoreList(
@@ -315,10 +554,6 @@ export async function getStoreList(
   sclsCode?: string,
   maxItems?: number,
 ): Promise<NearbyStore[]> {
-  /**
-   * 상세화면처럼 일부만 필요하면
-   * 캐시를 사용하지 않고 필요한 만큼만 조회
-   */
   if (maxItems) {
     const result =
       await getStoreListPage(
@@ -336,10 +571,6 @@ export async function getStoreList(
     );
   }
 
-  /**
-   * 반경 분석처럼
-   * 동 전체 목록이 필요한 경우 캐시 사용
-   */
   const cacheKey =
     makeStoreCacheKey(
       adongCode,
@@ -354,16 +585,11 @@ export async function getStoreList(
     );
 
   if (cached) {
-    console.log(
-      '점포 목록 캐시 사용:',
-      cacheKey,
-    );
-
     return cached;
   }
 
   const PAGE_SIZE =
-    1000;
+    500;
 
   const firstPage =
     await getStoreListPage(
@@ -375,24 +601,19 @@ export async function getStoreList(
       PAGE_SIZE,
     );
 
-  const allStores: NearbyStore[] =
-    [
-      ...firstPage.stores,
-    ];
-
-  const totalCount =
-    firstPage.totalCount;
+  const allStores = [
+    ...firstPage.stores,
+  ];
 
   const totalPages =
     Math.ceil(
-      totalCount /
+      firstPage.totalCount /
         PAGE_SIZE,
     );
 
   for (
     let page = 2;
-    page <=
-    totalPages;
+    page <= totalPages;
     page++
   ) {
     const result =
@@ -410,15 +631,6 @@ export async function getStoreList(
     );
   }
 
-  console.log(
-    '전체 점포 수:',
-    allStores.length,
-  );
-
-  /**
-   * 같은 앱 실행 중
-   * 다시 사용할 수 있도록 저장
-   */
   storeListCache.set(
     cacheKey,
     allStores,
@@ -429,13 +641,471 @@ export async function getStoreList(
 
 /**
  * =====================================================
- * 좌표 두 개 사이 거리 계산
+ * 반경 목록 한 페이지
+ * 기존 상권분석 호환용
  * =====================================================
+ */
+async function getStoreRadiusPage(
+  centerLat: number,
+  centerLng: number,
+  radius: number,
+
+  lclsCode: string,
+  mclsCode: string | undefined,
+  sclsCode: string | undefined,
+
+  pageNo: number,
+  numOfRows: number,
+): Promise<{
+  stores: NearbyStore[];
+  totalCount: number;
+}> {
+  const serviceKey =
+    getServiceKey();
+
+  const params =
+    new URLSearchParams();
+
+  params.set(
+    'pageNo',
+    String(pageNo),
+  );
+
+  params.set(
+    'numOfRows',
+    String(numOfRows),
+  );
+
+  params.set(
+    'radius',
+    String(radius),
+  );
+
+  /**
+   * cx = 경도
+   * cy = 위도
+   */
+  params.set(
+    'cx',
+    String(centerLng),
+  );
+
+  params.set(
+    'cy',
+    String(centerLat),
+  );
+
+  params.set(
+    'indsLclsCd',
+    lclsCode,
+  );
+
+  params.set(
+    'type',
+    'json',
+  );
+
+  if (mclsCode) {
+    params.set(
+      'indsMclsCd',
+      mclsCode,
+    );
+  }
+
+  if (sclsCode) {
+    params.set(
+      'indsSclsCd',
+      sclsCode,
+    );
+  }
+
+  const url =
+    `${RADIUS_BASE_URL}` +
+    `?serviceKey=${serviceKey}` +
+    `&${params.toString()}`;
+
+  const response =
+    await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `반경 점포 조회 실패: ${response.status}`,
+    );
+  }
+
+  const data =
+    await response.json();
+
+  const status =
+    checkApiResult(
+      data,
+    );
+
+  if (
+    status === 'nodata'
+  ) {
+    return {
+      stores: [],
+      totalCount: 0,
+    };
+  }
+
+  return parseStoreItems(
+    data,
+  );
+}
+
+/**
+ * =====================================================
+ * 반경 점포
+ * 기존 상권분석에서 그대로 사용
+ * =====================================================
+ */
+export async function getStoresInRadius(
+  centerLat: number,
+  centerLng: number,
+  radius: number,
+
+  _adongCode: string,
+
+  lclsCode: string,
+  mclsCode?: string,
+  sclsCode?: string,
+): Promise<NearbyStore[]> {
+  const cacheKey =
+    makeRadiusCacheKey(
+      centerLat,
+      centerLng,
+      radius,
+      lclsCode,
+      mclsCode,
+      sclsCode,
+    );
+
+  const cached =
+    radiusStoreCache.get(
+      cacheKey,
+    );
+
+  if (cached) {
+    return cached;
+  }
+
+  const PAGE_SIZE =
+    200;
+
+  const firstPage =
+    await getStoreRadiusPage(
+      centerLat,
+      centerLng,
+      radius,
+      lclsCode,
+      mclsCode,
+      sclsCode,
+      1,
+      PAGE_SIZE,
+    );
+
+  const allStores = [
+    ...firstPage.stores,
+  ];
+
+  const totalPages =
+    Math.ceil(
+      firstPage.totalCount /
+        PAGE_SIZE,
+    );
+
+  const maxPages =
+    Math.min(
+      totalPages,
+      5,
+    );
+
+  for (
+    let page = 2;
+    page <= maxPages;
+    page++
+  ) {
+    const result =
+      await getStoreRadiusPage(
+        centerLat,
+        centerLng,
+        radius,
+        lclsCode,
+        mclsCode,
+        sclsCode,
+        page,
+        PAGE_SIZE,
+      );
+
+    allStores.push(
+      ...result.stores,
+    );
+  }
+
+  radiusStoreCache.set(
+    cacheKey,
+    allStores,
+  );
+
+  return allStores;
+}
+
+/**
+ * =====================================================
+ * ★ 현재 지도 화면 점포 조회
  *
- * Haversine 공식
- *
- * 반환값:
- * meter
+ * 업종코드를 넣지 않음.
+ * 즉 음식점 / 카페 / 편의점 / 미용실 등
+ * 화면 안의 전체 점포를 조회.
+ * =====================================================
+ */
+export async function getStoresInRectangle(
+  bounds: StoreMapBounds,
+): Promise<NearbyStore[]> {
+  const cacheKey =
+    makeRectangleCacheKey(
+      bounds,
+    );
+
+  const cached =
+    rectangleStoreCache.get(
+      cacheKey,
+    );
+
+  if (cached) {
+    console.log(
+      '🗺️ 지도 점포 캐시 사용:',
+      cached.length,
+    );
+
+    return cached;
+  }
+
+  const serviceKey =
+    getServiceKey();
+
+  const PAGE_SIZE =
+    500;
+
+  /**
+   * 지도 하나에 수천 개 DOM을 만들 필요는 없어서
+   * 최대 1,500개까지만 가져옴.
+   */
+  const MAX_PAGES =
+    3;
+
+  const allStores:
+    NearbyStore[] = [];
+
+  let totalCount =
+    0;
+
+  for (
+    let page = 1;
+    page <= MAX_PAGES;
+    page++
+  ) {
+    const params =
+      new URLSearchParams();
+
+    params.set(
+      'pageNo',
+      String(page),
+    );
+
+    params.set(
+      'numOfRows',
+      String(PAGE_SIZE),
+    );
+
+    params.set(
+      'minx',
+      String(bounds.west),
+    );
+
+    params.set(
+      'miny',
+      String(bounds.south),
+    );
+
+    params.set(
+      'maxx',
+      String(bounds.east),
+    );
+
+    params.set(
+      'maxy',
+      String(bounds.north),
+    );
+
+    params.set(
+      'type',
+      'json',
+    );
+
+    const url =
+      `${RECTANGLE_BASE_URL}` +
+      `?serviceKey=${serviceKey}` +
+      `&${params.toString()}`;
+
+    console.log(
+      '🗺️ 현재 지도 점포 조회:',
+      {
+        page,
+        bounds,
+      },
+    );
+
+    const response =
+      await fetch(url);
+
+    if (!response.ok) {
+      const body =
+        await response.text();
+
+      console.error(
+        '❌ 지도 영역 점포 조회 실패:',
+        {
+          status:
+            response.status,
+
+          body,
+        },
+      );
+
+      throw new Error(
+        `지도 점포 조회 실패: ${response.status}`,
+      );
+    }
+
+    const rawText =
+      await response.text();
+
+    if (
+      !rawText.trim()
+    ) {
+      break;
+    }
+
+    let data: any;
+
+    try {
+      data =
+        JSON.parse(
+          rawText,
+        );
+    } catch {
+      console.error(
+        '❌ 지도 점포 JSON 변환 실패',
+        rawText.slice(
+          0,
+          300,
+        ),
+      );
+
+      throw new Error(
+        '지도 점포 데이터를 읽지 못했습니다.',
+      );
+    }
+
+    const status =
+      checkApiResult(
+        data,
+      );
+
+    if (
+      status === 'nodata'
+    ) {
+      break;
+    }
+
+    const parsed =
+      parseStoreItems(
+        data,
+      );
+
+    if (
+      page === 1
+    ) {
+      totalCount =
+        parsed.totalCount;
+    }
+
+    allStores.push(
+      ...parsed.stores,
+    );
+
+    if (
+      allStores.length >=
+        totalCount ||
+      parsed.stores.length <
+        PAGE_SIZE
+    ) {
+      break;
+    }
+  }
+
+  /**
+   * 같은 업소가 중복될 가능성 대비
+   */
+  const uniqueMap =
+    new Map<
+      string,
+      NearbyStore
+    >();
+
+  allStores.forEach(
+    (
+      store,
+      index,
+    ) => {
+      const key =
+        store.id ??
+        `${store.name}-${store.lat}-${store.lng}-${index}`;
+
+      if (
+        !uniqueMap.has(
+          key,
+        )
+      ) {
+        uniqueMap.set(
+          key,
+          store,
+        );
+      }
+    },
+  );
+
+  const uniqueStores =
+    Array.from(
+      uniqueMap.values(),
+    );
+
+  console.log(
+    '✅ 현재 화면 점포:',
+    {
+      apiTotal:
+        totalCount,
+
+      loaded:
+        uniqueStores.length,
+    },
+  );
+
+  rectangleStoreCache.set(
+    cacheKey,
+    uniqueStores,
+  );
+
+  return uniqueStores;
+}
+
+/**
+ * =====================================================
+ * 거리 계산
+ * =====================================================
  */
 export function getDistanceInMeters(
   lat1: number,
@@ -449,8 +1119,10 @@ export function getDistanceInMeters(
   const toRad = (
     degree: number,
   ) =>
-    (degree *
-      Math.PI) /
+    (
+      degree *
+      Math.PI
+    ) /
     180;
 
   const dLat =
@@ -500,63 +1172,7 @@ export function getDistanceInMeters(
 
 /**
  * =====================================================
- * 지정 반경 내 실제 점포 목록
- * =====================================================
- */
-export async function getStoresInRadius(
-  centerLat: number,
-  centerLng: number,
-  radius: number,
-
-  adongCode: string,
-
-  lclsCode: string,
-  mclsCode?: string,
-  sclsCode?: string,
-): Promise<NearbyStore[]> {
-  const stores =
-    await getStoreList(
-      adongCode,
-      lclsCode,
-      mclsCode,
-      sclsCode,
-    );
-
-  const nearbyStores =
-    stores.filter(
-      (
-        store,
-      ) => {
-        const distance =
-          getDistanceInMeters(
-            centerLat,
-            centerLng,
-
-            store.lat,
-            store.lng,
-          );
-
-        return (
-          distance <=
-          radius
-        );
-      },
-    );
-
-  console.log(
-    `전체 점포: ${stores.length}`,
-  );
-
-  console.log(
-    `반경 ${radius}m 내 점포: ${nearbyStores.length}`,
-  );
-
-  return nearbyStores;
-}
-
-/**
- * =====================================================
- * 지정 반경 내 점포 수
+ * 반경 점포 수
  * =====================================================
  */
 export async function getStoreCountInRadius(
@@ -590,14 +1206,15 @@ export async function getStoreCountInRadius(
  * =====================================================
  * 캐시 초기화
  * =====================================================
- *
- * 개발 중 데이터가 갱신됐거나
- * 강제로 재조회하고 싶을 때 사용 가능
  */
 export function clearStoreListCache() {
   storeListCache.clear();
 
+  radiusStoreCache.clear();
+
+  rectangleStoreCache.clear();
+
   console.log(
-    '점포 목록 캐시 초기화 완료',
+    '✅ 점포 캐시 초기화 완료',
   );
 }
