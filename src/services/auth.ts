@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase';
+import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 
 export interface SignUpData {
   email: string;
@@ -17,9 +19,9 @@ export async function signUp({
   nickname,
 }: SignUpData) {
   const redirectUrl =
-    typeof window !== 'undefined'
+    Platform.OS === 'web'
       ? `${window.location.origin}/auth/callback`
-      : undefined;
+      : Linking.createURL('/auth/callback');
 
   const {
     data,
@@ -30,12 +32,10 @@ export async function signUp({
 
     options: {
       data: {
-        nickname:
-          nickname.trim(),
+        nickname: nickname.trim(),
       },
 
-      emailRedirectTo:
-        redirectUrl,
+      emailRedirectTo: redirectUrl,
     },
   });
 

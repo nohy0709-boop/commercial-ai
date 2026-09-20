@@ -1,29 +1,25 @@
 import {
-    COLORS,
+  COLORS,
 } from '@/constants/colors';
 
 import {
-    supabase,
+  supabase,
 } from '@/lib/supabase';
 
 import {
-    hasStartupNeeds,
-} from '@/services/startupNeeds';
-
-import {
-    useRouter,
+  useRouter,
 } from 'expo-router';
 
-import React, {
-    useEffect,
-    useState,
+import {
+  useEffect,
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 export default function AuthCallbackScreen() {
@@ -33,30 +29,56 @@ export default function AuthCallbackScreen() {
   const [
     message,
     setMessage,
-  ] =
-    useState(
-      '이메일 인증을 확인하고 있어요...',
-    );
+  ] = useState(
+    '메일함에서 인증 링크를 눌러주세요.',
+  );
 
   useEffect(() => {
-    let mounted =
-      true;
+    let mounted = true;
+    let moving = false;
 
-    const handleAuth =
+    const moveToLogin =
+      async () => {
+        if (
+          !mounted ||
+          moving
+        ) {
+          return;
+        }
+
+        moving = true;
+
+        setMessage(
+          '이메일 인증이 완료되었습니다. 로그인 화면으로 이동합니다.',
+        );
+
+        /**
+         * 이메일 인증 과정에서
+         * Supabase 세션이 자동 생성될 수 있으므로
+         * 사용자가 직접 로그인하도록 세션을 종료한다.
+         */
+        await supabase.auth.signOut();
+
+        if (!mounted) {
+          return;
+        }
+
+        setTimeout(() => {
+          if (mounted) {
+            router.replace(
+              '/auth/login',
+            );
+          }
+        }, 1000);
+      };
+
+    /**
+     * callback 화면 진입 시
+     * 이미 인증 세션이 생겼는지 확인한다.
+     */
+    const checkSession =
       async () => {
         try {
-          /**
-           * Supabase가 URL의 인증 정보를
-           * 처리할 시간을 조금 기다린다.
-           */
-          await new Promise(
-            resolve =>
-              setTimeout(
-                resolve,
-                500,
-              ),
-          );
-
           const {
             data,
           } =
@@ -68,54 +90,31 @@ export default function AuthCallbackScreen() {
             return;
           }
 
-          /**
-           * 아직 세션이 없으면
-           * auth state 변경을 기다린다.
-           */
           if (
-            !data.session
+            data.session
           ) {
-            setMessage(
-              '로그인 정보를 불러오고 있어요...',
-            );
-
-            return;
+            await moveToLogin();
           }
-
-          const alreadyHasNeeds =
-            await hasStartupNeeds();
-
-          if (
-            alreadyHasNeeds
-          ) {
-            router.replace(
-              '/',
-            );
-
-            return;
-          }
-
-          router.replace(
-            '/auth/needs-setup',
-          );
         } catch (error) {
           console.error(
-            '인증 처리 오류:',
+            '인증 상태 확인 오류:',
             error,
           );
 
-          if (
-            mounted
-          ) {
+          if (mounted) {
             setMessage(
-              '인증 처리 중 오류가 발생했습니다.',
+              '인증 상태를 확인하지 못했습니다.',
             );
           }
         }
       };
 
-    handleAuth();
+    checkSession();
 
+    /**
+     * 사용자가 이메일 인증 링크를 눌러
+     * Supabase 세션이 생성되는 것을 감지한다.
+     */
     const {
       data: listener,
     } =
@@ -137,65 +136,45 @@ export default function AuthCallbackScreen() {
             event ===
               'INITIAL_SESSION'
           ) {
-            const alreadyHasNeeds =
-              await hasStartupNeeds();
-
-            if (
-              alreadyHasNeeds
-            ) {
-              router.replace(
-                '/',
-              );
-
-              return;
-            }
-
-            router.replace(
-              '/auth/needs-setup',
-            );
+            await moveToLogin();
           }
         },
       );
 
     return () => {
-      mounted =
-        false;
+      mounted = false;
 
       listener.subscription.unsubscribe();
     };
-  }, [
-    router,
-  ]);
+  }, [router]);
 
   return (
     <View
-      style={
-        styles.screen
-      }
+      style={styles.screen}
     >
       <ActivityIndicator
         size="large"
-        color={
-          COLORS.primary
-        }
+        color={COLORS.primary}
       />
 
       <Text
-        style={
-          styles.title
-        }
+        style={styles.title}
       >
-        회원가입 완료 처리 중
+        이메일 인증을 기다리고 있어요
       </Text>
 
       <Text
-        style={
-          styles.description
-        }
+        style={styles.description}
       >
-        {
-          message
-        }
+        {message}
+      </Text>
+
+      <Text
+        style={styles.guide}
+      >
+        가입한 이메일의 인증 링크를 누르면
+        {'\n'}
+        인증 완료 후 로그인 화면으로 이동합니다.
       </Text>
     </View>
   );
@@ -205,37 +184,36 @@ const styles =
   StyleSheet.create({
     screen: {
       flex: 1,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
+      alignItems: 'center',
+      justifyContent: 'center',
       padding: 24,
-
       backgroundColor:
         COLORS.background,
     },
 
     title: {
       marginTop: 18,
-
       fontSize: 20,
-
-      fontWeight:
-        '900',
-
-      color:
-        COLORS.text,
+      fontWeight: '900',
+      color: COLORS.text,
+      textAlign: 'center',
     },
 
     description: {
-      marginTop: 8,
-
-      fontSize: 13,
-
+      marginTop: 10,
+      fontSize: 14,
+      lineHeight: 21,
       color:
         COLORS.textSecondary,
+      textAlign: 'center',
+    },
+
+    guide: {
+      marginTop: 24,
+      fontSize: 12,
+      lineHeight: 19,
+      color:
+        COLORS.textSecondary,
+      textAlign: 'center',
     },
   });

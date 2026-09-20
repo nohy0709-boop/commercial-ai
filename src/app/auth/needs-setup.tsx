@@ -1,28 +1,26 @@
-import {
-    COLORS,
-} from '@/constants/colors';
+import { COLORS } from '@/constants/colors';
 
 import {
-    saveStartupNeeds,
+  getStartupNeeds,
+  saveStartupNeeds,
 } from '@/services/startupNeeds';
 
-import {
-    useRouter,
-} from 'expo-router';
+import { useRouter } from 'expo-router';
 
-import React, {
-    useState,
+import {
+  useEffect,
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const BUSINESS_TYPES = [
@@ -69,220 +67,258 @@ const PRIORITY_OPTIONS = [
 ];
 
 export default function NeedsSetupScreen() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const [
     businessType,
     setBusinessType,
-  ] =
-    useState('');
+  ] = useState('');
 
   const [
     budget,
     setBudget,
-  ] =
-    useState('');
+  ] = useState('');
 
   const [
     preferredAreas,
     setPreferredAreas,
-  ] =
-    useState<
-      string[]
-    >([]);
+  ] = useState<string[]>([]);
 
   const [
     priorities,
     setPriorities,
-  ] =
-    useState<
-      string[]
-    >([]);
+  ] = useState<string[]>([]);
 
   const [
     targetCustomer,
     setTargetCustomer,
-  ] =
-    useState('');
+  ] = useState('');
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(false);
+  ] = useState(false);
 
-  const toggleArea =
-    (
-      area: string,
-    ) => {
-      setPreferredAreas(
-        prev =>
-          prev.includes(
-            area,
-          )
-            ? prev.filter(
-                item =>
-                  item !==
-                  area,
-              )
-            : [
-                ...prev,
-                area,
-              ],
-      );
-    };
+  const [
+    initialLoading,
+    setInitialLoading,
+  ] = useState(true);
 
-  const togglePriority =
-    (
-      priority: string,
-    ) => {
-      setPriorities(
-        prev => {
-          if (
-            prev.includes(
-              priority,
-            )
-          ) {
-            return prev.filter(
-              item =>
-                item !==
-                priority,
-            );
-          }
+  /**
+   * 기존에 저장된 창업 니즈가 있으면
+   * 화면에 자동으로 불러오기
+   *
+   * MY → 수정으로 들어왔을 때
+   * 기존 선택값이 그대로 표시됨
+   */
+  useEffect(() => {
+    let mounted = true;
 
-          /**
-           * 우선순위는 최대 3개
-           */
-          if (
-            prev.length >=
-            3
-          ) {
-            Alert.alert(
-              '확인',
-              '중요 기준은 최대 3개까지 선택할 수 있어요.',
-            );
-
-            return prev;
-          }
-
-          return [
-            ...prev,
-            priority,
-          ];
-        },
-      );
-    };
-
-  const handleSave =
-    async () => {
-      if (
-        !businessType
-      ) {
-        Alert.alert(
-          '확인',
-          '희망 업종을 선택해주세요.',
-        );
-
-        return;
-      }
-
-      if (
-        !budget
-      ) {
-        Alert.alert(
-          '확인',
-          '예산을 선택해주세요.',
-        );
-
-        return;
-      }
-
-      if (
-        preferredAreas.length ===
-        0
-      ) {
-        Alert.alert(
-          '확인',
-          '선호 지역을 하나 이상 선택해주세요.',
-        );
-
-        return;
-      }
-
-      if (
-        priorities.length ===
-        0
-      ) {
-        Alert.alert(
-          '확인',
-          '중요하게 보는 기준을 선택해주세요.',
-        );
-
-        return;
-      }
-
-      if (
-        !targetCustomer.trim()
-      ) {
-        Alert.alert(
-          '확인',
-          '주요 고객층을 입력해주세요.',
-        );
-
-        return;
-      }
-
+    async function loadExistingNeeds() {
       try {
-        setLoading(
-          true,
+        const existing =
+          await getStartupNeeds();
+
+        if (!mounted) {
+          return;
+        }
+
+        if (!existing) {
+          return;
+        }
+
+        setBusinessType(
+          existing.businessType,
         );
 
-        await saveStartupNeeds({
-          businessType,
+        setBudget(
+          existing.budget,
+        );
 
-          budget,
+        setPreferredAreas(
+          existing.preferredAreas,
+        );
 
-          preferredAreas,
+        setPriorities(
+          existing.priorities,
+        );
 
-          priorities,
-
-          targetCustomer:
-            targetCustomer.trim(),
-        });
-
-        /**
-         * 니즈 설정 완료 후
-         * 기존 장기/단기 선택 화면으로 이동
-         *
-         * 현재 앱 기본 화면이 그 화면이라
-         * '/' 사용
-         */
-        router.replace(
-          '/',
+        setTargetCustomer(
+          existing.targetCustomer,
         );
       } catch (error) {
         console.error(
-          '창업 니즈 저장 실패:',
+          '기존 창업 니즈 불러오기 실패:',
           error,
         );
-
-        Alert.alert(
-          '오류',
-          '창업 니즈를 저장하지 못했습니다.',
-        );
       } finally {
-        setLoading(
-          false,
+        if (mounted) {
+          setInitialLoading(false);
+        }
+      }
+    }
+
+    loadExistingNeeds();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const toggleArea = (
+    area: string,
+  ) => {
+    setPreferredAreas(prev =>
+      prev.includes(area)
+        ? prev.filter(
+            item => item !== area,
+          )
+        : [...prev, area],
+    );
+  };
+
+  const togglePriority = (
+    priority: string,
+  ) => {
+    setPriorities(prev => {
+      if (
+        prev.includes(priority)
+      ) {
+        return prev.filter(
+          item => item !== priority,
         );
       }
-    };
+
+      if (prev.length >= 3) {
+        Alert.alert(
+          '확인',
+          '중요 기준은 최대 3개까지 선택할 수 있어요.',
+        );
+
+        return prev;
+      }
+
+      return [
+        ...prev,
+        priority,
+      ];
+    });
+  };
+
+  const handleSave = async () => {
+    if (!businessType) {
+      Alert.alert(
+        '확인',
+        '희망 업종을 선택해주세요.',
+      );
+
+      return;
+    }
+
+    if (!budget) {
+      Alert.alert(
+        '확인',
+        '예산을 선택해주세요.',
+      );
+
+      return;
+    }
+
+    if (
+      preferredAreas.length === 0
+    ) {
+      Alert.alert(
+        '확인',
+        '선호 지역을 하나 이상 선택해주세요.',
+      );
+
+      return;
+    }
+
+    if (
+      priorities.length === 0
+    ) {
+      Alert.alert(
+        '확인',
+        '중요하게 보는 기준을 선택해주세요.',
+      );
+
+      return;
+    }
+
+    if (
+      !targetCustomer.trim()
+    ) {
+      Alert.alert(
+        '확인',
+        '주요 고객층을 입력해주세요.',
+      );
+
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await saveStartupNeeds({
+        businessType,
+
+        budget,
+
+        preferredAreas,
+
+        priorities,
+
+        targetCustomer:
+          targetCustomer.trim(),
+      });
+
+      /**
+       * 저장 완료 후
+       * 메인 화면으로 이동
+       */
+      router.replace('/');
+    } catch (error) {
+      console.error(
+        '창업 니즈 저장 실패:',
+        error,
+      );
+
+      Alert.alert(
+        '오류',
+        '창업 니즈를 저장하지 못했습니다.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <View
+        style={
+          styles.fullLoading
+        }
+      >
+        <ActivityIndicator
+          size="large"
+          color={COLORS.primary}
+        />
+
+        <Text
+          style={
+            styles.loadingText
+          }
+        >
+          창업 정보를 불러오고 있어요...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
-      style={
-        styles.screen
-      }
+      style={styles.screen}
       contentContainerStyle={
         styles.container
       }
@@ -291,22 +327,16 @@ export default function NeedsSetupScreen() {
       }
     >
       <View
-        style={
-          styles.header
-        }
+        style={styles.header}
       >
         <Text
-          style={
-            styles.eyebrow
-          }
+          style={styles.eyebrow}
         >
           START-UP
         </Text>
 
         <Text
-          style={
-            styles.title
-          }
+          style={styles.title}
         >
           나의 창업 니즈
         </Text>
@@ -322,9 +352,7 @@ export default function NeedsSetupScreen() {
       </View>
 
       <View
-        style={
-          styles.section
-        }
+        style={styles.section}
       >
         <Text
           style={
@@ -342,9 +370,7 @@ export default function NeedsSetupScreen() {
           {BUSINESS_TYPES.map(
             item => (
               <TouchableOpacity
-                key={
-                  item
-                }
+                key={item}
                 style={[
                   styles.option,
 
@@ -367,9 +393,7 @@ export default function NeedsSetupScreen() {
                       styles.optionTextSelected,
                   ]}
                 >
-                  {
-                    item
-                  }
+                  {item}
                 </Text>
               </TouchableOpacity>
             ),
@@ -378,9 +402,7 @@ export default function NeedsSetupScreen() {
       </View>
 
       <View
-        style={
-          styles.section
-        }
+        style={styles.section}
       >
         <Text
           style={
@@ -398,9 +420,7 @@ export default function NeedsSetupScreen() {
           {BUDGET_OPTIONS.map(
             item => (
               <TouchableOpacity
-                key={
-                  item
-                }
+                key={item}
                 style={[
                   styles.option,
 
@@ -409,9 +429,7 @@ export default function NeedsSetupScreen() {
                     styles.optionSelected,
                 ]}
                 onPress={() =>
-                  setBudget(
-                    item,
-                  )
+                  setBudget(item)
                 }
               >
                 <Text
@@ -423,9 +441,7 @@ export default function NeedsSetupScreen() {
                       styles.optionTextSelected,
                   ]}
                 >
-                  {
-                    item
-                  }
+                  {item}
                 </Text>
               </TouchableOpacity>
             ),
@@ -434,9 +450,7 @@ export default function NeedsSetupScreen() {
       </View>
 
       <View
-        style={
-          styles.section
-        }
+        style={styles.section}
       >
         <Text
           style={
@@ -468,9 +482,7 @@ export default function NeedsSetupScreen() {
 
               return (
                 <TouchableOpacity
-                  key={
-                    area
-                  }
+                  key={area}
                   style={[
                     styles.option,
 
@@ -478,9 +490,7 @@ export default function NeedsSetupScreen() {
                       styles.optionSelected,
                   ]}
                   onPress={() =>
-                    toggleArea(
-                      area,
-                    )
+                    toggleArea(area)
                   }
                 >
                   <Text
@@ -491,9 +501,7 @@ export default function NeedsSetupScreen() {
                         styles.optionTextSelected,
                     ]}
                   >
-                    {
-                      area
-                    }
+                    {area}
                   </Text>
                 </TouchableOpacity>
               );
@@ -503,9 +511,7 @@ export default function NeedsSetupScreen() {
       </View>
 
       <View
-        style={
-          styles.section
-        }
+        style={styles.section}
       >
         <Text
           style={
@@ -543,9 +549,7 @@ export default function NeedsSetupScreen() {
 
               return (
                 <TouchableOpacity
-                  key={
-                    item
-                  }
+                  key={item}
                   style={[
                     styles.option,
 
@@ -578,9 +582,7 @@ export default function NeedsSetupScreen() {
       </View>
 
       <View
-        style={
-          styles.section
-        }
+        style={styles.section}
       >
         <Text
           style={
@@ -591,9 +593,7 @@ export default function NeedsSetupScreen() {
         </Text>
 
         <TextInput
-          style={
-            styles.input
-          }
+          style={styles.input}
           value={
             targetCustomer
           }
@@ -612,15 +612,9 @@ export default function NeedsSetupScreen() {
           loading &&
             styles.disabledButton,
         ]}
-        activeOpacity={
-          0.8
-        }
-        disabled={
-          loading
-        }
-        onPress={
-          handleSave
-        }
+        activeOpacity={0.8}
+        disabled={loading}
+        onPress={handleSave}
       >
         {loading ? (
           <ActivityIndicator
@@ -643,6 +637,27 @@ export default function NeedsSetupScreen() {
 
 const styles =
   StyleSheet.create({
+    fullLoading: {
+      flex: 1,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        COLORS.background,
+    },
+
+    loadingText: {
+      marginTop: 12,
+
+      fontSize: 13,
+
+      color:
+        COLORS.textSecondary,
+    },
+
     screen: {
       flex: 1,
 
@@ -651,21 +666,17 @@ const styles =
     },
 
     container: {
-      width:
-        '100%',
+      width: '100%',
 
       maxWidth: 700,
 
-      alignSelf:
-        'center',
+      alignSelf: 'center',
 
       padding: 24,
 
-      paddingVertical:
-        50,
+      paddingVertical: 50,
 
-      paddingBottom:
-        80,
+      paddingBottom: 80,
     },
 
     header: {
@@ -675,14 +686,12 @@ const styles =
     eyebrow: {
       fontSize: 11,
 
-      fontWeight:
-        '900',
+      fontWeight: '900',
 
       color:
         COLORS.primary,
 
-      letterSpacing:
-        1.4,
+      letterSpacing: 1.4,
 
       marginBottom: 8,
     },
@@ -690,11 +699,9 @@ const styles =
     title: {
       fontSize: 30,
 
-      fontWeight:
-        '900',
+      fontWeight: '900',
 
-      color:
-        COLORS.text,
+      color: COLORS.text,
     },
 
     description: {
@@ -715,11 +722,9 @@ const styles =
     sectionTitle: {
       fontSize: 16,
 
-      fontWeight:
-        '900',
+      fontWeight: '900',
 
-      color:
-        COLORS.text,
+      color: COLORS.text,
 
       marginBottom: 6,
     },
@@ -734,11 +739,9 @@ const styles =
     },
 
     optionWrap: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
-      flexWrap:
-        'wrap',
+      flexWrap: 'wrap',
 
       gap: 9,
 
@@ -760,8 +763,7 @@ const styles =
       backgroundColor:
         '#FFFFFF',
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
       justifyContent:
         'center',
@@ -778,8 +780,7 @@ const styles =
     optionText: {
       fontSize: 12,
 
-      fontWeight:
-        '700',
+      fontWeight: '700',
 
       color:
         COLORS.textSecondary,
@@ -789,8 +790,7 @@ const styles =
       color:
         COLORS.primary,
 
-      fontWeight:
-        '900',
+      fontWeight: '900',
     },
 
     input: {
@@ -812,8 +812,7 @@ const styles =
 
       fontSize: 14,
 
-      color:
-        COLORS.text,
+      color: COLORS.text,
     },
 
     saveButton: {
@@ -821,8 +820,7 @@ const styles =
 
       borderRadius: 15,
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
       justifyContent:
         'center',
@@ -840,10 +838,8 @@ const styles =
     saveButtonText: {
       fontSize: 14,
 
-      fontWeight:
-        '900',
+      fontWeight: '900',
 
-      color:
-        '#111111',
+      color: '#111111',
     },
   });

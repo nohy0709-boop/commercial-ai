@@ -3,194 +3,172 @@ import { signUp } from '@/services/auth';
 
 import { useRouter } from 'expo-router';
 
-import React, {
-    useState,
+import {
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function SignupScreen() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
-  const [
-    nickname,
-    setNickname,
-  ] =
+  const [nickname, setNickname] =
     useState('');
 
-  const [
-    email,
-    setEmail,
-  ] =
+  const [email, setEmail] =
     useState('');
 
-  const [
-    password,
-    setPassword,
-  ] =
+  const [password, setPassword] =
     useState('');
 
   const [
     passwordConfirm,
     setPasswordConfirm,
-  ] =
-    useState('');
+  ] = useState('');
 
-  const [
-    loading,
-    setLoading,
-  ] =
+  const [loading, setLoading] =
     useState(false);
 
-  const validateForm =
-    () => {
-      if (
-        !nickname.trim()
-      ) {
-        Alert.alert(
-          '확인',
-          '닉네임을 입력해주세요.',
+  const validateForm = () => {
+    if (!nickname.trim()) {
+      Alert.alert(
+        '확인',
+        '닉네임을 입력해주세요.',
+      );
+
+      return false;
+    }
+
+    if (!email.trim()) {
+      Alert.alert(
+        '확인',
+        '이메일을 입력해주세요.',
+      );
+
+      return false;
+    }
+
+    if (!email.includes('@')) {
+      Alert.alert(
+        '확인',
+        '올바른 이메일 주소를 입력해주세요.',
+      );
+
+      return false;
+    }
+
+    if (password.length < 6) {
+      Alert.alert(
+        '확인',
+        '비밀번호는 6자 이상 입력해주세요.',
+      );
+
+      return false;
+    }
+
+    if (
+      password !== passwordConfirm
+    ) {
+      Alert.alert(
+        '확인',
+        '비밀번호가 일치하지 않습니다.',
+      );
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignup = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const result =
+        await signUp({
+          email,
+          password,
+          nickname,
+        });
+
+      /**
+       * 이메일 인증이 켜져 있으면
+       * 일반적으로 session이 바로 생성되지 않는다.
+       *
+       * 회원가입 직후 로그인 화면으로 보내지 않고
+       * 인증 대기 화면으로 이동한다.
+       */
+      if (!result.session) {
+        router.replace(
+          '/auth/callback',
         );
 
-        return false;
-      }
-
-      if (
-        !email.trim()
-      ) {
-        Alert.alert(
-          '확인',
-          '이메일을 입력해주세요.',
-        );
-
-        return false;
-      }
-
-      if (
-        !email.includes('@')
-      ) {
-        Alert.alert(
-          '확인',
-          '올바른 이메일 주소를 입력해주세요.',
-        );
-
-        return false;
-      }
-
-      if (
-        password.length < 6
-      ) {
-        Alert.alert(
-          '확인',
-          '비밀번호는 6자 이상 입력해주세요.',
-        );
-
-        return false;
-      }
-
-      if (
-        password !==
-        passwordConfirm
-      ) {
-        Alert.alert(
-          '확인',
-          '비밀번호가 일치하지 않습니다.',
-        );
-
-        return false;
-      }
-
-      return true;
-    };
-
-  const handleSignup =
-    async () => {
-      if (
-        !validateForm()
-      ) {
         return;
       }
 
-      try {
-        setLoading(true);
+      /**
+       * Supabase 설정상 이메일 인증 없이
+       * 바로 세션이 생성되는 경우
+       */
+      router.replace(
+        '/auth/needs-setup',
+      );
+    } catch (error: any) {
+      console.error(
+        '회원가입 실패:',
+        error,
+      );
 
-        const result =
-          await signUp({
-            email,
-            password,
-            nickname,
-          });
+      let message =
+        '회원가입에 실패했습니다.';
 
-        if (
-          !result.session
-        ) {
-          Alert.alert(
-            '회원가입 완료',
-            '이메일 인증이 필요한 계정입니다. 메일함을 확인한 후 로그인해주세요.',
-            [
-              {
-                text: '확인',
-                onPress: () =>
-                  router.replace(
-                    '/auth/login',
-                  ),
-              },
-            ],
-          );
-
-          return;
-        }
-
-        router.replace(
-          '/my',
-        );
-      } catch (error: any) {
-        console.error(
-          '회원가입 실패:',
-          error,
-        );
-
-        let message =
-          '회원가입에 실패했습니다.';
-
-        if (
-          error?.message?.includes(
-            'already registered',
-          )
-        ) {
-          message =
-            '이미 가입된 이메일입니다.';
-        }
-
-        Alert.alert(
-          '회원가입 실패',
-          message,
-        );
-      } finally {
-        setLoading(false);
+      if (
+        error?.message?.includes(
+          'already registered',
+        )
+      ) {
+        message =
+          '이미 가입된 이메일입니다.';
       }
-    };
+
+      if (
+        error?.message?.includes(
+          'rate limit',
+        )
+      ) {
+        message =
+          '인증 이메일 발송 제한에 걸렸습니다. 잠시 후 다시 시도해주세요.';
+      }
+
+      Alert.alert(
+        '회원가입 실패',
+        message,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
-      style={
-        styles.screen
-      }
+      style={styles.screen}
       behavior={
-        Platform.OS ===
-        'ios'
+        Platform.OS === 'ios'
           ? 'padding'
           : undefined
       }
@@ -201,62 +179,32 @@ export default function SignupScreen() {
         }
         keyboardShouldPersistTaps="handled"
       >
-        <View
-          style={
-            styles.header
-          }
-        >
-          <Text
-            style={
-              styles.logo
-            }
-          >
+        <View style={styles.header}>
+          <Text style={styles.logo}>
             START-UP
           </Text>
 
-          <Text
-            style={
-              styles.title
-            }
-          >
+          <Text style={styles.title}>
             회원가입
           </Text>
 
           <Text
-            style={
-              styles.description
-            }
+            style={styles.description}
           >
             계정을 만들고 나만의
             창업 분석 정보를 관리해보세요.
           </Text>
         </View>
 
-        <View
-          style={
-            styles.form
-          }
-        >
-          <View
-            style={
-              styles.field
-            }
-          >
-            <Text
-              style={
-                styles.label
-              }
-            >
+        <View style={styles.form}>
+          <View style={styles.field}>
+            <Text style={styles.label}>
               닉네임
             </Text>
 
             <TextInput
-              style={
-                styles.input
-              }
-              value={
-                nickname
-              }
+              style={styles.input}
+              value={nickname}
               onChangeText={
                 setNickname
               }
@@ -266,26 +214,14 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View
-            style={
-              styles.field
-            }
-          >
-            <Text
-              style={
-                styles.label
-              }
-            >
+          <View style={styles.field}>
+            <Text style={styles.label}>
               이메일
             </Text>
 
             <TextInput
-              style={
-                styles.input
-              }
-              value={
-                email
-              }
+              style={styles.input}
+              value={email}
               onChangeText={
                 setEmail
               }
@@ -297,26 +233,14 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View
-            style={
-              styles.field
-            }
-          >
-            <Text
-              style={
-                styles.label
-              }
-            >
+          <View style={styles.field}>
+            <Text style={styles.label}>
               비밀번호
             </Text>
 
             <TextInput
-              style={
-                styles.input
-              }
-              value={
-                password
-              }
+              style={styles.input}
+              value={password}
               onChangeText={
                 setPassword
               }
@@ -327,26 +251,14 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View
-            style={
-              styles.field
-            }
-          >
-            <Text
-              style={
-                styles.label
-              }
-            >
+          <View style={styles.field}>
+            <Text style={styles.label}>
               비밀번호 확인
             </Text>
 
             <TextInput
-              style={
-                styles.input
-              }
-              value={
-                passwordConfirm
-              }
+              style={styles.input}
+              value={passwordConfirm}
               onChangeText={
                 setPasswordConfirm
               }
@@ -365,9 +277,7 @@ export default function SignupScreen() {
             ]}
             activeOpacity={0.8}
             disabled={loading}
-            onPress={
-              handleSignup
-            }
+            onPress={handleSignup}
           >
             {loading ? (
               <ActivityIndicator
@@ -385,15 +295,9 @@ export default function SignupScreen() {
             )}
           </TouchableOpacity>
 
-          <View
-            style={
-              styles.loginRow
-            }
-          >
+          <View style={styles.loginRow}>
             <Text
-              style={
-                styles.loginGuide
-              }
+              style={styles.loginGuide}
             >
               이미 계정이 있나요?
             </Text>
@@ -406,9 +310,7 @@ export default function SignupScreen() {
               }
             >
               <Text
-                style={
-                  styles.loginText
-                }
+                style={styles.loginText}
               >
                 로그인
               </Text>
@@ -433,8 +335,7 @@ const styles =
       width: '100%',
       maxWidth: 500,
       alignSelf: 'center',
-      justifyContent:
-        'center',
+      justifyContent: 'center',
       padding: 24,
       paddingVertical: 60,
     },
@@ -446,8 +347,7 @@ const styles =
     logo: {
       fontSize: 11,
       fontWeight: '900',
-      color:
-        COLORS.primary,
+      color: COLORS.primary,
       marginBottom: 8,
       letterSpacing: 1.4,
     },
@@ -455,8 +355,7 @@ const styles =
     title: {
       fontSize: 32,
       fontWeight: '900',
-      color:
-        COLORS.text,
+      color: COLORS.text,
     },
 
     description: {
@@ -485,8 +384,7 @@ const styles =
       marginBottom: 8,
       fontSize: 12,
       fontWeight: '800',
-      color:
-        COLORS.text,
+      color: COLORS.text,
     },
 
     input: {
@@ -497,21 +395,17 @@ const styles =
       borderColor:
         COLORS.border,
       borderRadius: 13,
-      backgroundColor:
-        '#FFFFFF',
+      backgroundColor: '#FFFFFF',
       fontSize: 14,
-      color:
-        COLORS.text,
+      color: COLORS.text,
     },
 
     signupButton: {
       minHeight: 52,
       marginTop: 4,
       borderRadius: 14,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor:
         COLORS.neonLime,
     },
@@ -529,10 +423,8 @@ const styles =
     loginRow: {
       marginTop: 22,
       flexDirection: 'row',
-      justifyContent:
-        'center',
-      alignItems:
-        'center',
+      justifyContent: 'center',
+      alignItems: 'center',
       gap: 7,
     },
 
@@ -545,7 +437,6 @@ const styles =
     loginText: {
       fontSize: 12,
       fontWeight: '900',
-      color:
-        COLORS.primary,
+      color: COLORS.primary,
     },
   });
