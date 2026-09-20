@@ -1,14 +1,9 @@
-import {
-  COLORS,
-} from '@/constants/colors';
+import { COLORS } from '@/constants/colors';
+import { supabase } from '@/lib/supabase';
 
-import {
-  supabase,
-} from '@/lib/supabase';
+import { useRouter } from 'expo-router';
 
-import {
-  useRouter,
-} from 'expo-router';
+import * as Linking from 'expo-linking';
 
 import {
   useEffect,
@@ -23,8 +18,7 @@ import {
 } from 'react-native';
 
 export default function AuthCallbackScreen() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const [
     message,
@@ -52,12 +46,18 @@ export default function AuthCallbackScreen() {
           '이메일 인증이 완료되었습니다. 로그인 화면으로 이동합니다.',
         );
 
-        /**
-         * 이메일 인증 과정에서
-         * Supabase 세션이 자동 생성될 수 있으므로
-         * 사용자가 직접 로그인하도록 세션을 종료한다.
-         */
-        await supabase.auth.signOut();
+        try {
+          /*
+           * 이메일 인증 과정에서 생성된 세션을 종료한다.
+           * 이후 사용자가 직접 로그인하도록 한다.
+           */
+          await supabase.auth.signOut();
+        } catch (error) {
+          console.error(
+            '인증 후 로그아웃 오류:',
+            error,
+          );
+        }
 
         if (!mounted) {
           return;
@@ -73,78 +73,154 @@ export default function AuthCallbackScreen() {
       };
 
     /**
-     * callback 화면 진입 시
-     * 이미 인증 세션이 생겼는지 확인한다.
+     * Supabase가 돌려준 URL 처리
+     *
+     * PKCE 방식:
+     * commercialai://auth/callback?code=...
      */
-    const checkSession =
+    const handleAuthUrl =
+      async (
+        url: string | null,
+      ) => {
+        if (
+          !url ||
+          !mounted ||
+          moving
+        ) {
+          return;
+        }
+
+        try {
+          console.log(
+            '인증 callback URL:',
+            url,
+          );
+
+          const parsed =
+            Linking.parse(url);
+
+          const code =
+            typeof parsed.queryParams
+              ?.code === 'string'
+              ? parsed.queryParams.code
+              : null;
+
+          if (code) {
+            setMessage(
+              '이메일 인증을 확인하고 있어요...',
+            );
+
+            const {
+              data,
+              error,
+            } =
+              await supabase.auth
+                .exchangeCodeForSession(
+                  code,
+                );
+
+            if (error) {
+              throw error;
+            }
+
+            if (data.session) {
+              await moveToLogin();
+            }
+
+            return;
+          }
+
+          /**
+           * PKCE code가 없는 경우에도
+           * 이미 세션이 생성되어 있을 수 있으므로 확인한다.
+           */
+          const {
+            data,
+            error,
+          } =
+            await supabase.auth
+              .getSession();
+
+          if (error) {
+            throw error;
+          }
+
+          if (data.session) {
+            await moveToLogin();
+          }
+        } catch (error: any) {
+          console.error(
+            '이메일 인증 callback 처리 실패:',
+            error,
+          );
+
+          if (mounted) {
+            setMessage(
+              error?.message ??
+                '이메일 인증 정보를 처리하지 못했습니다.',
+            );
+          }
+        }
+      };
+
+    /**
+     * 앱이 이메일 링크로 처음 실행된 경우
+     */
+    Linking.getInitialURL()
+      .then(handleAuthUrl)
+      .catch(error => {
+        console.error(
+          '초기 인증 URL 확인 실패:',
+          error,
+        );
+      });
+
+    /**
+     * 앱이 이미 실행 중인 상태에서
+     * 이메일 링크가 들어온 경우
+     */
+    const linkingSubscription =
+      Linking.addEventListener(
+        'url',
+        event => {
+          handleAuthUrl(
+            event.url,
+          );
+        },
+      );
+
+    /**
+     * 이미 세션이 존재하는 경우도 처리
+     */
+    const checkExistingSession =
       async () => {
         try {
           const {
             data,
           } =
-            await supabase.auth.getSession();
+            await supabase.auth
+              .getSession();
 
           if (
-            !mounted
-          ) {
-            return;
-          }
-
-          if (
+            mounted &&
             data.session
           ) {
             await moveToLogin();
           }
         } catch (error) {
           console.error(
-            '인증 상태 확인 오류:',
+            '기존 세션 확인 오류:',
             error,
           );
-
-          if (mounted) {
-            setMessage(
-              '인증 상태를 확인하지 못했습니다.',
-            );
-          }
         }
       };
 
-    checkSession();
-
-    /**
-     * 사용자가 이메일 인증 링크를 눌러
-     * Supabase 세션이 생성되는 것을 감지한다.
-     */
-    const {
-      data: listener,
-    } =
-      supabase.auth.onAuthStateChange(
-        async (
-          event,
-          session,
-        ) => {
-          if (
-            !mounted ||
-            !session
-          ) {
-            return;
-          }
-
-          if (
-            event ===
-              'SIGNED_IN' ||
-            event ===
-              'INITIAL_SESSION'
-          ) {
-            await moveToLogin();
-          }
-        },
-      );
+    checkExistingSession();
 
     return () => {
       mounted = false;
 
-      listener.subscription.unsubscribe();
+      linkingSubscription.remove();
     };
   }, [router]);
 
@@ -164,7 +240,9 @@ export default function AuthCallbackScreen() {
       </Text>
 
       <Text
-        style={styles.description}
+        style={
+          styles.description
+        }
       >
         {message}
       </Text>
@@ -185,7 +263,8 @@ const styles =
     screen: {
       flex: 1,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent:
+        'center',
       padding: 24,
       backgroundColor:
         COLORS.background,

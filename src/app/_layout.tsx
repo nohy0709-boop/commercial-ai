@@ -26,16 +26,24 @@ import {
 import { supabase } from '@/lib/supabase';
 import { getCurrentSession } from '@/services/auth';
 
+/**
+ * 개발 중 로그인 건너뛰기
+ *
+ * true  = 로그인하지 않아도 앱 사용 가능
+ * false = 로그인 필수
+ *
+ * 실제 배포 전에는 반드시 false로 변경
+ */
+const DEV_SKIP_AUTH = true;
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   const router = useRouter();
   const segments = useSegments();
 
-  const [
-    isLoading,
-    setIsLoading,
-  ] = useState(true);
+  const [isLoading, setIsLoading] =
+    useState(true);
 
   const [
     isAuthenticated,
@@ -43,8 +51,11 @@ export default function RootLayout() {
   ] = useState(false);
 
   /**
-   * 앱 실행 시 현재 로그인 세션 확인
-   * + 로그인/로그아웃 상태 변경 감지
+   * 현재 로그인 세션 확인
+   *
+   * 로그인 우회 중이어도 인증 코드는 그대로 유지한다.
+   * 나중에 DEV_SKIP_AUTH만 false로 변경하면
+   * 다시 로그인 필수 상태로 사용할 수 있다.
    */
   useEffect(() => {
     let mounted = true;
@@ -68,7 +79,9 @@ export default function RootLayout() {
         );
 
         if (mounted) {
-          setIsAuthenticated(false);
+          setIsAuthenticated(
+            false,
+          );
         }
       } finally {
         if (mounted) {
@@ -80,9 +93,7 @@ export default function RootLayout() {
     checkSession();
 
     const {
-      data: {
-        subscription,
-      },
+      data: { subscription },
     } =
       supabase.auth.onAuthStateChange(
         (_event, session) => {
@@ -105,15 +116,16 @@ export default function RootLayout() {
   }, []);
 
   /**
-   * 로그인하지 않은 사용자가
-   * 일반 앱 화면에 접근하는 것만 차단
+   * 로그인 가드
    *
-   * auth 내부 화면은 회원가입,
-   * 이메일 인증 callback,
-   * 최초 설정 등의 자체 흐름을 유지한다.
+   * DEV_SKIP_AUTH가 true인 동안에는
+   * 로그인하지 않아도 일반 화면에 접근할 수 있다.
    */
   useEffect(() => {
-    if (isLoading) {
+    if (
+      isLoading ||
+      DEV_SKIP_AUTH
+    ) {
       return;
     }
 
@@ -135,10 +147,6 @@ export default function RootLayout() {
     router,
   ]);
 
-  /**
-   * 인증 상태 확인이 끝나면
-   * Splash Screen 종료
-   */
   useEffect(() => {
     if (isLoading) {
       return;
@@ -160,7 +168,8 @@ export default function RootLayout() {
         style={{
           flex: 1,
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent:
+            'center',
         }}
       >
         <ActivityIndicator
