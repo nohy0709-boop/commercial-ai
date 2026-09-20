@@ -13,8 +13,10 @@ import {
 
 import Svg, {
     Circle,
+    G,
     Line,
     Polyline,
+    Rect,
     Text as SvgText,
 } from 'react-native-svg';
 
@@ -22,11 +24,24 @@ import {
     sejongMonthlyMarketData,
 } from '@/data/sejongMonthlyMarketData';
 
+/**
+ * =====================================================
+ * TYPES
+ * =====================================================
+ */
+
 type CompareItem = {
   areaName: string;
   rank: number;
-  competitionScore?: number | string;
-  accessibilityScore?: number | string;
+
+  competitionScore?:
+    | number
+    | string;
+
+  accessibilityScore?:
+    | number
+    | string;
+
   [key: string]:
     | number
     | string
@@ -44,114 +59,63 @@ type PopulationMetric =
 
 interface Props {
   compareItems: CompareItem[];
+
   currentAreaName?: string;
+
   maxAreas?: number;
 }
 
-const SERIES_COLORS = [
-  '#16A34A',
-  '#0EA5E9',
-  '#F59E0B',
-  '#8B5CF6',
-  '#EF4444',
-];
+interface ChartSeries {
+  name: string;
+
+  color: string;
+
+  dashed: boolean;
+
+  values: (
+    | number
+    | null
+  )[];
+}
+
+/**
+ * =====================================================
+ * COLORS
+ * =====================================================
+ */
+
+const CURRENT_COLOR =
+  '#16A34A';
+
+const AVERAGE_COLOR =
+  '#0EA5E9';
+
+/**
+ * =====================================================
+ * FORMAT
+ * =====================================================
+ */
 
 function formatMonth(
   period: string,
 ) {
-  const [
-    year,
+  const [, month] =
+    period.split('-');
+
+  return `${Number(
     month,
-  ] = period.split('-');
-
-  return `${Number(month)}월`;
+  )}월`;
 }
 
-function formatPeriodRange(
-  periods: string[],
-) {
-  if (
-    periods.length === 0
-  ) {
-    return '';
-  }
-
-  const first =
-    periods[0];
-
-  const last =
-    periods[
-      periods.length -
-        1
-    ];
-
-  const format =
-    (
-      value: string,
-    ) => {
-      const [
-        y,
-        m,
-      ] =
-        value.split(
-          '-',
-        );
-
-      return `${y}.${m}`;
-    };
-
-  return `${format(
-    first,
-  )} ~ ${format(
-    last,
-  )}`;
-}
-
-function formatCompact(
+function formatAxisValue(
   value: number,
 ) {
-  const abs =
-    Math.abs(
-      value,
-    );
-
-  if (
-    abs >=
-    100000000
-  ) {
-    return `${(
-      value /
-      100000000
-    ).toFixed(
-      value %
-          100000000 ===
-        0
-        ? 0
-        : 1,
-    )}억`;
-  }
-
-  if (
-    abs >= 10000
-  ) {
-    return `${(
-      value /
-      10000
-    ).toFixed(
-      value %
-          10000 ===
-        0
-        ? 0
-        : 1,
-    )}만`;
-  }
-
   return Math.round(
     value,
   ).toLocaleString();
 }
 
-function formatCellValue(
+function formatTableValue(
   value:
     | number
     | null,
@@ -159,7 +123,7 @@ function formatCellValue(
 ) {
   if (
     value === null ||
-    Number.isNaN(
+    !Number.isFinite(
       value,
     )
   ) {
@@ -179,10 +143,93 @@ function formatCellValue(
   ).toLocaleString()}명`;
 }
 
+function formatPercent(
+  value: number,
+) {
+  if (
+    !Number.isFinite(
+      value,
+    )
+  ) {
+    return '-';
+  }
+
+  return `${
+    value > 0
+      ? '+'
+      : ''
+  }${value.toFixed(
+    1,
+  )}%`;
+}
+
+/**
+ * y축 보기 좋은 최대값
+ */
+function getNiceMax(
+  value: number,
+) {
+  if (
+    value <= 0
+  ) {
+    return 100;
+  }
+
+  const exponent =
+    Math.floor(
+      Math.log10(
+        value,
+      ),
+    );
+
+  const magnitude =
+    Math.pow(
+      10,
+      exponent,
+    );
+
+  const normalized =
+    value /
+    magnitude;
+
+  let niceNormalized =
+    1;
+
+  if (
+    normalized <= 1
+  ) {
+    niceNormalized =
+      1;
+  } else if (
+    normalized <= 2
+  ) {
+    niceNormalized =
+      2;
+  } else if (
+    normalized <= 5
+  ) {
+    niceNormalized =
+      5;
+  } else {
+    niceNormalized =
+      10;
+  }
+
+  return (
+    niceNormalized *
+    magnitude
+  );
+}
+
+/**
+ * =====================================================
+ * MAIN
+ * =====================================================
+ */
+
 export default function MonthlyCandidateComparison({
   compareItems,
   currentAreaName,
-  maxAreas = 5,
 }: Props) {
   const [
     activeTab,
@@ -206,72 +253,24 @@ export default function MonthlyCandidateComparison({
   ] =
     useState(false);
 
+  const [
+    chartWidth,
+    setChartWidth,
+  ] =
+    useState(0);
+
   /**
-   * 현재 후보가 비교 목록에서 잘리지 않도록 구성
+   * 현재 선택 지역이 없을 경우
+   * compareItems 첫 번째 지역 사용
    */
-  const candidateNames =
-    useMemo(
-      () => {
-        const unique =
-          Array.from(
-            new Set(
-              compareItems
-                .map(
-                  item =>
-                    item.areaName,
-                )
-                .filter(
-                  Boolean,
-                ),
-            ),
-          );
-
-        let selected =
-          unique.slice(
-            0,
-            maxAreas,
-          );
-
-        if (
-          currentAreaName &&
-          unique.includes(
-            currentAreaName,
-          ) &&
-          !selected.includes(
-            currentAreaName,
-          )
-        ) {
-          selected = [
-            ...selected.slice(
-              0,
-              Math.max(
-                0,
-                maxAreas -
-                  1,
-              ),
-            ),
-            currentAreaName,
-          ];
-        }
-
-        return selected.filter(
-          name =>
-            Boolean(
-              sejongMonthlyMarketData[
-                name
-              ],
-            ),
-        );
-      },
-      [
-        compareItems,
-        currentAreaName,
-        maxAreas,
-      ],
-    );
+  const selectedAreaName =
+    currentAreaName ||
+    compareItems[0]
+      ?.areaName ||
+    '';
 
   /**
-   * 현재 탭에서 사용할 월별 key
+   * 현재 지표 key
    */
   const valueKey =
     activeTab ===
@@ -280,8 +279,43 @@ export default function MonthlyCandidateComparison({
       : populationMetric;
 
   /**
-   * 모든 후보에 공통으로 존재하는 기간 중
-   * 가장 최근 6개월 사용
+   * 현재 동 데이터
+   */
+  const selectedRows =
+    useMemo(
+      () =>
+        selectedAreaName
+          ? sejongMonthlyMarketData[
+              selectedAreaName
+            ] ?? []
+          : [],
+      [
+        selectedAreaName,
+      ],
+    );
+
+  /**
+   * 현재 선택 동을 제외한
+   * 다른 모든 행정동
+   */
+  const otherAreaNames =
+    useMemo(
+      () =>
+        Object.keys(
+          sejongMonthlyMarketData,
+        ).filter(
+          areaName =>
+            areaName !==
+            selectedAreaName,
+        ),
+      [
+        selectedAreaName,
+      ],
+    );
+
+  /**
+   * 선택 동에서 실제 데이터가 존재하는
+   * 최근 6개월
    */
   const periods =
     useMemo(
@@ -293,257 +327,333 @@ export default function MonthlyCandidateComparison({
           return [];
         }
 
-        const periodSets =
-          candidateNames.map(
-            name => {
-              const rows =
-                sejongMonthlyMarketData[
-                  name
-                ] ??
-                [];
-
-              return new Set(
-                rows
-                  .filter(
-                    row =>
-                      row[
-                        valueKey
-                      ] !==
-                      null,
-                  )
-                  .map(
-                    row =>
-                      row.period,
-                  ),
-              );
-            },
-          );
-
-        if (
-          periodSets.length ===
-          0
-        ) {
-          return [];
-        }
-
-        let common =
-          Array.from(
-            periodSets[0],
-          );
-
-        periodSets
-          .slice(1)
-          .forEach(
-            set => {
-              common =
-                common.filter(
-                  period =>
-                    set.has(
-                      period,
-                    ),
-                );
-            },
-          );
-
-        return common
+        return selectedRows
+          .filter(
+            row =>
+              row[
+                valueKey
+              ] !==
+              null,
+          )
+          .map(
+            row =>
+              row.period,
+          )
           .sort()
-          .slice(-6);
+          .slice(
+            -6,
+          );
       },
       [
-        candidateNames,
         activeTab,
+        selectedRows,
         valueKey,
       ],
     );
 
-  const series =
+  /**
+   * 선택 동 월별 값
+   */
+  const selectedValues =
+    useMemo(
+      () => {
+        const rowMap =
+          new Map(
+            selectedRows.map(
+              row => [
+                row.period,
+                row,
+              ],
+            ),
+          );
+
+        return periods.map(
+          period => {
+            const value =
+              rowMap.get(
+                period,
+              )?.[
+                valueKey
+              ];
+
+            return typeof value ===
+              'number'
+              ? value
+              : null;
+          },
+        );
+      },
+      [
+        periods,
+        selectedRows,
+        valueKey,
+      ],
+    );
+
+  /**
+   * 다른 행정동 평균
+   *
+   * 해당 월에 값이 존재하는
+   * 다른 행정동들만 평균 계산
+   */
+  const averageValues =
     useMemo(
       () =>
-        candidateNames.map(
-          (
-            areaName,
-            index,
-          ) => {
-            const rows =
-              sejongMonthlyMarketData[
-                areaName
-              ] ??
-              [];
+        periods.map(
+          period => {
+            const values:
+              number[] = [];
 
-            const rowMap =
-              new Map(
-                rows.map(
-                  row => [
-                    row.period,
-                    row,
-                  ],
-                ),
-              );
+            otherAreaNames.forEach(
+              areaName => {
+                const rows =
+                  sejongMonthlyMarketData[
+                    areaName
+                  ] ?? [];
 
-            const values =
-              periods.map(
-                period => {
-                  const value =
-                    rowMap.get(
+                const row =
+                  rows.find(
+                    item =>
+                      item.period ===
                       period,
-                    )?.[
-                      valueKey
-                    ];
+                  );
 
-                  return typeof value ===
-                    'number'
-                    ? value
-                    : null;
-                },
+                const value =
+                  row?.[
+                    valueKey
+                  ];
+
+                if (
+                  typeof value ===
+                    'number' &&
+                  Number.isFinite(
+                    value,
+                  )
+                ) {
+                  values.push(
+                    value,
+                  );
+                }
+              },
+            );
+
+            if (
+              values.length ===
+              0
+            ) {
+              return null;
+            }
+
+            const sum =
+              values.reduce(
+                (
+                  total,
+                  value,
+                ) =>
+                  total +
+                  value,
+                0,
               );
 
-            return {
-              name:
-                areaName,
-
-              color:
-                SERIES_COLORS[
-                  index %
-                    SERIES_COLORS.length
-                ],
-
-              values,
-            };
+            return (
+              sum /
+              values.length
+            );
           },
         ),
       [
-        candidateNames,
         periods,
+        otherAreaNames,
         valueKey,
       ],
     );
 
-  const allNumericValues =
+  /**
+   * 그래프 시리즈
+   */
+  const series =
+    useMemo<
+      ChartSeries[]
+    >(
+      () => [
+        {
+          name:
+            selectedAreaName,
+
+          color:
+            CURRENT_COLOR,
+
+          dashed:
+            false,
+
+          values:
+            selectedValues,
+        },
+
+        {
+          name:
+            '다른 지역 평균',
+
+          color:
+            AVERAGE_COLOR,
+
+          dashed:
+            true,
+
+          values:
+            averageValues,
+        },
+      ],
+      [
+        selectedAreaName,
+        selectedValues,
+        averageValues,
+      ],
+    );
+
+  /**
+   * Y축 최대
+   */
+  const yMax =
     useMemo(
-      () =>
-        series.flatMap(
-          item =>
-            item.values.filter(
-              (
-                value,
-              ): value is number =>
-                typeof value ===
-                'number',
-            ),
-        ),
+      () => {
+        const values =
+          series.flatMap(
+            item =>
+              item.values.filter(
+                (
+                  value,
+                ): value is number =>
+                  typeof value ===
+                  'number',
+              ),
+          );
+
+        if (
+          values.length ===
+          0
+        ) {
+          return 100;
+        }
+
+        return getNiceMax(
+          Math.max(
+            ...values,
+          ) *
+            1.1,
+        );
+      },
       [
         series,
       ],
     );
 
-  const chartMin =
-    allNumericValues.length >
-    0
-      ? Math.min(
-          ...allNumericValues,
-        )
-      : 0;
-
-  const chartMax =
-    allNumericValues.length >
-    0
-      ? Math.max(
-          ...allNumericValues,
-        )
-      : 1;
-
-  const range =
-    Math.max(
-      chartMax -
-        chartMin,
-      1,
-    );
-
   /**
-   * y축을 데이터 최소/최대에 딱 붙이지 않고
-   * 약간 여유 있게 보여줌
+   * 환경 지표
+   *
+   * 현재 지역 vs 후보 평균
    */
-  const yMin =
-    Math.max(
-      0,
-      chartMin -
-        range *
-          0.12,
-    );
-
-  const yMax =
-    chartMax +
-    range *
-      0.12;
-
   const environmentRows =
     useMemo(
       () => {
-        const keys = [
-          {
+        const selected =
+          compareItems.find(
+            item =>
+              item.areaName ===
+              selectedAreaName,
+          );
+
+        const others =
+          compareItems.filter(
+            item =>
+              item.areaName !==
+              selectedAreaName,
+          );
+
+        const averageMetric =
+          (
             key:
-              'competitionScore',
-            label:
-              '경쟁 여유도',
-          },
-          {
-            key:
-              'accessibilityScore',
-            label:
-              '교통 접근성',
-          },
-        ];
-
-        return keys.map(
-          metric => ({
-            label:
-              metric.label,
-
-            values:
-              candidateNames.map(
-                name => {
-                  const item =
-                    compareItems.find(
-                      compare =>
-                        compare.areaName ===
-                        name,
-                    );
-
-                  const value =
+              | 'competitionScore'
+              | 'accessibilityScore',
+          ) => {
+            const values =
+              others
+                .map(
+                  item =>
                     Number(
-                      item?.[
-                        metric.key
+                      item[
+                        key
                       ] ??
                         0,
-                    );
+                    ),
+                )
+                .filter(
+                  value =>
+                    Number.isFinite(
+                      value,
+                    ),
+                );
 
-                  return Number.isFinite(
-                    value,
-                  )
-                    ? value
-                    : 0;
-                },
+            if (
+              values.length ===
+              0
+            ) {
+              return 0;
+            }
+
+            return (
+              values.reduce(
+                (
+                  total,
+                  value,
+                ) =>
+                  total +
+                  value,
+                0,
+              ) /
+              values.length
+            );
+          };
+
+        return [
+          {
+            label:
+              '경쟁 여유도',
+
+            selectedValue:
+              Number(
+                selected?.competitionScore ??
+                  0,
               ),
-          }),
-        );
+
+            averageValue:
+              averageMetric(
+                'competitionScore',
+              ),
+          },
+
+          {
+            label:
+              '교통 접근성',
+
+            selectedValue:
+              Number(
+                selected?.accessibilityScore ??
+                  0,
+              ),
+
+            averageValue:
+              averageMetric(
+                'accessibilityScore',
+              ),
+          },
+        ];
       },
       [
-        candidateNames,
         compareItems,
+        selectedAreaName,
       ],
     );
-
-  const subtitle =
-    activeTab ===
-    'population'
-      ? populationMetric ===
-        'floatingPopulation'
-        ? '행정동별 월간 일평균 유동인구 추이'
-        : '행정동별 월간 유입인구 추이'
-      : activeTab ===
-          'sales'
-        ? '행정동별 월간 카드소비액 추이'
-        : '현재 분석 시점의 환경 점수 비교';
 
   return (
     <View
@@ -551,12 +661,14 @@ export default function MonthlyCandidateComparison({
         styles.container
       }
     >
+      {/* TITLE */}
+
       <Text
         style={
           styles.title
         }
       >
-        다른 후보와 비교
+        세종시 다른 지역과 비교
       </Text>
 
       <Text
@@ -564,12 +676,14 @@ export default function MonthlyCandidateComparison({
           styles.description
         }
       >
-        같이 분석한 후보 지역들의 실제 월별 흐름을 비교해봤어요.
+        {selectedAreaName}과 선택 지역을 제외한 다른 행정동의 평균을 비교해요.
       </Text>
+
+      {/* MAIN TAB */}
 
       <View
         style={
-          styles.tabRow
+          styles.tabBar
         }
       >
         <TabButton
@@ -578,11 +692,15 @@ export default function MonthlyCandidateComparison({
             activeTab ===
             'population'
           }
-          onPress={() =>
+          onPress={() => {
             setActiveTab(
               'population',
-            )
-          }
+            );
+
+            setTableOpen(
+              false,
+            );
+          }}
         />
 
         <TabButton
@@ -591,11 +709,15 @@ export default function MonthlyCandidateComparison({
             activeTab ===
             'sales'
           }
-          onPress={() =>
+          onPress={() => {
             setActiveTab(
               'sales',
-            )
-          }
+            );
+
+            setTableOpen(
+              false,
+            );
+          }}
         />
 
         <TabButton
@@ -604,13 +726,19 @@ export default function MonthlyCandidateComparison({
             activeTab ===
             'environment'
           }
-          onPress={() =>
+          onPress={() => {
             setActiveTab(
               'environment',
-            )
-          }
+            );
+
+            setTableOpen(
+              false,
+            );
+          }}
         />
       </View>
+
+      {/* POPULATION SUB TAB */}
 
       {activeTab ===
         'population' && (
@@ -627,11 +755,15 @@ export default function MonthlyCandidateComparison({
                 'floatingPopulation' &&
                 styles.subTabActive,
             ]}
-            onPress={() =>
+            onPress={() => {
               setPopulationMetric(
                 'floatingPopulation',
-              )
-            }
+              );
+
+              setTableOpen(
+                false,
+              );
+            }}
           >
             <Text
               style={[
@@ -654,11 +786,15 @@ export default function MonthlyCandidateComparison({
                 'inflowPopulation' &&
                 styles.subTabActive,
             ]}
-            onPress={() =>
+            onPress={() => {
               setPopulationMetric(
                 'inflowPopulation',
-              )
-            }
+              );
+
+              setTableOpen(
+                false,
+              );
+            }}
           >
             <Text
               style={[
@@ -675,163 +811,243 @@ export default function MonthlyCandidateComparison({
         </View>
       )}
 
-      <View
-        style={
-          styles.chartMetaRow
-        }
-      >
-        <Text
-          style={
-            styles.chartSubtitle
-          }
-        >
-          {subtitle}
-        </Text>
+      {/* LINE CHART */}
 
-        {periods.length >
+      {activeTab !==
+        'environment' &&
+        periods.length >
           0 && (
-          <Text
-            style={
-              styles.periodText
-            }
-          >
-            {formatPeriodRange(
-              periods,
-            )}
-          </Text>
-        )}
-      </View>
-
-      <View
-        style={
-          styles.legendRow
-        }
-      >
-        {candidateNames.map(
-          (
-            name,
-            index,
-          ) => (
+          <>
             <View
-              key={
-                name
-              }
               style={
-                styles.legendItem
+                styles.chartWrap
+              }
+              onLayout={
+                event =>
+                  setChartWidth(
+                    event.nativeEvent.layout
+                      .width,
+                  )
+              }
+            >
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={
+                  false
+                }
+              >
+                <ComparisonLineChart
+                  periods={
+                    periods
+                  }
+                  series={
+                    series
+                  }
+                  yMax={
+                    yMax
+                  }
+                  availableWidth={
+                    chartWidth
+                  }
+                  activeTab={
+                    activeTab
+                  }
+                />
+              </ScrollView>
+            </View>
+
+            {/* LEGEND */}
+
+            <View
+              style={
+                styles.legendRow
+              }
+            >
+              <View
+                style={
+                  styles.legendItem
+                }
+              >
+                <View
+                  style={[
+                    styles.legendLine,
+                    {
+                      backgroundColor:
+                        CURRENT_COLOR,
+                    },
+                  ]}
+                />
+
+                <Text
+                  style={
+                    styles.legendText
+                  }
+                >
+                  {
+                    selectedAreaName
+                  }
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.legendItem
+                }
+              >
+                <View
+                  style={
+                    styles.dashedLegend
+                  }
+                >
+                  <View
+                    style={
+                      styles.dash
+                    }
+                  />
+
+                  <View
+                    style={
+                      styles.dash
+                    }
+                  />
+
+                  <View
+                    style={
+                      styles.dash
+                    }
+                  />
+                </View>
+
+                <Text
+                  style={
+                    styles.legendText
+                  }
+                >
+                  다른 지역 평균
+                </Text>
+              </View>
+            </View>
+
+            {/* TABLE SWITCH */}
+
+            <TouchableOpacity
+              style={
+                styles.toggleRow
+              }
+              activeOpacity={
+                0.8
+              }
+              onPress={() =>
+                setTableOpen(
+                  value =>
+                    !value,
+                )
               }
             >
               <View
                 style={[
-                  styles.legendDot,
-                  {
-                    backgroundColor:
-                      SERIES_COLORS[
-                        index %
-                          SERIES_COLORS.length
-                      ],
-                  },
+                  styles.switchTrack,
+
+                  tableOpen &&
+                    styles.switchTrackActive,
                 ]}
-              />
+              >
+                <View
+                  style={[
+                    styles.switchCircle,
+
+                    tableOpen &&
+                      styles.switchCircleActive,
+                  ]}
+                />
+              </View>
 
               <Text
                 style={
-                  styles.legendText
+                  styles.toggleText
                 }
               >
-                {name}
+                실제 수치로 보기
               </Text>
-            </View>
-          ),
+            </TouchableOpacity>
+
+            {tableOpen && (
+              <ValueTable
+                periods={
+                  periods
+                }
+                selectedAreaName={
+                  selectedAreaName
+                }
+                selectedValues={
+                  selectedValues
+                }
+                averageValues={
+                  averageValues
+                }
+                activeTab={
+                  activeTab
+                }
+              />
+            )}
+          </>
         )}
-      </View>
+
+      {/* ENVIRONMENT */}
 
       {activeTab ===
-      'environment' ? (
-        <EnvironmentChart
-          candidateNames={
-            candidateNames
-          }
-          rows={
-            environmentRows
-          }
-        />
-      ) : periods.length ===
-          0 ||
-        series.length ===
-          0 ? (
+        'environment' && (
         <View
           style={
-            styles.emptyBox
+            styles.environmentBox
           }
         >
-          <Text
-            style={
-              styles.emptyText
-            }
-          >
-            선택한 후보 지역의 월별 데이터가 부족합니다.
-          </Text>
-        </View>
-      ) : (
-        <MonthlyLineChart
-          periods={
-            periods
-          }
-          series={
-            series
-          }
-          yMin={
-            yMin
-          }
-          yMax={
-            yMax
-          }
-        />
-      )}
+          {environmentRows.map(
+            row => (
+              <View
+                key={
+                  row.label
+                }
+                style={
+                  styles.environmentGroup
+                }
+              >
+                <Text
+                  style={
+                    styles.environmentTitle
+                  }
+                >
+                  {row.label}
+                </Text>
 
-      {activeTab !==
-        'environment' && (
-        <>
-          <TouchableOpacity
-            style={
-              styles.toggleButton
-            }
-            activeOpacity={
-              0.7
-            }
-            onPress={() =>
-              setTableOpen(
-                prev =>
-                  !prev,
-              )
-            }
-          >
-            <Text
-              style={
-                styles.toggleText
-              }
-            >
-              {tableOpen
-                ? '실제 수치 접기 ▲'
-                : '실제 수치로 보기 ▼'}
-            </Text>
-          </TouchableOpacity>
+                <EnvironmentRow
+                  label={
+                    selectedAreaName
+                  }
+                  value={
+                    row.selectedValue
+                  }
+                  color={
+                    CURRENT_COLOR
+                  }
+                />
 
-          {tableOpen && (
-            <MonthlyValueTable
-              periods={
-                periods
-              }
-              series={
-                series
-              }
-              activeTab={
-                activeTab
-              }
-            />
+                <EnvironmentRow
+                  label="다른 지역 평균"
+                  value={
+                    row.averageValue
+                  }
+                  color={
+                    AVERAGE_COLOR
+                  }
+                />
+              </View>
+            ),
           )}
-        </>
+        </View>
       )}
+
+      {/* SOURCE */}
 
       <View
         style={
@@ -852,25 +1068,18 @@ export default function MonthlyCandidateComparison({
                 'floatingPopulation'
                 ? '출처: 세종특별자치시 행정동별 유동인구 현황'
                 : '출처: 세종특별자치시 행정동별 유입인구 현황'
-              : '환경 지표는 현재 상권 분석 점수 기준입니다.'}
+              : '환경 지표는 현재 상권 분석 결과를 기준으로 비교합니다.'}
         </Text>
-
-        {activeTab ===
-          'population' &&
-          populationMetric ===
-            'floatingPopulation' && (
-            <Text
-              style={
-                styles.sourceSubText
-              }
-            >
-              유동인구 값은 시간대별 일평균 유동인구를 24시간 합산한 값이며 고유 방문자 수나 월 누적 인구가 아닙니다.
-            </Text>
-          )}
       </View>
     </View>
   );
 }
+
+/**
+ * =====================================================
+ * TAB
+ * =====================================================
+ */
 
 function TabButton({
   label,
@@ -889,19 +1098,16 @@ function TabButton({
         active &&
           styles.tabButtonActive,
       ]}
-      activeOpacity={
-        0.75
-      }
       onPress={
         onPress
       }
     >
       <Text
         style={[
-          styles.tabButtonText,
+          styles.tabText,
 
           active &&
-            styles.tabButtonTextActive,
+            styles.tabTextActive,
         ]}
       >
         {label}
@@ -910,420 +1116,682 @@ function TabButton({
   );
 }
 
-function MonthlyLineChart({
+/**
+ * =====================================================
+ * CHART
+ * =====================================================
+ */
+
+function ComparisonLineChart({
   periods,
   series,
-  yMin,
   yMax,
+  availableWidth,
+  activeTab,
 }: {
   periods: string[];
-  series: {
-    name: string;
-    color: string;
-    values: (
-      | number
-      | null
-    )[];
-  }[];
-  yMin: number;
+  series: ChartSeries[];
   yMax: number;
+  availableWidth: number;
+  activeTab: MainTab;
 }) {
+  const [
+    hoverIndex,
+    setHoverIndex,
+  ] =
+    useState<
+      number | null
+    >(
+      null,
+    );
+
   const W =
-    760;
+    Math.max(
+      availableWidth,
+      760,
+    );
 
-  const H =
-    260;
+  const H = 330;
 
-  const padLeft =
-    66;
+  const left = 72;
+  const right = 24;
+  const top = 24;
+  const bottom = 50;
 
-  const padRight =
-    18;
-
-  const padTop =
-    18;
-
-  const padBottom =
-    42;
-
-  const plotW =
+  const plotWidth =
     W -
-    padLeft -
-    padRight;
+    left -
+    right;
 
-  const plotH =
+  const plotHeight =
     H -
-    padTop -
-    padBottom;
+    top -
+    bottom;
 
-  const xFor =
-    (
-      index: number,
-    ) =>
-      periods.length >
-      1
-        ? padLeft +
-          (
-            index /
-            (
-              periods.length -
-              1
-            )
-          ) *
-            plotW
-        : padLeft +
-          plotW /
-            2;
-
-  const yFor =
-    (
-      value: number,
-    ) => {
-      const normalized =
-        (
-          value -
-          yMin
-        ) /
-        Math.max(
-          yMax -
-            yMin,
+  const xFor = (
+    index: number,
+  ) =>
+    left +
+    (index /
+      Math.max(
+        periods.length -
           1,
-        );
+        1,
+      )) *
+      plotWidth;
 
-      return (
-        padTop +
-        plotH -
-        normalized *
-          plotH
-      );
-    };
+  const yFor = (
+    value: number,
+  ) =>
+    top +
+    plotHeight -
+    (value /
+      Math.max(
+        yMax,
+        1,
+      )) *
+      plotHeight;
 
-  const ticks =
+  const yTicks =
     Array.from(
       {
         length: 5,
       },
-      (
-        _,
+      (_, index) =>
+        (yMax / 4) *
         index,
-      ) =>
-        yMin +
-        (
-          (
-            yMax -
-            yMin
-          ) /
-          4
-        ) *
-          index,
     );
 
+  const tooltipWidth =
+    210;
+
+  const tooltipHeight =
+    106;
+
+  const tooltipX =
+    hoverIndex === null
+      ? 0
+      : Math.min(
+          xFor(
+            hoverIndex,
+          ) + 14,
+          W -
+            tooltipWidth -
+            8,
+        );
+
+  const tooltipY = 15;
+
+  const selectedValue =
+    hoverIndex !== null
+      ? series[0].values[
+          hoverIndex
+        ]
+      : null;
+
+  const averageValue =
+    hoverIndex !== null
+      ? series[1].values[
+          hoverIndex
+        ]
+      : null;
+
+  const differenceRate =
+    selectedValue !==
+      null &&
+    averageValue !==
+      null &&
+    averageValue !== 0
+      ? ((selectedValue -
+          averageValue) /
+          averageValue) *
+        100
+      : null;
+
   return (
-    <View
-      style={
-        styles.chartBox
+    <Svg
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      onMouseLeave={() =>
+        setHoverIndex(
+          null,
+        )
       }
     >
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={
-          false
-        }
-      >
-        <Svg
-          width={
-            Math.max(
-              W,
-              periods.length *
-                105,
-            )
-          }
-          height={
-            H
-          }
-          viewBox={`0 0 ${W} ${H}`}
-        >
-          {ticks.map(
-            (
+      {/* GRID */}
+
+      {yTicks.map(
+        (
+          tick,
+          index,
+        ) => (
+          <Line
+            key={
+              index
+            }
+            x1={left}
+            x2={
+              W -
+              right
+            }
+            y1={
+              yFor(
+                tick,
+              )
+            }
+            y2={
+              yFor(
+                tick,
+              )
+            }
+            stroke="#E5E7EB"
+            strokeDasharray="3 4"
+          />
+        ),
+      )}
+
+      {/* Y LABEL */}
+
+      {yTicks.map(
+        (
+          tick,
+          index,
+        ) => (
+          <SvgText
+            key={`y-${index}`}
+            x={
+              left -
+              10
+            }
+            y={
+              yFor(
+                tick,
+              ) + 4
+            }
+            textAnchor="end"
+            fontSize="10"
+            fill="#98A2B3"
+          >
+            {formatAxisValue(
               tick,
-              index,
-            ) => {
-              const y =
-                yFor(
-                  tick,
-                );
+            )}
+          </SvgText>
+        ),
+      )}
 
-              return (
-                <Line
-                  key={`line-${index}`}
-                  x1={
-                    padLeft
-                  }
-                  x2={
-                    W -
-                    padRight
-                  }
-                  y1={
-                    y
-                  }
-                  y2={
-                    y
-                  }
-                  stroke="#E5E7EB"
-                  strokeWidth={
-                    1
-                  }
-                  strokeDasharray="3 4"
-                />
-              );
-            },
-          )}
+      {/* X MONTH */}
 
-          {ticks.map(
-            (
-              tick,
-              index,
-            ) => {
-              const y =
-                yFor(
-                  tick,
-                );
-
-              return (
-                <SvgText
-                  key={`label-${index}`}
-                  x={
-                    padLeft -
-                    8
-                  }
-                  y={
-                    y +
-                    3
-                  }
-                  fontSize="9"
-                  fill="#8A94A3"
-                  textAnchor="end"
-                >
-                  {formatCompact(
-                    tick,
-                  )}
-                </SvgText>
-              );
-            },
-          )}
-
-          {periods.map(
-            (
+      {periods.map(
+        (
+          period,
+          index,
+        ) => (
+          <SvgText
+            key={
+              period
+            }
+            x={
+              xFor(
+                index,
+              )
+            }
+            y={
+              H - 16
+            }
+            textAnchor="middle"
+            fontSize="11"
+            fill="#667085"
+          >
+            {formatMonth(
               period,
-              index,
-            ) => (
-              <SvgText
-                key={
-                  period
-                }
-                x={
-                  xFor(
-                    index,
-                  )
-                }
-                y={
-                  H -
-                  12
-                }
-                fontSize="10"
-                fill="#6B7280"
-                textAnchor="middle"
-              >
-                {formatMonth(
-                  period,
-                )}
-              </SvgText>
-            ),
-          )}
+            )}
+          </SvgText>
+        ),
+      )}
 
-          {series.map(
-            item => {
-              const points =
-                item.values
-                  .map(
-                    (
-                      value,
-                      index,
-                    ) =>
-                      value ===
-                      null
-                        ? null
-                        : `${xFor(
-                            index,
-                          )},${yFor(
-                            value,
-                          )}`,
-                  )
-                  .filter(
-                    (
-                      value,
-                    ): value is string =>
-                      value !==
-                      null,
-                  )
-                  .join(
-                    ' ',
-                  );
+      {/* LINES */}
 
-              return points ? (
-                <Polyline
-                  key={
-                    item.name
-                  }
-                  points={
-                    points
-                  }
-                  fill="none"
-                  stroke={
-                    item.color
-                  }
-                  strokeWidth={
-                    2.5
-                  }
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-              ) : null;
-            },
-          )}
-
-          {series.flatMap(
-            item =>
-              item.values.map(
+      {series.map(
+        item => {
+          const points =
+            item.values
+              .map(
                 (
                   value,
                   index,
                 ) =>
                   value ===
-                  null ? null : (
-                    <Circle
-                      key={`${item.name}-${periods[index]}`}
-                      cx={
-                        xFor(
-                          index,
-                        )
-                      }
-                      cy={
-                        yFor(
-                          value,
-                        )
-                      }
-                      r={
-                        3.5
-                      }
-                      fill={
-                        item.color
-                      }
-                    />
-                  ),
-              ),
-          )}
-        </Svg>
-      </ScrollView>
-    </View>
+                  null
+                    ? null
+                    : `${xFor(
+                        index,
+                      )},${yFor(
+                        value,
+                      )}`,
+              )
+              .filter(
+                (
+                  point,
+                ): point is string =>
+                  point !==
+                  null,
+              )
+              .join(
+                ' ',
+              );
+
+          return (
+            <Polyline
+              key={
+                item.name
+              }
+              points={
+                points
+              }
+              fill="none"
+              stroke={
+                item.color
+              }
+              strokeWidth={
+                item.dashed
+                  ? 2
+                  : 2.8
+              }
+              strokeDasharray={
+                item.dashed
+                  ? '7 6'
+                  : undefined
+              }
+              strokeLinecap="round"
+            />
+          );
+        },
+      )}
+
+      {/* DOTS */}
+
+      {series.flatMap(
+        item =>
+          item.values.map(
+            (
+              value,
+              index,
+            ) =>
+              value ===
+              null
+                ? null
+                : (
+                  <Circle
+                    key={`${item.name}-${index}`}
+                    cx={
+                      xFor(
+                        index,
+                      )
+                    }
+                    cy={
+                      yFor(
+                        value,
+                      )
+                    }
+                    r={
+                      hoverIndex ===
+                      index
+                        ? 4
+                        : 3
+                    }
+                    fill={
+                      item.color
+                    }
+                    stroke="#FFFFFF"
+                    strokeWidth={1}
+                  />
+                ),
+          ),
+      )}
+
+      {/* HOVER GUIDE */}
+
+      {hoverIndex !==
+        null && (
+        <Line
+          x1={
+            xFor(
+              hoverIndex,
+            )
+          }
+          x2={
+            xFor(
+              hoverIndex,
+            )
+          }
+          y1={top}
+          y2={
+            top +
+            plotHeight
+          }
+          stroke="#98A2B3"
+          strokeDasharray="3 3"
+        />
+      )}
+
+      {/* TOOLTIP */}
+
+      {hoverIndex !==
+        null && (
+        <G>
+          <Rect
+            x={
+              tooltipX
+            }
+            y={
+              tooltipY
+            }
+            width={
+              tooltipWidth
+            }
+            height={
+              tooltipHeight
+            }
+            rx={10}
+            fill="#FFFFFF"
+            stroke="#D0D5DD"
+          />
+
+          <SvgText
+            x={
+              tooltipX +
+              12
+            }
+            y={
+              tooltipY +
+              21
+            }
+            fontSize="12"
+            fontWeight="700"
+            fill="#344054"
+          >
+            {formatMonth(
+              periods[
+                hoverIndex
+              ],
+            )}
+          </SvgText>
+
+          <SvgText
+            x={
+              tooltipX +
+              12
+            }
+            y={
+              tooltipY +
+              45
+            }
+            fontSize="11"
+            fill={
+              CURRENT_COLOR
+            }
+          >
+            {`${series[0].name}: ${
+              selectedValue ===
+              null
+                ? '-'
+                : formatTableValue(
+                    selectedValue,
+                    activeTab,
+                  )
+            }`}
+          </SvgText>
+
+          <SvgText
+            x={
+              tooltipX +
+              12
+            }
+            y={
+              tooltipY +
+              66
+            }
+            fontSize="11"
+            fill={
+              AVERAGE_COLOR
+            }
+          >
+            {`다른 지역 평균: ${
+              averageValue ===
+              null
+                ? '-'
+                : formatTableValue(
+                    averageValue,
+                    activeTab,
+                  )
+            }`}
+          </SvgText>
+
+          <SvgText
+            x={
+              tooltipX +
+              12
+            }
+            y={
+              tooltipY +
+              89
+            }
+            fontSize="11"
+            fontWeight="700"
+            fill={
+              differenceRate !==
+                null &&
+              differenceRate >=
+                0
+                ? '#16A34A'
+                : '#EF4444'
+            }
+          >
+            {differenceRate ===
+            null
+              ? '평균 대비 -'
+              : `평균 대비 ${formatPercent(
+                  differenceRate,
+                )}`}
+          </SvgText>
+        </G>
+      )}
+
+      {/* HOVER AREAS */}
+
+      {periods.map(
+        (
+          period,
+          index,
+        ) => {
+          const currentX =
+            xFor(
+              index,
+            );
+
+          const previousX =
+            index === 0
+              ? left
+              : xFor(
+                  index -
+                    1,
+                );
+
+          const nextX =
+            index ===
+            periods.length -
+              1
+              ? W -
+                right
+              : xFor(
+                  index +
+                    1,
+                );
+
+          const areaLeft =
+            index === 0
+              ? left
+              : (previousX +
+                  currentX) /
+                2;
+
+          const areaRight =
+            index ===
+            periods.length -
+              1
+              ? W -
+                right
+              : (currentX +
+                  nextX) /
+                2;
+
+          return (
+            <Rect
+              key={
+                period
+              }
+              x={
+                areaLeft
+              }
+              y={top}
+              width={
+                areaRight -
+                areaLeft
+              }
+              height={
+                plotHeight
+              }
+              fill="transparent"
+              onMouseEnter={() =>
+                setHoverIndex(
+                  index,
+                )
+              }
+            />
+          );
+        },
+      )}
+    </Svg>
   );
 }
 
-function EnvironmentChart({
-  candidateNames,
-  rows,
+/**
+ * =====================================================
+ * TABLE
+ * =====================================================
+ */
+
+function ValueTable({
+  periods,
+  selectedAreaName,
+  selectedValues,
+  averageValues,
+  activeTab,
 }: {
-  candidateNames: string[];
-  rows: {
-    label: string;
-    values: number[];
-  }[];
+  periods: string[];
+
+  selectedAreaName: string;
+
+  selectedValues: (
+    | number
+    | null
+  )[];
+
+  averageValues: (
+    | number
+    | null
+  )[];
+
+  activeTab: MainTab;
 }) {
   return (
     <View
       style={
-        styles.environmentBox
+        styles.table
       }
     >
-      {rows.map(
-        row => (
+      <View
+        style={[
+          styles.tableRow,
+          styles.tableHeader,
+        ]}
+      >
+        <Text
+          style={
+            styles.monthCell
+          }
+        >
+          기간
+        </Text>
+
+        <Text
+          style={
+            styles.valueCell
+          }
+        >
+          {
+            selectedAreaName
+          }
+        </Text>
+
+        <Text
+          style={
+            styles.valueCell
+          }
+        >
+          다른 지역 평균
+        </Text>
+      </View>
+
+      {periods.map(
+        (
+          period,
+          index,
+        ) => (
           <View
             key={
-              row.label
+              period
             }
             style={
-              styles.environmentMetric
+              styles.tableRow
             }
           >
             <Text
               style={
-                styles.environmentLabel
+                styles.monthCell
               }
             >
-              {row.label}
+              {formatMonth(
+                period,
+              )}
             </Text>
 
-            {candidateNames.map(
-              (
-                name,
-                index,
-              ) => {
-                const value =
-                  Math.max(
-                    0,
-                    Math.min(
-                      100,
-                      row.values[
-                        index
-                      ] ??
-                        0,
-                    ),
-                  );
+            <Text
+              style={
+                styles.valueCell
+              }
+            >
+              {formatTableValue(
+                selectedValues[
+                  index
+                ],
+                activeTab,
+              )}
+            </Text>
 
-                return (
-                  <View
-                    key={`${row.label}-${name}`}
-                    style={
-                      styles.environmentRow
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.environmentName
-                      }
-                    >
-                      {name}
-                    </Text>
-
-                    <View
-                      style={
-                        styles.environmentTrack
-                      }
-                    >
-                      <View
-                        style={[
-                          styles.environmentFill,
-                          {
-                            width:
-                              `${value}%`,
-                          },
-                        ]}
-                      />
-                    </View>
-
-                    <Text
-                      style={
-                        styles.environmentValue
-                      }
-                    >
-                      {Math.round(
-                        value,
-                      )}
-                    </Text>
-                  </View>
-                );
-              },
-            )}
+            <Text
+              style={
+                styles.valueCell
+              }
+            >
+              {formatTableValue(
+                averageValues[
+                  index
+                ],
+                activeTab,
+              )}
+            </Text>
           </View>
         ),
       )}
@@ -1331,139 +1799,83 @@ function EnvironmentChart({
   );
 }
 
-function MonthlyValueTable({
-  periods,
-  series,
-  activeTab,
+/**
+ * =====================================================
+ * ENVIRONMENT
+ * =====================================================
+ */
+
+function EnvironmentRow({
+  label,
+  value,
+  color,
 }: {
-  periods: string[];
-  series: {
-    name: string;
-    values: (
-      | number
-      | null
-    )[];
-  }[];
-  activeTab: MainTab;
+  label: string;
+  value: number;
+  color: string;
 }) {
+  const safeValue =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          value,
+        ) || 0,
+      ),
+    );
+
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={
-        false
-      }
+    <View
       style={
-        styles.tableScroll
+        styles.environmentRow
       }
     >
+      <Text
+        style={
+          styles.environmentName
+        }
+      >
+        {label}
+      </Text>
+
       <View
         style={
-          styles.table
+          styles.environmentTrack
         }
       >
         <View
           style={[
-            styles.tableRow,
-            styles.tableHeaderRow,
+            styles.environmentFill,
+            {
+              width:
+                `${safeValue}%`,
+
+              backgroundColor:
+                color,
+            },
           ]}
-        >
-          <View
-            style={
-              styles.periodCell
-            }
-          >
-            <Text
-              style={
-                styles.tableHeaderText
-              }
-            >
-              기간
-            </Text>
-          </View>
-
-          {series.map(
-            item => (
-              <View
-                key={
-                  item.name
-                }
-                style={
-                  styles.valueCell
-                }
-              >
-                <Text
-                  style={
-                    styles.tableHeaderText
-                  }
-                >
-                  {
-                    item.name
-                  }
-                </Text>
-              </View>
-            ),
-          )}
-        </View>
-
-        {periods.map(
-          (
-            period,
-            periodIndex,
-          ) => (
-            <View
-              key={
-                period
-              }
-              style={
-                styles.tableRow
-              }
-            >
-              <View
-                style={
-                  styles.periodCell
-                }
-              >
-                <Text
-                  style={
-                    styles.tablePeriodText
-                  }
-                >
-                  {formatMonth(
-                    period,
-                  )}
-                </Text>
-              </View>
-
-              {series.map(
-                item => (
-                  <View
-                    key={`${period}-${item.name}`}
-                    style={
-                      styles.valueCell
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.tableValueText
-                      }
-                    >
-                      {formatCellValue(
-                        item.values[
-                          periodIndex
-                        ],
-                        activeTab,
-                      )}
-                    </Text>
-                  </View>
-                ),
-              )}
-            </View>
-          ),
-        )}
+        />
       </View>
-    </ScrollView>
+
+      <Text
+        style={
+          styles.environmentValue
+        }
+      >
+        {Math.round(
+          safeValue,
+        )}
+      </Text>
+    </View>
   );
 }
+
+/**
+ * =====================================================
+ * STYLES
+ * =====================================================
+ */
 
 const styles =
   StyleSheet.create({
@@ -1471,161 +1883,142 @@ const styles =
       width:
         '100%',
 
+      padding: 16,
+
       borderWidth: 1,
 
       borderColor:
-        '#E4E7EB',
+        '#E2E7E5',
 
-      borderRadius: 22,
-
-      padding: 22,
+      borderRadius: 18,
 
       backgroundColor:
         '#FFFFFF',
     },
 
     title: {
-      fontSize: 20,
+      fontSize: 15,
 
       fontWeight:
         '900',
 
       color:
-        '#111827',
+        '#101828',
     },
 
     description: {
       marginTop: 5,
 
-      fontSize: 13,
+      marginBottom: 14,
 
-      color:
-        '#6B7280',
-    },
-
-    tabRow: {
-      flexDirection:
-        'row',
-
-      flexWrap:
-        'wrap',
-
-      gap: 10,
-
-      marginTop: 18,
-    },
-
-    tabButton: {
-      paddingHorizontal: 18,
-
-      paddingVertical: 11,
-
-      borderWidth: 1,
-
-      borderColor:
-        '#E4E7EB',
-
-      borderRadius: 18,
-
-      backgroundColor:
-        '#F8FAF9',
-    },
-
-    tabButtonActive: {
-      borderColor:
-        '#47A653',
-
-      backgroundColor:
-        '#47A653',
-    },
-
-    tabButtonText: {
-      fontSize: 13,
-
-      fontWeight:
-        '800',
+      fontSize: 11,
 
       color:
         '#667085',
     },
 
-    tabButtonTextActive: {
-      color:
-        '#FFFFFF',
-    },
+    tabBar: {
+      alignSelf:
+        'flex-start',
 
-    subTabRow: {
       flexDirection:
         'row',
 
-      gap: 8,
+      padding: 3,
 
-      marginTop: 12,
-    },
-
-    subTab: {
-      paddingHorizontal: 12,
-
-      paddingVertical: 7,
-
-      borderRadius: 999,
+      borderRadius: 13,
 
       backgroundColor:
-        '#F3F4F6',
+        '#F4F6F5',
     },
 
-    subTabActive: {
+    tabButton: {
+      minHeight: 34,
+
+      paddingHorizontal: 14,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      borderRadius: 10,
+    },
+
+    tabButtonActive: {
+      borderWidth: 1,
+
+      borderColor:
+        '#E0E4E2',
+
       backgroundColor:
-        '#E9F7EC',
+        '#FFFFFF',
+
+      boxShadow:
+        '0px 1px 4px rgba(16,24,40,0.1)',
     },
 
-    subTabText: {
+    tabText: {
       fontSize: 11,
 
       fontWeight:
         '700',
 
       color:
-        '#6B7280',
+        '#667085',
+    },
+
+    tabTextActive: {
+      color:
+        '#172033',
+    },
+
+    subTabRow: {
+      flexDirection:
+        'row',
+
+      gap: 7,
+
+      marginTop: 12,
+    },
+
+    subTab: {
+      paddingHorizontal: 11,
+
+      paddingVertical: 6,
+
+      borderRadius: 999,
+
+      backgroundColor:
+        '#F2F4F7',
+    },
+
+    subTabActive: {
+      backgroundColor:
+        '#E8F7EB',
+    },
+
+    subTabText: {
+      fontSize: 10,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#667085',
     },
 
     subTabTextActive: {
       color:
-        '#2F8F43',
+        CURRENT_COLOR,
     },
 
-    chartMetaRow: {
-      marginTop: 16,
+    chartWrap: {
+      width:
+        '100%',
 
-      flexDirection:
-        'row',
-
-      justifyContent:
-        'space-between',
-
-      alignItems:
-        'center',
-
-      gap: 12,
-    },
-
-    chartSubtitle: {
-      flex: 1,
-
-      fontSize: 12,
-
-      fontWeight:
-        '800',
-
-      color:
-        '#344054',
-    },
-
-    periodText: {
-      fontSize: 10,
-
-      color:
-        '#98A2B3',
+      marginTop: 14,
     },
 
     legendRow: {
@@ -1635,11 +2028,14 @@ const styles =
       flexWrap:
         'wrap',
 
-      gap: 12,
+      justifyContent:
+        'center',
 
-      marginTop: 13,
+      gap: 18,
 
-      marginBottom: 3,
+      marginTop: 2,
+
+      marginBottom: 14,
     },
 
     legendItem: {
@@ -1649,19 +2045,35 @@ const styles =
       alignItems:
         'center',
 
-      gap: 5,
+      gap: 7,
     },
 
-    legendDot: {
-      width: 9,
+    legendLine: {
+      width: 24,
 
-      height: 9,
+      height: 2,
+    },
 
-      borderRadius: 5,
+    dashedLegend: {
+      width: 28,
+
+      flexDirection:
+        'row',
+
+      gap: 3,
+    },
+
+    dash: {
+      width: 7,
+
+      height: 2,
+
+      backgroundColor:
+        AVERAGE_COLOR,
     },
 
     legendText: {
-      fontSize: 11,
+      fontSize: 10,
 
       fontWeight:
         '700',
@@ -1670,59 +2082,86 @@ const styles =
         '#667085',
     },
 
-    chartBox: {
-      marginTop: 6,
+    toggleRow: {
+      alignSelf:
+        'flex-start',
 
-      overflow:
-        'hidden',
+      flexDirection:
+        'row',
 
-      borderRadius: 14,
+      alignItems:
+        'center',
+
+      gap: 7,
+
+      marginBottom: 12,
+    },
+
+    switchTrack: {
+      width: 31,
+
+      height: 18,
+
+      padding: 2,
+
+      borderRadius: 9,
+
+      backgroundColor:
+        '#D0D5DD',
+    },
+
+    switchTrackActive: {
+      backgroundColor:
+        CURRENT_COLOR,
+    },
+
+    switchCircle: {
+      width: 14,
+
+      height: 14,
+
+      borderRadius: 7,
 
       backgroundColor:
         '#FFFFFF',
     },
 
-    toggleButton: {
-      alignSelf:
-        'center',
-
-      marginTop: 5,
-
-      paddingHorizontal: 12,
-
-      paddingVertical: 8,
+    switchCircleActive: {
+      transform: [
+        {
+          translateX:
+            13,
+        },
+      ],
     },
 
     toggleText: {
-      fontSize: 12,
-
-      fontWeight:
-        '800',
+      fontSize: 10,
 
       color:
         '#667085',
     },
 
-    tableScroll: {
-      marginTop: 6,
+    table: {
+      width:
+        '100%',
+
+      overflow:
+        'hidden',
 
       borderWidth: 1,
 
       borderColor:
         '#E5E7EB',
 
-      borderRadius: 14,
-    },
-
-    table: {
-      minWidth: 650,
+      borderRadius: 12,
     },
 
     tableRow: {
+      minHeight: 40,
+
       flexDirection:
         'row',
-
-      minHeight: 42,
 
       alignItems:
         'center',
@@ -1730,68 +2169,51 @@ const styles =
       borderBottomWidth: 1,
 
       borderBottomColor:
-        '#F0F2F4',
+        '#F0F2F1',
     },
 
-    tableHeaderRow: {
+    tableHeader: {
       backgroundColor:
         '#F7F9F8',
     },
 
-    periodCell: {
-      width: 90,
-
-      paddingHorizontal: 12,
-    },
-
-    valueCell: {
-      width: 150,
+    monthCell: {
+      flex: 0.7,
 
       paddingHorizontal: 12,
 
-      alignItems:
-        'flex-end',
-    },
-
-    tableHeaderText: {
-      fontSize: 11,
-
-      fontWeight:
-        '800',
-
-      color:
-        '#667085',
-    },
-
-    tablePeriodText: {
-      fontSize: 11,
+      fontSize: 10,
 
       color:
         '#475467',
     },
 
-    tableValueText: {
-      fontSize: 11,
+    valueCell: {
+      flex: 1,
 
-      fontWeight:
-        '700',
+      paddingHorizontal: 12,
+
+      textAlign:
+        'right',
+
+      fontSize: 10,
 
       color:
         '#344054',
     },
 
     environmentBox: {
-      marginTop: 18,
+      marginTop: 20,
 
-      gap: 20,
+      gap: 24,
     },
 
-    environmentMetric: {
-      gap: 10,
+    environmentGroup: {
+      gap: 12,
     },
 
-    environmentLabel: {
-      fontSize: 12,
+    environmentTitle: {
+      fontSize: 11,
 
       fontWeight:
         '900',
@@ -1807,11 +2229,11 @@ const styles =
       alignItems:
         'center',
 
-      gap: 9,
+      gap: 10,
     },
 
     environmentName: {
-      width: 70,
+      width: 90,
 
       fontSize: 10,
 
@@ -1838,13 +2260,10 @@ const styles =
         '100%',
 
       borderRadius: 999,
-
-      backgroundColor:
-        '#47A653',
     },
 
     environmentValue: {
-      width: 28,
+      width: 32,
 
       textAlign:
         'right',
@@ -1858,39 +2277,15 @@ const styles =
         '#475467',
     },
 
-    emptyBox: {
-      marginTop: 18,
-
-      minHeight: 130,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
-      borderRadius: 14,
-
-      backgroundColor:
-        '#F8FAF9',
-    },
-
-    emptyText: {
-      fontSize: 11,
-
-      color:
-        '#98A2B3',
-    },
-
     sourceBox: {
-      marginTop: 12,
+      marginTop: 14,
 
       paddingTop: 10,
 
       borderTopWidth: 1,
 
       borderTopColor:
-        '#F0F2F4',
+        '#EEF1EF',
     },
 
     sourceText: {
@@ -1898,16 +2293,5 @@ const styles =
 
       color:
         '#98A2B3',
-    },
-
-    sourceSubText: {
-      marginTop: 4,
-
-      fontSize: 8,
-
-      lineHeight: 12,
-
-      color:
-        '#A3AAB4',
     },
   });
