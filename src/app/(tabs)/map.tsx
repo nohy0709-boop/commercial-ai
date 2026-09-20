@@ -48,6 +48,10 @@ import {
 } from 'expo-router';
 
 import {
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -502,6 +506,12 @@ function createStoreClusters(
 export default function MapScreen() {
   const router =
     useRouter();
+
+  const insets =
+    useSafeAreaInsets();
+
+  const overlayTop =
+    insets.top + 12;
 
   const {
     width,
@@ -1554,6 +1564,10 @@ export default function MapScreen() {
 
           isSmall &&
             styles.searchAreaSmall,
+
+          {
+            top: overlayTop,
+          },
         ]}
       >
         <View
@@ -1616,9 +1630,13 @@ export default function MapScreen() {
       {/* LAYER */}
 
       <View
-        style={
-          styles.layerTabs
-        }
+        style={[
+          styles.layerTabs,
+
+          {
+            top: overlayTop + 70,
+          },
+        ]}
       >
         <LayerButton
           active={
@@ -1677,9 +1695,13 @@ export default function MapScreen() {
       {mapLayer ===
         'commercial' && (
         <View
-          style={
-            styles.categoryArea
-          }
+          style={[
+            styles.categoryArea,
+
+            {
+              top: overlayTop + 132,
+            },
+          ]}
         >
           <ScrollView
             horizontal
@@ -1763,9 +1785,13 @@ export default function MapScreen() {
       {mapLayer ===
         'commercial' && (
         <View
-          style={
-            styles.mapStatus
-          }
+          style={[
+            styles.mapStatus,
+
+            {
+              top: overlayTop + 190,
+            },
+          ]}
         >
           {mapStoresLoading ? (
             <ActivityIndicator
@@ -1801,9 +1827,13 @@ export default function MapScreen() {
         'commercial' &&
         !!mapStoresError && (
           <View
-            style={
-              styles.mapError
-            }
+            style={[
+              styles.mapError,
+
+              {
+                top: overlayTop + 238,
+              },
+            ]}
           >
             <Text
               style={
@@ -1866,9 +1896,13 @@ export default function MapScreen() {
       {mapLayer ===
         'building' && (
         <View
-          style={
-            styles.buildingGuide
-          }
+          style={[
+            styles.buildingGuide,
+
+            {
+              top: overlayTop + 132,
+            },
+          ]}
         >
           <Text>
             🏢
@@ -1887,9 +1921,16 @@ export default function MapScreen() {
       {/* FLOAT */}
 
       <View
-        style={
-          styles.floatingButtons
-        }
+        style={[
+          styles.floatingButtons,
+
+          {
+            top:
+              mapLayer === 'commercial'
+                ? overlayTop + 238
+                : overlayTop + 132,
+          },
+        ]}
       >
         <TouchableOpacity
           style={
@@ -1942,9 +1983,13 @@ export default function MapScreen() {
 
       {pointLoading && (
         <View
-          style={
-            styles.pointLoading
-          }
+          style={[
+            styles.pointLoading,
+
+            {
+              top: overlayTop + 286,
+            },
+          ]}
         >
           <ActivityIndicator
             size="small"
@@ -2771,9 +2816,9 @@ const styles =
     },
 
     searchBar: {
-      height: 54,
+      height: 60,
 
-      paddingHorizontal: 16,
+      paddingHorizontal: 18,
 
       flexDirection:
         'row',
@@ -2798,14 +2843,14 @@ const styles =
       height:
         '100%',
 
-      fontSize: 13,
+      fontSize: 16,
 
       outlineStyle:
         'none',
     } as any,
 
     searchButtonText: {
-      fontSize: 10,
+      fontSize: 14,
 
       fontWeight:
         '900',
@@ -2839,11 +2884,11 @@ const styles =
     },
 
     layerTab: {
-      minWidth: 86,
+      minWidth: 102,
 
-      paddingHorizontal: 13,
+      paddingHorizontal: 16,
 
-      paddingVertical: 9,
+      paddingVertical: 12,
 
       flexDirection:
         'row',
@@ -2865,11 +2910,11 @@ const styles =
     },
 
     layerIcon: {
-      fontSize: 13,
+      fontSize: 17,
     },
 
     layerText: {
-      fontSize: 10,
+      fontSize: 14,
 
       fontWeight:
         '800',
@@ -2901,9 +2946,9 @@ const styles =
     },
 
     categoryChip: {
-      minHeight: 37,
+      minHeight: 50,
 
-      paddingHorizontal: 13,
+      paddingHorizontal: 16,
 
       justifyContent:
         'center',
@@ -2928,7 +2973,7 @@ const styles =
     },
 
     categoryText: {
-      fontSize: 10,
+      fontSize: 14,
 
       fontWeight:
         '800',
@@ -2945,7 +2990,7 @@ const styles =
 
       left: 22,
 
-      minHeight: 34,
+      minHeight: 40,
 
       paddingHorizontal: 11,
 
@@ -2962,7 +3007,7 @@ const styles =
     },
 
     mapStatusText: {
-      fontSize: 9,
+      fontSize: 12,
 
       color:
         '#6B7280',
@@ -3102,7 +3147,7 @@ const styles =
       position:
         'absolute',
 
-      right: 20,
+      right: 16,
 
       top: 145,
 
@@ -3110,11 +3155,11 @@ const styles =
     },
 
     floatButton: {
-      width: 48,
+      width: 56,
 
-      height: 48,
+      height: 56,
 
-      borderRadius: 24,
+      borderRadius: 28,
 
       alignItems:
         'center',
@@ -3135,14 +3180,14 @@ const styles =
     },
 
     floatText: {
-      fontSize: 21,
+      fontSize: 26,
 
       fontWeight:
         '900',
     },
 
     currentText: {
-      fontSize: 21,
+      fontSize: 26,
 
       fontWeight:
         '900',
@@ -3355,7 +3400,7 @@ const styles =
     },
 
     sheetEyebrow: {
-      fontSize: 8,
+      fontSize: 12,
 
       fontWeight:
         '800',
@@ -3369,7 +3414,7 @@ const styles =
 
       paddingRight: 40,
 
-      fontSize: 17,
+      fontSize: 21,
 
       fontWeight:
         '900',
@@ -3380,20 +3425,20 @@ const styles =
 
       paddingRight: 40,
 
-      fontSize: 9,
+      fontSize: 13,
 
-      lineHeight: 14,
+      lineHeight: 19,
 
       color:
         COLORS.textSecondary,
     },
 
     sectionLabel: {
-      marginTop: 14,
+      marginTop: 16,
 
-      marginBottom: 7,
+      marginBottom: 9,
 
-      fontSize: 9,
+      fontSize: 13,
 
       fontWeight:
         '900',
@@ -3409,7 +3454,7 @@ const styles =
     radiusButton: {
       flex: 1,
 
-      minHeight: 36,
+      minHeight: 46,
 
       alignItems:
         'center',
@@ -3434,7 +3479,7 @@ const styles =
     },
 
     radiusText: {
-      fontSize: 9,
+      fontSize: 14,
 
       fontWeight:
         '700',
@@ -3445,9 +3490,9 @@ const styles =
     },
 
     businessChip: {
-      paddingHorizontal: 11,
+      paddingHorizontal: 14,
 
-      paddingVertical: 7,
+      paddingVertical: 10,
 
       borderWidth: 1,
 
@@ -3466,7 +3511,7 @@ const styles =
     },
 
     businessText: {
-      fontSize: 9,
+      fontSize: 13,
 
       fontWeight:
         '700',
@@ -3489,7 +3534,7 @@ const styles =
     secondaryButton: {
       flex: 1,
 
-      minHeight: 44,
+      minHeight: 50,
 
       alignItems:
         'center',
@@ -3506,7 +3551,7 @@ const styles =
     },
 
     secondaryText: {
-      fontSize: 10,
+      fontSize: 14,
 
       fontWeight:
         '800',
@@ -3515,7 +3560,7 @@ const styles =
     primaryButton: {
       flex: 1.2,
 
-      minHeight: 44,
+      minHeight: 50,
 
       alignItems:
         'center',
@@ -3530,7 +3575,7 @@ const styles =
     },
 
     primaryText: {
-      fontSize: 10,
+      fontSize: 14,
 
       fontWeight:
         '900',

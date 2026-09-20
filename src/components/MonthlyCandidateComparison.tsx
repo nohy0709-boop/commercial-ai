@@ -1253,11 +1253,6 @@ function ComparisonLineChart({
       width={W}
       height={H}
       viewBox={`0 0 ${W} ${H}`}
-      onMouseLeave={() =>
-        setHoverIndex(
-          null,
-        )
-      }
     >
       {/* GRID */}
 
@@ -1663,11 +1658,6 @@ function ComparisonLineChart({
                 plotHeight
               }
               fill="transparent"
-              onMouseEnter={() =>
-                setHoverIndex(
-                  index,
-                )
-              }
             />
           );
         },
