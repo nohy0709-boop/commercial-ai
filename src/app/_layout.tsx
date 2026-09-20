@@ -27,14 +27,10 @@ import { supabase } from '@/lib/supabase';
 import { getCurrentSession } from '@/services/auth';
 
 export default function RootLayout() {
-  const colorScheme =
-    useColorScheme();
+  const colorScheme = useColorScheme();
 
-  const router =
-    useRouter();
-
-  const segments =
-    useSegments();
+  const router = useRouter();
+  const segments = useSegments();
 
   const [
     isLoading,
@@ -47,7 +43,8 @@ export default function RootLayout() {
   ] = useState(false);
 
   /**
-   * 앱 시작 시 현재 Supabase 세션 확인
+   * 앱 실행 시 현재 로그인 세션 확인
+   * + 로그인/로그아웃 상태 변경 감지
    */
   useEffect(() => {
     let mounted = true;
@@ -71,9 +68,7 @@ export default function RootLayout() {
         );
 
         if (mounted) {
-          setIsAuthenticated(
-            false,
-          );
+          setIsAuthenticated(false);
         }
       } finally {
         if (mounted) {
@@ -111,11 +106,11 @@ export default function RootLayout() {
 
   /**
    * 로그인하지 않은 사용자가
-   * 일반 앱 화면에 접근하는 것만 차단한다.
+   * 일반 앱 화면에 접근하는 것만 차단
    *
-   * auth 내부 화면은 callback,
-   * signup, needs-setup 등의 자체 흐름을
-   * 유지하도록 루트에서 건드리지 않는다.
+   * auth 내부 화면은 회원가입,
+   * 이메일 인증 callback,
+   * 최초 설정 등의 자체 흐름을 유지한다.
    */
   useEffect(() => {
     if (isLoading) {
@@ -141,13 +136,22 @@ export default function RootLayout() {
   ]);
 
   /**
-   * 세션 확인이 끝난 뒤
-   * Splash Screen 숨기기
+   * 인증 상태 확인이 끝나면
+   * Splash Screen 종료
    */
   useEffect(() => {
-    if (!isLoading) {
-      SplashScreen.hideAsync();
+    if (isLoading) {
+      return;
     }
+
+    SplashScreen.hideAsync().catch(
+      error => {
+        console.warn(
+          'SplashScreen 종료 실패:',
+          error,
+        );
+      },
+    );
   }, [isLoading]);
 
   if (isLoading) {

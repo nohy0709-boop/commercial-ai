@@ -2,10 +2,7 @@ import { COLORS } from '@/constants/colors';
 import { signUp } from '@/services/auth';
 
 import { useRouter } from 'expo-router';
-
-import {
-  useState,
-} from 'react';
+import { useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -23,22 +20,30 @@ import {
 export default function SignupScreen() {
   const router = useRouter();
 
-  const [nickname, setNickname] =
-    useState('');
+  const [
+    nickname,
+    setNickname,
+  ] = useState('');
 
-  const [email, setEmail] =
-    useState('');
+  const [
+    email,
+    setEmail,
+  ] = useState('');
 
-  const [password, setPassword] =
-    useState('');
+  const [
+    password,
+    setPassword,
+  ] = useState('');
 
   const [
     passwordConfirm,
     setPasswordConfirm,
   ] = useState('');
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
   const validateForm = () => {
     if (!nickname.trim()) {
@@ -78,7 +83,8 @@ export default function SignupScreen() {
     }
 
     if (
-      password !== passwordConfirm
+      password !==
+      passwordConfirm
     ) {
       Alert.alert(
         '확인',
@@ -91,78 +97,102 @@ export default function SignupScreen() {
     return true;
   };
 
-  const handleSignup = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const result =
-        await signUp({
-          email,
-          password,
-          nickname,
-        });
-
-      /**
-       * 이메일 인증이 켜져 있으면
-       * 일반적으로 session이 바로 생성되지 않는다.
-       *
-       * 회원가입 직후 로그인 화면으로 보내지 않고
-       * 인증 대기 화면으로 이동한다.
-       */
-      if (!result.session) {
-        router.replace(
-          '/auth/callback',
-        );
-
+  const handleSignup =
+    async () => {
+      if (!validateForm()) {
         return;
       }
 
-      /**
-       * Supabase 설정상 이메일 인증 없이
-       * 바로 세션이 생성되는 경우
-       */
-      router.replace(
-        '/auth/needs-setup',
-      );
-    } catch (error: any) {
-      console.error(
-        '회원가입 실패:',
-        error,
-      );
+      try {
+        setLoading(true);
 
-      let message =
-        '회원가입에 실패했습니다.';
+        const trimmedEmail =
+          email
+            .trim()
+            .toLowerCase();
 
-      if (
-        error?.message?.includes(
-          'already registered',
-        )
-      ) {
-        message =
-          '이미 가입된 이메일입니다.';
+        const result =
+          await signUp({
+            email:
+              trimmedEmail,
+
+            password,
+
+            nickname:
+              nickname.trim(),
+          });
+
+        /**
+         * 이메일 인증이 필요한 경우
+         *
+         * callback 화면에서 인증 완료를
+         * 기다리도록 한다.
+         */
+        if (!result.session) {
+          router.replace(
+            '/auth/callback',
+          );
+
+          return;
+        }
+
+        /**
+         * Supabase 설정상 이메일 인증 없이
+         * 바로 세션이 만들어지는 경우
+         */
+        router.replace(
+          '/auth/needs-setup',
+        );
+      } catch (error: any) {
+        console.error(
+          '회원가입 실패:',
+          error,
+        );
+
+        const errorMessage =
+          String(
+            error?.message ??
+              '',
+          ).toLowerCase();
+
+        let message =
+          '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.';
+
+        if (
+          errorMessage.includes(
+            'already registered',
+          ) ||
+          errorMessage.includes(
+            'already been registered',
+          ) ||
+          errorMessage.includes(
+            'user already exists',
+          )
+        ) {
+          message =
+            '이미 가입 요청된 이메일입니다.\n이메일 인증 여부를 확인해주세요.';
+        }
+
+        if (
+          errorMessage.includes(
+            'rate limit',
+          ) ||
+          errorMessage.includes(
+            'too many requests',
+          )
+        ) {
+          message =
+            '인증 이메일 요청이 너무 많습니다.\n잠시 후 다시 시도해주세요.';
+        }
+
+        Alert.alert(
+          '회원가입 실패',
+          message,
+        );
+      } finally {
+        setLoading(false);
       }
-
-      if (
-        error?.message?.includes(
-          'rate limit',
-        )
-      ) {
-        message =
-          '인증 이메일 발송 제한에 걸렸습니다. 잠시 후 다시 시도해주세요.';
-      }
-
-      Alert.alert(
-        '회원가입 실패',
-        message,
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   return (
     <KeyboardAvoidingView
@@ -179,26 +209,40 @@ export default function SignupScreen() {
         }
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>
+        <View
+          style={styles.header}
+        >
+          <Text
+            style={styles.logo}
+          >
             START-UP
           </Text>
 
-          <Text style={styles.title}>
+          <Text
+            style={styles.title}
+          >
             회원가입
           </Text>
 
           <Text
-            style={styles.description}
+            style={
+              styles.description
+            }
           >
             계정을 만들고 나만의
             창업 분석 정보를 관리해보세요.
           </Text>
         </View>
 
-        <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={styles.label}>
+        <View
+          style={styles.form}
+        >
+          <View
+            style={styles.field}
+          >
+            <Text
+              style={styles.label}
+            >
               닉네임
             </Text>
 
@@ -214,8 +258,12 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>
+          <View
+            style={styles.field}
+          >
+            <Text
+              style={styles.label}
+            >
               이메일
             </Text>
 
@@ -233,8 +281,12 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>
+          <View
+            style={styles.field}
+          >
+            <Text
+              style={styles.label}
+            >
               비밀번호
             </Text>
 
@@ -251,14 +303,20 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>
+          <View
+            style={styles.field}
+          >
+            <Text
+              style={styles.label}
+            >
               비밀번호 확인
             </Text>
 
             <TextInput
               style={styles.input}
-              value={passwordConfirm}
+              value={
+                passwordConfirm
+              }
               onChangeText={
                 setPasswordConfirm
               }
@@ -277,7 +335,9 @@ export default function SignupScreen() {
             ]}
             activeOpacity={0.8}
             disabled={loading}
-            onPress={handleSignup}
+            onPress={
+              handleSignup
+            }
           >
             {loading ? (
               <ActivityIndicator
@@ -295,9 +355,15 @@ export default function SignupScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={styles.loginRow}>
+          <View
+            style={
+              styles.loginRow
+            }
+          >
             <Text
-              style={styles.loginGuide}
+              style={
+                styles.loginGuide
+              }
             >
               이미 계정이 있나요?
             </Text>
@@ -310,7 +376,9 @@ export default function SignupScreen() {
               }
             >
               <Text
-                style={styles.loginText}
+                style={
+                  styles.loginText
+                }
               >
                 로그인
               </Text>
@@ -335,7 +403,8 @@ const styles =
       width: '100%',
       maxWidth: 500,
       alignSelf: 'center',
-      justifyContent: 'center',
+      justifyContent:
+        'center',
       padding: 24,
       paddingVertical: 60,
     },
@@ -347,7 +416,8 @@ const styles =
     logo: {
       fontSize: 11,
       fontWeight: '900',
-      color: COLORS.primary,
+      color:
+        COLORS.primary,
       marginBottom: 8,
       letterSpacing: 1.4,
     },
@@ -395,7 +465,8 @@ const styles =
       borderColor:
         COLORS.border,
       borderRadius: 13,
-      backgroundColor: '#FFFFFF',
+      backgroundColor:
+        '#FFFFFF',
       fontSize: 14,
       color: COLORS.text,
     },
@@ -405,7 +476,8 @@ const styles =
       marginTop: 4,
       borderRadius: 14,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent:
+        'center',
       backgroundColor:
         COLORS.neonLime,
     },
@@ -423,7 +495,8 @@ const styles =
     loginRow: {
       marginTop: 22,
       flexDirection: 'row',
-      justifyContent: 'center',
+      justifyContent:
+        'center',
       alignItems: 'center',
       gap: 7,
     },
@@ -437,6 +510,7 @@ const styles =
     loginText: {
       fontSize: 12,
       fontWeight: '900',
-      color: COLORS.primary,
+      color:
+        COLORS.primary,
     },
   });

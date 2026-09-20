@@ -1,23 +1,24 @@
 import { COLORS } from '@/constants/colors';
 import { signIn } from '@/services/auth';
+import { hasCompletedUserProfile } from '@/services/userProfile';
 
 import { useRouter } from 'expo-router';
 
-import React, {
-    useState,
+import {
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function LoginScreen() {
@@ -27,20 +28,17 @@ export default function LoginScreen() {
   const [
     email,
     setEmail,
-  ] =
-    useState('');
+  ] = useState('');
 
   const [
     password,
     setPassword,
-  ] =
-    useState('');
+  ] = useState('');
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(false);
+  ] = useState(false);
 
   const handleLogin =
     async () => {
@@ -59,29 +57,71 @@ export default function LoginScreen() {
       try {
         setLoading(true);
 
+        /*
+         * 1. Supabase 로그인
+         */
         await signIn({
-          email,
+          email: email
+            .trim()
+            .toLowerCase(),
           password,
         });
 
-        router.replace(
-          '/my',
-        );
+        /*
+         * 2. 로그인한 사용자가
+         * 최초 창업정보 설정을
+         * 완료했는지 확인
+         */
+        const profileCompleted =
+          await hasCompletedUserProfile();
+
+        /*
+         * 3. 최초 사용자라면
+         * 창업정보 설정 화면으로 이동
+         */
+        if (!profileCompleted) {
+          router.replace(
+            '/auth/needs-setup',
+          );
+
+          return;
+        }
+
+        /*
+         * 4. 이미 설정한 사용자라면
+         * 바로 홈으로 이동
+         */
+        router.replace('/');
       } catch (error: any) {
         console.error(
           '로그인 실패:',
           error,
         );
 
+        const errorMessage =
+          String(
+            error?.message ?? '',
+          ).toLowerCase();
+
         let message =
           '로그인에 실패했습니다.';
 
         if (
-          error?.message ===
-          'Invalid login credentials'
+          errorMessage.includes(
+            'invalid login credentials',
+          )
         ) {
           message =
             '이메일 또는 비밀번호가 올바르지 않습니다.';
+        }
+
+        if (
+          errorMessage.includes(
+            'email not confirmed',
+          )
+        ) {
+          message =
+            '이메일 인증이 완료되지 않았습니다. 인증 메일을 확인해주세요.';
         }
 
         Alert.alert(
@@ -95,12 +135,9 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={
-        styles.screen
-      }
+      style={styles.screen}
       behavior={
-        Platform.OS ===
-        'ios'
+        Platform.OS === 'ios'
           ? 'padding'
           : undefined
       }
@@ -112,22 +149,16 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View
-          style={
-            styles.header
-          }
+          style={styles.header}
         >
           <Text
-            style={
-              styles.logo
-            }
+            style={styles.logo}
           >
             START-UP
           </Text>
 
           <Text
-            style={
-              styles.title
-            }
+            style={styles.title}
           >
             로그인
           </Text>
@@ -143,27 +174,19 @@ export default function LoginScreen() {
         </View>
 
         <View
-          style={
-            styles.form
-          }
+          style={styles.form}
         >
           <View
-            style={
-              styles.field
-            }
+            style={styles.field}
           >
             <Text
-              style={
-                styles.label
-              }
+              style={styles.label}
             >
               이메일
             </Text>
 
             <TextInput
-              style={
-                styles.input
-              }
+              style={styles.input}
               value={email}
               onChangeText={
                 setEmail
@@ -177,25 +200,17 @@ export default function LoginScreen() {
           </View>
 
           <View
-            style={
-              styles.field
-            }
+            style={styles.field}
           >
             <Text
-              style={
-                styles.label
-              }
+              style={styles.label}
             >
               비밀번호
             </Text>
 
             <TextInput
-              style={
-                styles.input
-              }
-              value={
-                password
-              }
+              style={styles.input}
+              value={password}
               onChangeText={
                 setPassword
               }
