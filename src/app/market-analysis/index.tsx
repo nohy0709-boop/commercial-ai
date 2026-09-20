@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
+import AnalysisHeader from '@/components/analysis-header';
+import { Stack, useRouter } from 'expo-router';
 import {
   StyleSheet,
   Text,
@@ -20,17 +20,20 @@ const MENU_ITEMS: {
   {
     key: 'industryToLocation',
     title: '업종 기반 입지 추천',
-    description: '원하는 업종을 고르면 어울리는 지역을 추천해드려요',
+    description:
+      '원하는 업종을 고르면 어울리는 지역을 추천해드려요',
   },
   {
     key: 'locationToIndustry',
     title: '보유 장소 기반 업종 추천',
-    description: '보유하신 장소에 어울리는 업종을 추천해드려요',
+    description:
+      '보유하신 장소에 어울리는 업종을 추천해드려요',
   },
   {
     key: 'suitability',
     title: '업종+입지 적합성 분석',
-    description: '선택한 업종과 입지의 적합도를 분석해드려요',
+    description:
+      '선택한 업종과 입지의 적합도를 분석해드려요',
   },
 ];
 
@@ -53,6 +56,13 @@ export default function MarketAnalysisMainScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.fullWidthHeader}>
+        <AnalysisHeader
+          title="장기 상권 분석"
+          onBack={() => router.replace('/')}
+        />
+      </View>
       <View style={styles.headerBackground}>
         <Text style={styles.header}>장기 상권 분석</Text>
 
@@ -71,7 +81,7 @@ export default function MarketAnalysisMainScreen() {
           onPress={() => handlePress(item.key)}
         >
           <View style={styles.cardContent}>
-            <View>
+            <View style={styles.cardTextArea}>
               <Text style={styles.cardTitle}>
                 {item.title}
               </Text>
@@ -94,6 +104,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#F7F9F7',
+  },
+
+  fullWidthHeader: {
+    marginHorizontal: -20,
+    marginTop: -20,
+    marginBottom: 20,
   },
 
   headerBackground: {
@@ -138,14 +154,8 @@ const styles = StyleSheet.create({
     borderColor: '#E9ECEF',
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
     elevation: 2,
+    boxShadow: '0px 2px 6px rgba(0,0,0,0.04)',
   },
 
   cardContent: {
@@ -154,6 +164,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     paddingHorizontal: 18,
+  },
+
+  cardTextArea: {
+    flex: 1,
+    paddingRight: 12,
   },
 
   cardTitle: {
@@ -170,7 +185,6 @@ const styles = StyleSheet.create({
   },
 
   arrow: {
-    marginLeft: 12,
     fontSize: 28,
     fontWeight: '400',
     color: '#12A84F',

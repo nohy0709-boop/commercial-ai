@@ -15,7 +15,11 @@ import {
   getCurrentLocation,
 } from '@/services/currentLocation';
 
+import AnalysisHeader from '@/components/analysis-header';
+import AnalysisStepper from '@/components/analysis-stepper';
+
 import {
+  Stack,
   useLocalSearchParams,
   useRouter,
 } from 'expo-router';
@@ -1122,92 +1126,22 @@ export default function RegionSelectionScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 상단 앱바 + 스테퍼 */}
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.appBar}>
-        <View
-          style={
-            styles.appBarTopRow
-          }
-        >
-          <TouchableOpacity
-            onPress={() =>
-              router.back()
-            }
-            style={
-              styles.backButton
-            }
-            hitSlop={{
-              top: 8,
-              bottom: 8,
-              left: 8,
-              right: 8,
-            }}
-          >
-            <Text
-              style={
-                styles.backButtonText
-              }
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
+      <AnalysisHeader
+        title="지역 선택"
+        onBack={() =>
+          router.replace({
+            pathname: '/market-analysis/industry',
+            params: { businesses },
+          })
+        }
+      />
 
-          <Text
-            style={
-              styles.appBarTitle
-            }
-          >
-            지역 선택
-          </Text>
-        </View>
-
-        <View
-          style={
-            styles.stepper
-          }
-        >
-          <Text
-            style={
-              styles.stepDone
-            }
-          >
-            ✓ 1 업종 선택
-          </Text>
-
-          <Text
-            style={
-              styles.stepArrow
-            }
-          >
-            ›
-          </Text>
-
-          <Text
-            style={
-              styles.stepActive
-            }
-          >
-            2 지역 선택
-          </Text>
-
-          <Text
-            style={
-              styles.stepArrow
-            }
-          >
-            ›
-          </Text>
-
-          <Text
-            style={
-              styles.stepInactive
-            }
-          >
-            3 분석 결과
-          </Text>
-        </View>
-      </View>
+      <AnalysisStepper
+        steps={['업종 선택', '지역 선택', '분석 결과']}
+        currentStep={2}
+      />
 
       <ScrollView
         style={

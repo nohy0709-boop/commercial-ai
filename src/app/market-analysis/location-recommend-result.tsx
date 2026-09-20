@@ -1,17 +1,13 @@
 import {
   businessCategories,
 } from "@/constants/businessTypes";
-
-import {
-  COLORS,
-} from "@/constants/colors";
-
+import { COLORS } from "@/constants/colors";
 import {
   sejongAreas,
 } from "@/constants/sejongAreas";
 
 import {
-  analyzeCommercialPoint,
+  analyzeCommercialArea,
 } from "@/services/commercialAnalysis";
 
 import {
@@ -19,15 +15,15 @@ import {
   calculateBusinessRecommendationScores,
 } from "@/services/businessRecommendation";
 
-import type {
-  AIExplanation,
-} from "@/services/aiExplanation";
-
+import type { AIExplanation } from "@/services/aiExplanation";
 import {
   generateAIExplanation,
 } from "@/services/aiExplanation";
 
+import AnalysisHeader from '@/components/analysis-header';
+import AnalysisStepper from '@/components/analysis-stepper';
 import {
+  Stack,
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
@@ -47,58 +43,21 @@ import {
   View,
 } from "react-native";
 
-/**
- * 사용자 위치 기준 분석 반경
- */
-const ANALYSIS_RADIUS = 500;
-
-/**
- * AI 응답 안의 **강조 텍스트** 렌더링
- */
-function renderEmphasizedText(
-  text: string,
-  textStyle: object,
-) {
-  const parts =
-    text.split(
-      /(\*\*.*?\*\*)/g,
-    );
-
+// AI 응답 안의 **단어** 표시를, 실제로 굵고 강조된 글씨로 렌더링합니다.
+function renderEmphasizedText(text: string, textStyle: object) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
   return (
     <Text style={textStyle}>
-      {parts.map(
-        (
-          part,
-          index,
-        ) => {
-          if (
-            part.startsWith(
-              "**",
-            ) &&
-            part.endsWith(
-              "**",
-            )
-          ) {
-            return (
-              <Text
-                key={
-                  index
-                }
-                style={
-                  styles.aiHighlight
-                }
-              >
-                {part.slice(
-                  2,
-                  -2,
-                )}
-              </Text>
-            );
-          }
-
-          return part;
-        },
-      )}
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <Text key={index} style={styles.aiHighlight}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        return part;
+      })}
     </Text>
   );
 }
@@ -106,45 +65,10 @@ function renderEmphasizedText(
 export default function LocationRecommendResultScreen() {
   const router = useRouter();
 
-  const {
-    region,
-    latitude,
-    longitude,
-    address,
-  } = useLocalSearchParams<{
-      region?: string;
-      latitude?: string;
-      longitude?: string;
-      address?: string;
+  const { region } =
+    useLocalSearchParams<{
+      region: string;
     }>();
-
-  /**
-   * 문자열 좌표 → 숫자 변환
-   */
-  const selectedLatitude =
-    latitude
-      ? Number(latitude)
-      : null;
-
-  const selectedLongitude =
-    longitude
-      ? Number(longitude)
-      : null;
-
-  /**
-   * 좌표 유효성 확인
-   */
-  const hasValidCoordinates =
-    selectedLatitude !==
-      null &&
-    selectedLongitude !==
-      null &&
-    Number.isFinite(
-      selectedLatitude,
-    ) &&
-    Number.isFinite(
-      selectedLongitude,
-    );
 
   const [
     results,
@@ -170,183 +94,67 @@ export default function LocationRecommendResultScreen() {
     expandedBusiness,
     setExpandedBusiness,
   ] =
-    useState<
-      string | null
-    >(null);
-
-  const [
-    aiExplanations,
-    setAiExplanations,
-  ] =
-    useState<
-      Record<
-        string,
-        AIExplanation
-      >
-    >({});
-
-  const [
-    aiLoadingKeys,
-    setAiLoadingKeys,
-  ] =
-    useState<
-      Record<
-        string,
-        boolean
-      >
-    >({});
-
-  const [
-    aiErrorKeys,
-    setAiErrorKeys,
-  ] =
-    useState<
-      Record<
-        string,
-        string
-      >
-    >({});
-
-  const [
-    aiDetailExpandedKeys,
-    setAiDetailExpandedKeys,
-  ] =
-    useState<
-      Record<
-        string,
-        boolean
-      >
-    >({});
-
-  const delay = (
-    ms: number,
-  ) =>
-    new Promise(
-      (
-        resolve,
-      ) =>
-        setTimeout(
-          resolve,
-          ms,
-        ),
+    useState<string | null>(
+      null
     );
 
-  /**
-   * 화면 진입 시 분석 시작
-   */
+  // AI 설명은 업종마다 따로, 버튼 눌렀을 때만 요청합니다.
+  const [aiExplanations, setAiExplanations] = useState<
+    Record<string, AIExplanation>
+  >({});
+  const [aiLoadingKeys, setAiLoadingKeys] = useState<Record<string, boolean>>({});
+  const [aiErrorKeys, setAiErrorKeys] = useState<Record<string, string>>({});
+  const [aiDetailExpandedKeys, setAiDetailExpandedKeys] = useState<
+    Record<string, boolean>
+  >({});
+
+  const delay = (
+    ms: number
+  ) =>
+    new Promise((resolve) =>
+      setTimeout(
+        resolve,
+        ms
+      )
+    );
+
   useEffect(() => {
     if (!region) {
       setErrorMessage(
-        "선택한 지역 정보를 찾을 수 없습니다.",
+        "선택한 지역 정보를 찾을 수 없습니다."
       );
 
-      setLoading(
-        false,
-      );
-
-      return;
-    }
-
-    if (
-      !hasValidCoordinates
-    ) {
-      setErrorMessage(
-        "세부 상권 분석을 위한 위치 좌표를 확인할 수 없습니다.",
-      );
-
-      setLoading(
-        false,
-      );
+      setLoading(false);
 
       return;
     }
 
     analyzeBusinesses();
-  }, [
-    region,
-    latitude,
-    longitude,
-  ]);
+  }, [region]);
 
-  /**
-   * =====================================================
-   * 업종별 세부 상권 분석
-   * =====================================================
-   */
   const analyzeBusinesses =
     async () => {
       try {
-        setLoading(
-          true,
-        );
+        setLoading(true);
+        setErrorMessage("");
 
-        setErrorMessage(
-          "",
-        );
-
-        /**
-         * 행정동 원천 데이터 조회
-         */
         const area =
           sejongAreas.find(
-            (
-              item,
-            ) =>
+            (item) =>
               item.name ===
-              region,
+              region
           );
 
         if (!area) {
           throw new Error(
-            `${region} 지역 정보를 찾을 수 없습니다.`,
+            `${region} 지역 정보를 찾을 수 없습니다.`
           );
         }
 
-        if (
-          selectedLatitude ===
-            null ||
-          selectedLongitude ===
-            null ||
-          !Number.isFinite(
-            selectedLatitude,
-          ) ||
-          !Number.isFinite(
-            selectedLongitude,
-          )
-        ) {
-          throw new Error(
-            "세부 분석을 위한 위치 좌표를 확인할 수 없습니다.",
-          );
-        }
-
-        console.log(
-          "세부 상권 분석 시작:",
-          {
-            region:
-              area.name,
-
-            latitude:
-              selectedLatitude,
-
-            longitude:
-              selectedLongitude,
-
-            radius:
-              ANALYSIS_RADIUS,
-
-            address,
-          },
-        );
-
-        /**
-         * 전체 업종 목록
-         */
         const businesses =
           businessCategories.flatMap(
-            (
-              category,
-            ) =>
-              category.businesses,
+            (category) =>
+              category.businesses
           );
 
         const businessResults: {
@@ -354,78 +162,43 @@ export default function LocationRecommendResultScreen() {
           analysis: any;
         }[] = [];
 
-        /**
-         * 업종별 분석
-         */
         for (
           const business
           of businesses
         ) {
           try {
-            const locationLabel =
-              address?.trim() ||
-              `${area.name} 내 선택 위치`;
-
-            /**
-             * 사용자 좌표 기준
-             * 반경 상권 분석
-             */
             const analysis =
-              await analyzeCommercialPoint(
-                locationLabel,
-
+              await analyzeCommercialArea(
                 area.name,
-
                 area.code,
-
-                selectedLatitude,
-
-                selectedLongitude,
-
-                ANALYSIS_RADIUS,
-
                 business.name,
-
                 business.lclsCode,
-
                 business.mclsCode,
-
-                business.sclsCode,
+                business.sclsCode
               );
 
-            businessResults.push(
-              {
-                businessName:
-                  business.name,
+            businessResults.push({
+              businessName:
+                business.name,
 
-                analysis,
-              },
-            );
+              analysis,
+            });
 
-            /**
-             * 공공데이터 API 과호출 방지
-             */
-            await delay(
-              700,
-            );
-          } catch (
-            error
-          ) {
+            await delay(700);
+          } catch (error) {
             console.error(
               `${business.name} 분석 실패`,
-              error,
+              error
             );
 
             if (
               error instanceof
                 Error &&
               error.message.includes(
-                "429",
+                "429"
               )
             ) {
-              await delay(
-                2000,
-              );
+              await delay(2000);
             }
           }
         }
@@ -435,85 +208,66 @@ export default function LocationRecommendResultScreen() {
           0
         ) {
           throw new Error(
-            "분석 가능한 업종 데이터를 가져오지 못했습니다.",
+            "분석 가능한 업종 데이터를 가져오지 못했습니다."
           );
         }
 
-        /**
-         * 추천 점수 계산
-         */
         const rankedResults =
           calculateBusinessRecommendationScores(
-            businessResults,
+            businessResults
           );
 
         setResults(
-          rankedResults,
+          rankedResults
         );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         console.error(
           "업종 추천 분석 오류:",
-          error,
+          error
         );
 
         if (
-          error instanceof
-          Error
+          error instanceof Error
         ) {
           setErrorMessage(
-            error.message,
+            error.message
           );
         } else {
           setErrorMessage(
-            "업종 추천 분석 중 오류가 발생했습니다.",
+            "업종 추천 분석 중 오류가 발생했습니다."
           );
         }
       } finally {
-        setLoading(
-          false,
-        );
+        setLoading(false);
       }
     };
 
-  /**
-   * 증감률 표시
-   */
-  const formatChangeRate =
-    (
-      value: number,
-    ) => {
-      return `${
-        value > 0
-          ? "+"
-          : ""
-      }${value.toFixed(
-        2,
-      )}%`;
-    };
+  const formatChangeRate = (
+    value: number
+  ) => {
+    return `${
+      value > 0 ? "+" : ""
+    }${value.toFixed(
+      2
+    )}%`;
+  };
 
-  /**
-   * 추천 이유
-   */
   const getRecommendationReason =
     (
       item:
-        BusinessRecommendationResult,
+        BusinessRecommendationResult
     ) => {
       const reasons = [
         {
           text:
             "점포당 카드소비가 높은 편입니다.",
-
           score:
             item.averageSalesScore,
         },
 
         {
           text:
-            "주변 경쟁 부담이 비교적 낮습니다.",
-
+            "경쟁 부담이 비교적 낮습니다.",
           score:
             item.competitionScore,
         },
@@ -521,193 +275,69 @@ export default function LocationRecommendResultScreen() {
         {
           text:
             "해당 업종의 소비 규모가 큽니다.",
-
           score:
             item.salesScore,
         },
       ];
 
-      return [
-        ...reasons,
-      ]
+      return [...reasons]
         .sort(
-          (
-            a,
-            b,
-          ) =>
+          (a, b) =>
             b.score -
-            a.score,
+            a.score
         )
-        .slice(
-          0,
-          2,
-        )
+        .slice(0, 2)
         .map(
-          (
-            reason,
-          ) =>
-            reason.text,
+          (reason) =>
+            reason.text
         )
-        .join(
-          " ",
-        );
+        .join(" ");
     };
 
-  /**
-   * AI 설명 생성
-   */
-  const handleGenerateAI =
-    async (
-      item:
-        BusinessRecommendationResult,
-    ) => {
-      const key =
-        item.businessName;
+  const handleGenerateAI = async (
+    item: BusinessRecommendationResult,
+  ) => {
+    const key = item.businessName;
+    if (aiExplanations[key] || aiLoadingKeys[key]) {
+      return;
+    }
 
-      if (
-        aiExplanations[
-          key
-        ] ||
-        aiLoadingKeys[
-          key
-        ]
-      ) {
-        return;
-      }
+    setAiLoadingKeys(prev => ({...prev, [key]: true}));
+    setAiErrorKeys(prev => ({...prev, [key]: ''}));
 
-      setAiLoadingKeys(
-        (
-          prev,
-        ) => ({
-          ...prev,
+    try {
+      const explanation = await generateAIExplanation({
+        지역: region,
+        업종: item.businessName,
+        유동인구: item.floatingPopulation,
+        생활인구: item.livingPopulation,
+        점포수: item.storeCount,
+        경쟁밀도: item.competitionDensity,
+        전체카드소비: item.salesAmount,
+        점포당카드소비: item.averageSalesPerStore,
+        버스정류장수: item.busStopCount,
+        추천점수: item.recommendationScore,
+        순위: item.rank,
+      });
+      setAiExplanations(prev => ({...prev, [key]: explanation}));
+    } catch (error) {
+      console.error('AI 설명 생성 오류:', error);
+      setAiErrorKeys(prev => ({
+        ...prev,
+        [key]:
+          error instanceof Error
+            ? error.message
+            : 'AI 설명을 가져오지 못했습니다.',
+      }));
+    } finally {
+      setAiLoadingKeys(prev => ({...prev, [key]: false}));
+    }
+  };
 
-          [key]:
-            true,
-        }),
-      );
+  const toggleAiDetail = (key: string) => {
+    setAiDetailExpandedKeys(prev => ({...prev, [key]: !prev[key]}));
+  };
 
-      setAiErrorKeys(
-        (
-          prev,
-        ) => ({
-          ...prev,
-
-          [key]:
-            "",
-        }),
-      );
-
-      try {
-        const explanation =
-          await generateAIExplanation(
-            {
-              지역:
-                region ??
-                "",
-
-              업종:
-                item.businessName,
-
-              유동인구:
-                item.floatingPopulation,
-
-              생활인구:
-                item.livingPopulation,
-
-              점포수:
-                item.storeCount,
-
-              경쟁밀도:
-                item.competitionDensity,
-
-              전체카드소비:
-                item.salesAmount,
-
-              점포당카드소비:
-                item.averageSalesPerStore,
-
-              버스정류장수:
-                item.busStopCount,
-
-              추천점수:
-                item.recommendationScore,
-
-              순위:
-                item.rank,
-            },
-          );
-
-        setAiExplanations(
-          (
-            prev,
-          ) => ({
-            ...prev,
-
-            [key]:
-              explanation,
-          }),
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          "AI 설명 생성 오류:",
-          error,
-        );
-
-        setAiErrorKeys(
-          (
-            prev,
-          ) => ({
-            ...prev,
-
-            [key]:
-              error instanceof
-              Error
-                ? error.message
-                : "AI 설명을 가져오지 못했습니다.",
-          }),
-        );
-      } finally {
-        setAiLoadingKeys(
-          (
-            prev,
-          ) => ({
-            ...prev,
-
-            [key]:
-              false,
-          }),
-        );
-      }
-    };
-
-  /**
-   * AI 상세 토글
-   */
-  const toggleAiDetail =
-    (
-      key: string,
-    ) => {
-      setAiDetailExpandedKeys(
-        (
-          prev,
-        ) => ({
-          ...prev,
-
-          [key]:
-            !prev[
-              key
-            ],
-        }),
-      );
-    };
-
-  /**
-   * =====================================================
-   * 로딩 화면
-   * =====================================================
-   */
   if (loading) {
     return (
       <View
@@ -717,9 +347,7 @@ export default function LocationRecommendResultScreen() {
       >
         <ActivityIndicator
           size="large"
-          color={
-            COLORS.primary
-          }
+          color={COLORS.primary}
         />
 
         <Text
@@ -736,8 +364,6 @@ export default function LocationRecommendResultScreen() {
             styles.loadingDescription
           }
         >
-          선택 지점 기준 반경{" "}
-          {ANALYSIS_RADIUS}m의
           업종별 데이터를
           비교하는 중입니다.
         </Text>
@@ -745,14 +371,8 @@ export default function LocationRecommendResultScreen() {
     );
   }
 
-  /**
-   * =====================================================
-   * 오류 화면
-   * =====================================================
-   */
   if (
-    errorMessage !==
-    ""
+    errorMessage !== ""
   ) {
     return (
       <View
@@ -765,9 +385,7 @@ export default function LocationRecommendResultScreen() {
             styles.errorText
           }
         >
-          {
-            errorMessage
-          }
+          {errorMessage}
         </Text>
       </View>
     );
@@ -775,29 +393,21 @@ export default function LocationRecommendResultScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 상단 앱바 */}
-      <View style={styles.appBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.appBarTitle}>업종 추천 결과</Text>
-          <Text style={styles.appBarSubtitle}>{region}</Text>
-        </View>
-      </View>
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <AnalysisHeader
+        title="업종 추천 순위"
+        onBack={() => router.replace('/market-analysis/location-recommend')}
+      />
+
+      <AnalysisStepper
+        steps={['장소 입력', '추천 결과']}
+        currentStep={2}
+      />
 
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={
-          styles.container
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
       >
       <Text
         style={
@@ -808,9 +418,7 @@ export default function LocationRecommendResultScreen() {
       </Text>
 
       <Text
-        style={
-          styles.title
-        }
+        style={styles.title}
       >
         {region}
       </Text>
@@ -820,136 +428,43 @@ export default function LocationRecommendResultScreen() {
           styles.description
         }
       >
-        선택한 위치 주변의
-        실제 점포 경쟁도와
-        행정동 상권 데이터를
-        함께 비교했습니다.
+        해당 지역에서
+        창업하기 좋은 업종을
+        데이터 기반으로
+        비교했습니다.
       </Text>
-
-      {/* 분석 위치 */}
-
-      <View
-        style={
-          styles.locationBox
-        }
-      >
-        <View
-          style={
-            styles.locationBoxHeader
-          }
-        >
-          <Text
-            style={
-              styles.locationBoxLabel
-            }
-          >
-            📍 분석 기준 위치
-          </Text>
-
-          <View
-            style={
-              styles.regionBadge
-            }
-          >
-            <Text
-              style={
-                styles.regionBadgeText
-              }
-            >
-              {region}
-            </Text>
-          </View>
-        </View>
-
-        {!!address && (
-          <Text
-            style={
-              styles.locationAddress
-            }
-          >
-            {address}
-          </Text>
-        )}
-
-        <Text
-          style={
-            styles.coordinateText
-          }
-        >
-          위도{" "}
-          {selectedLatitude?.toFixed(
-            6,
-          )}
-          {"  ·  "}
-          경도{" "}
-          {selectedLongitude?.toFixed(
-            6,
-          )}
-        </Text>
-
-        <View
-          style={
-            styles.radiusBox
-          }
-        >
-          <Text
-            style={
-              styles.radiusLabel
-            }
-          >
-            세부 분석 범위
-          </Text>
-
-          <Text
-            style={
-              styles.radiusValue
-            }
-          >
-            반경{" "}
-            {
-              ANALYSIS_RADIUS
-            }
-            m
-          </Text>
-        </View>
-
-        <Text
-          style={
-            styles.locationNotice
-          }
-        >
-          점포 수와 경쟁밀도는
-          선택 지점 기준 반경{" "}
-          {ANALYSIS_RADIUS}m를
-          분석합니다. 생활인구,
-          유동인구, 카드소비,
-          접근성은 현재 해당
-          행정동의 데이터를
-          참고합니다.
-        </Text>
-      </View>
-
-      {/* 가장 추천하는 업종 */}
 
       <View
         style={
           styles.summaryBox
         }
       >
-        <View style={styles.summaryPill}>
-          <Text style={styles.summaryPillText}>가장 추천하는 업종</Text>
-        </View>
+        <Text
+          style={
+            styles.summaryLabel
+          }
+        >
+          가장 추천하는 업종
+        </Text>
 
         <Text
           style={
             styles.summaryBusiness
           }
         >
-          {
-            results[
-              0
-            ]?.businessName
+          {results[0]
+            ?.businessName}
+        </Text>
+
+        <Text
+          style={
+            styles.summaryScore
           }
+        >
+          추천점수{" "}
+          {results[0]
+            ?.recommendationScore}
+          점
         </Text>
 
         <Text
@@ -957,30 +472,12 @@ export default function LocationRecommendResultScreen() {
             styles.summaryReason
           }
         >
-          {results[
-            0
-          ] &&
+          {results[0] &&
             getRecommendationReason(
-              results[
-                0
-              ],
+              results[0]
             )}
         </Text>
-
-        <View style={styles.summaryScoreRow}>
-          <Text
-            style={
-              styles.summaryScore
-            }
-          >
-            {results[0]
-              ?.recommendationScore}
-          </Text>
-          <Text style={styles.summaryScoreUnit}>점 추천점수</Text>
-        </View>
       </View>
-
-      {/* 추천 순위 */}
 
       <Text
         style={
@@ -1001,35 +498,16 @@ export default function LocationRecommendResultScreen() {
       </Text>
 
       {results.map(
-        (
-          item,
-        ) => {
+        (item) => {
           const expanded =
             expandedBusiness ===
             item.businessName;
 
-          const aiKey =
-            item.businessName;
-
-          const explanation =
-            aiExplanations[
-              aiKey
-            ];
-
-          const aiLoading =
-            aiLoadingKeys[
-              aiKey
-            ];
-
-          const aiError =
-            aiErrorKeys[
-              aiKey
-            ];
-
-          const aiDetailExpanded =
-            aiDetailExpandedKeys[
-              aiKey
-            ];
+          const aiKey = item.businessName;
+          const explanation = aiExplanations[aiKey];
+          const aiLoading = aiLoadingKeys[aiKey];
+          const aiError = aiErrorKeys[aiKey];
+          const aiDetailExpanded = aiDetailExpandedKeys[aiKey];
 
           return (
             <Pressable
@@ -1043,12 +521,10 @@ export default function LocationRecommendResultScreen() {
                 setExpandedBusiness(
                   expanded
                     ? null
-                    : item.businessName,
+                    : item.businessName
                 )
               }
             >
-              {/* 카드 상단 */}
-
               <View
                 style={
                   styles.cardHeader
@@ -1064,10 +540,7 @@ export default function LocationRecommendResultScreen() {
                       styles.rank
                     }
                   >
-                    {
-                      item.rank
-                    }
-                    위
+                    {item.rank}위
                   </Text>
                 </View>
 
@@ -1092,7 +565,7 @@ export default function LocationRecommendResultScreen() {
                     }
                   >
                     {getRecommendationReason(
-                      item,
+                      item
                     )}
                   </Text>
                 </View>
@@ -1109,8 +582,6 @@ export default function LocationRecommendResultScreen() {
                 </Text>
               </View>
 
-              {/* 미리보기 */}
-
               <View
                 style={
                   styles.previewContainer
@@ -1126,7 +597,7 @@ export default function LocationRecommendResultScreen() {
                       styles.previewLabel
                     }
                   >
-                    반경 내 점포
+                    점포 수
                   </Text>
 
                   <Text
@@ -1151,7 +622,7 @@ export default function LocationRecommendResultScreen() {
                       styles.previewLabel
                     }
                   >
-                    점포 밀도
+                    경쟁밀도
                   </Text>
 
                   <Text
@@ -1160,9 +631,8 @@ export default function LocationRecommendResultScreen() {
                     }
                   >
                     {item.competitionDensity.toFixed(
-                      1,
+                      3
                     )}
-                    /㎢
                   </Text>
                 </View>
 
@@ -1185,14 +655,12 @@ export default function LocationRecommendResultScreen() {
                     }
                   >
                     {Math.round(
-                      item.averageSalesPerStore,
+                      item.averageSalesPerStore
                     ).toLocaleString()}
                     원
                   </Text>
                 </View>
               </View>
-
-              {/* 상세보기 */}
 
               <View
                 style={
@@ -1221,20 +689,8 @@ export default function LocationRecommendResultScreen() {
                       styles.detailTitle
                     }
                   >
-                    {
-                      item.businessName
-                    }{" "}
+                    {item.businessName}{" "}
                     상세 분석
-                  </Text>
-
-                  {/* 세부 위치 데이터 */}
-
-                  <Text
-                    style={
-                      styles.subSectionLabel
-                    }
-                  >
-                    선택 지점 주변
                   </Text>
 
                   <View
@@ -1247,7 +703,7 @@ export default function LocationRecommendResultScreen() {
                         styles.detailLabel
                       }
                     >
-                      반경 내 점포 수
+                      점포 수
                     </Text>
 
                     <Text
@@ -1272,7 +728,55 @@ export default function LocationRecommendResultScreen() {
                         styles.detailLabel
                       }
                     >
-                      점포 밀도
+                      전체 카드소비
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.detailValue
+                      }
+                    >
+                      {item.salesAmount.toLocaleString()}
+                      원
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.detailRow
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.detailLabel
+                      }
+                    >
+                      점포당 카드소비
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.detailValue
+                      }
+                    >
+                      {Math.round(
+                        item.averageSalesPerStore
+                      ).toLocaleString()}
+                      원
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.detailRow
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.detailLabel
+                      }
+                    >
+                      경쟁밀도
                     </Text>
 
                     <Text
@@ -1281,9 +785,8 @@ export default function LocationRecommendResultScreen() {
                       }
                     >
                       {item.competitionDensity.toFixed(
-                        2,
+                        3
                       )}
-                      개/㎢
                     </Text>
                   </View>
 
@@ -1293,14 +796,12 @@ export default function LocationRecommendResultScreen() {
                     }
                   />
 
-                  {/* 행정동 데이터 */}
-
                   <Text
                     style={
-                      styles.subSectionLabel
+                      styles.detailTitle
                     }
                   >
-                    {region} 참고 데이터
+                    지역 환경
                   </Text>
 
                   <View
@@ -1345,7 +846,7 @@ export default function LocationRecommendResultScreen() {
                       }
                     >
                       {formatChangeRate(
-                        item.livingPopulationChangeRate,
+                        item.livingPopulationChangeRate
                       )}
                     </Text>
                   </View>
@@ -1392,7 +893,7 @@ export default function LocationRecommendResultScreen() {
                       }
                     >
                       {formatChangeRate(
-                        item.floatingPopulationChangeRate,
+                        item.floatingPopulationChangeRate
                       )}
                     </Text>
                   </View>
@@ -1407,55 +908,7 @@ export default function LocationRecommendResultScreen() {
                         styles.detailLabel
                       }
                     >
-                      행정동 카드소비
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.detailValue
-                      }
-                    >
-                      {item.salesAmount.toLocaleString()}
-                      원
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.detailRow
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.detailLabel
-                      }
-                    >
-                      점포당 카드소비
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.detailValue
-                      }
-                    >
-                      {Math.round(
-                        item.averageSalesPerStore,
-                      ).toLocaleString()}
-                      원
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.detailRow
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.detailLabel
-                      }
-                    >
-                      행정동 버스정류장
+                      버스정류장
                     </Text>
 
                     <Text
@@ -1475,8 +928,6 @@ export default function LocationRecommendResultScreen() {
                       styles.divider
                     }
                   />
-
-                  {/* 점수 */}
 
                   <Text
                     style={
@@ -1521,7 +972,7 @@ export default function LocationRecommendResultScreen() {
                         styles.detailLabel
                       }
                     >
-                      주변 경쟁도
+                      경쟁도
                     </Text>
 
                     <Text
@@ -1546,7 +997,7 @@ export default function LocationRecommendResultScreen() {
                         styles.detailLabel
                       }
                     >
-                      카드소비
+                      전체 카드소비
                     </Text>
 
                     <Text
@@ -1588,187 +1039,69 @@ export default function LocationRecommendResultScreen() {
                 </View>
               )}
 
-              {/* AI 설명 */}
-
+              {/* AI 상세 분석 (버튼 눌렀을 때만 요청) */}
               {!explanation && (
                 <TouchableOpacity
-                  style={
-                    styles.aiButton
-                  }
-                  activeOpacity={
-                    0.7
-                  }
-                  disabled={
-                    aiLoading
-                  }
-                  onPress={() =>
-                    handleGenerateAI(
-                      item,
-                    )
-                  }
-                >
+                  style={styles.aiButton}
+                  activeOpacity={0.7}
+                  disabled={aiLoading}
+                  onPress={() => handleGenerateAI(item)}>
                   {aiLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={
-                        COLORS.primary
-                      }
-                    />
+                    <ActivityIndicator size="small" color={COLORS.primary} />
                   ) : (
-                    <Text
-                      style={
-                        styles.aiButtonText
-                      }
-                    >
-                      AI 설명 보기
-                    </Text>
+                    <Text style={styles.aiButtonText}>AI 설명 보기</Text>
                   )}
                 </TouchableOpacity>
               )}
 
-              {aiError &&
-                !aiLoading && (
-                  <Text
-                    style={
-                      styles.aiError
-                    }
-                  >
-                    {
-                      aiError
-                    }
-                  </Text>
-                )}
+              {aiError && !aiLoading && (
+                <Text style={styles.aiError}>{aiError}</Text>
+              )}
 
               {explanation && (
-                <View
-                  style={
-                    styles.aiBox
-                  }
-                >
-                  <Text
-                    style={
-                      styles.aiLabel
-                    }
-                  >
-                    AI 추천 이유
-                  </Text>
-
+                <View style={styles.aiBox}>
+                  <Text style={styles.aiLabel}>AI 추천 이유</Text>
                   {renderEmphasizedText(
                     explanation.recommendationReason,
                     styles.aiText,
                   )}
 
                   <TouchableOpacity
-                    style={
-                      styles.detailToggleButton
-                    }
-                    activeOpacity={
-                      0.7
-                    }
-                    onPress={() =>
-                      toggleAiDetail(
-                        aiKey,
-                      )
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.detailToggleText
-                      }
-                    >
+                    style={styles.detailToggleButton}
+                    activeOpacity={0.7}
+                    onPress={() => toggleAiDetail(aiKey)}>
+                    <Text style={styles.detailToggleText}>
                       {aiDetailExpanded
-                        ? "AI 상세 설명 접기 ▲"
-                        : "AI 상세 설명 보기 ▼"}
+                        ? 'AI 상세 설명 접기 ▲'
+                        : 'AI 상세 설명 보기 ▼'}
                     </Text>
                   </TouchableOpacity>
 
                   {aiDetailExpanded && (
-                    <View
-                      style={
-                        styles.aiDetailSection
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.aiLabel
-                        }
-                      >
-                        주요 특징
-                      </Text>
-
+                    <View style={styles.aiDetailSection}>
+                      <Text style={styles.aiLabel}>주요 특징</Text>
                       {renderEmphasizedText(
                         explanation.keyFeatures,
                         styles.aiText,
                       )}
 
-                      <Text
-                        style={
-                          styles.aiLabel
-                        }
-                      >
-                        장점
-                      </Text>
+                      <Text style={styles.aiLabel}>장점</Text>
+                      {explanation.advantages.map((advantage, index) => (
+                        <Text key={index} style={styles.aiListItem}>
+                          {`· ${advantage}`}
+                        </Text>
+                      ))}
 
-                      {explanation.advantages.map(
-                        (
-                          advantage,
-                          index,
-                        ) => (
-                          <Text
-                            key={
-                              index
-                            }
-                            style={
-                              styles.aiListItem
-                            }
-                          >
-                            {`· ${advantage}`}
-                          </Text>
-                        ),
-                      )}
+                      <Text style={styles.aiLabel}>위험요소</Text>
+                      {explanation.risks.map((risk, index) => (
+                        <Text key={index} style={styles.aiListItem}>
+                          {`· ${risk}`}
+                        </Text>
+                      ))}
 
-                      <Text
-                        style={
-                          styles.aiLabel
-                        }
-                      >
-                        위험요소
-                      </Text>
-
-                      {explanation.risks.map(
-                        (
-                          risk,
-                          index,
-                        ) => (
-                          <Text
-                            key={
-                              index
-                            }
-                            style={
-                              styles.aiListItem
-                            }
-                          >
-                            {`· ${risk}`}
-                          </Text>
-                        ),
-                      )}
-
-                      <Text
-                        style={
-                          styles.aiLabel
-                        }
-                      >
-                        고려사항
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.aiText
-                        }
-                      >
-                        {
-                          explanation.considerations
-                        }
+                      <Text style={styles.aiLabel}>고려사항</Text>
+                      <Text style={styles.aiText}>
+                        {explanation.considerations}
                       </Text>
                     </View>
                   )}
@@ -1776,7 +1109,7 @@ export default function LocationRecommendResultScreen() {
               )}
             </Pressable>
           );
-        },
+        }
       )}
       </ScrollView>
     </View>
@@ -1789,33 +1122,11 @@ const styles =
       flex: 1,
       backgroundColor: COLORS.background,
     },
-
-    appBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: COLORS.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.border,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-    },
-    backButton: {
-      width: 32,
-      height: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 8,
-      marginLeft: -6,
-    },
-    backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
-    appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-    appBarSubtitle: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
-
-    scroll: { flex: 1 },
-
     container: {
       padding: 20,
       paddingBottom: 50,
+      backgroundColor:
+        COLORS.background,
     },
 
     centerContainer: {
@@ -1831,13 +1142,10 @@ const styles =
 
     loadingTitle: {
       fontSize: 18,
-      fontWeight:
-        "800",
+      fontWeight: "800",
       marginTop: 20,
       color:
         COLORS.text,
-      textAlign:
-        "center",
     },
 
     loadingDescription: {
@@ -1845,31 +1153,25 @@ const styles =
       color:
         COLORS.textSecondary,
       marginTop: 8,
-      lineHeight: 19,
-      textAlign:
-        "center",
     },
 
     errorText: {
-      color: COLORS.danger,
+      color: "#D64545",
       fontSize: 15,
-      textAlign:
-        "center",
+      textAlign: "center",
     },
 
     smallTitle: {
-      marginTop: 4,
+      marginTop: 12,
       fontSize: 13,
-      fontWeight:
-        "700",
+      fontWeight: "700",
       color:
         COLORS.primary,
     },
 
     title: {
       fontSize: 30,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       marginTop: 5,
       color:
         COLORS.text,
@@ -1881,178 +1183,53 @@ const styles =
         COLORS.textSecondary,
       lineHeight: 20,
       marginTop: 7,
-      marginBottom: 18,
-    },
-
-    locationBox: {
-      padding: 16,
-      borderRadius: 16,
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor:
-        "#DCEFE0",
-      backgroundColor:
-        "#FAFFFB",
-    },
-
-    locationBoxHeader: {
-      flexDirection:
-        "row",
-      justifyContent:
-        "space-between",
-      alignItems:
-        "center",
-      marginBottom: 10,
-    },
-
-    locationBoxLabel: {
-      fontSize: 13,
-      fontWeight:
-        "900",
-      color:
-        COLORS.text,
-    },
-
-    regionBadge: {
-      paddingHorizontal:
-        10,
-      paddingVertical: 5,
-      borderRadius: 999,
-      backgroundColor:
-        "#E9F8EC",
-    },
-
-    regionBadgeText: {
-      fontSize: 10,
-      fontWeight:
-        "800",
-      color:
-        COLORS.primary,
-    },
-
-    locationAddress: {
-      fontSize: 15,
-      fontWeight:
-        "900",
-      color:
-        COLORS.text,
-      marginBottom: 6,
-    },
-
-    coordinateText: {
-      fontSize: 11,
-      color:
-        COLORS.textSecondary,
-    },
-
-    radiusBox: {
-      flexDirection:
-        "row",
-      justifyContent:
-        "space-between",
-      alignItems:
-        "center",
-      marginTop: 12,
-      paddingVertical:
-        10,
-      paddingHorizontal:
-        12,
-      borderRadius: 10,
-      backgroundColor:
-        "#FFFFFF",
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-    },
-
-    radiusLabel: {
-      fontSize: 11,
-      color:
-        COLORS.textSecondary,
-    },
-
-    radiusValue: {
-      fontSize: 12,
-      fontWeight:
-        "900",
-      color:
-        COLORS.primary,
-    },
-
-    locationNotice: {
-      marginTop: 10,
-      fontSize: 11,
-      lineHeight: 17,
-      color:
-        COLORS.textSecondary,
+      marginBottom: 22,
     },
 
     summaryBox: {
       backgroundColor:
-        COLORS.surface,
+        "#111111",
       borderRadius: 18,
       padding: 22,
       marginBottom: 30,
       borderWidth: 1,
       borderColor:
-        COLORS.border,
+        "#252525",
     },
 
-    summaryPill: {
-      alignSelf: 'flex-start',
-      backgroundColor: COLORS.primaryLight,
-      borderRadius: 999,
-      paddingVertical: 5,
-      paddingHorizontal: 12,
-      marginBottom: 10,
-    },
-
-    summaryPillText: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: COLORS.primary,
+    summaryLabel: {
+      fontSize: 12,
+      color:
+        "#A8B0A9",
     },
 
     summaryBusiness: {
-      fontSize: 26,
+      fontSize: 28,
       fontWeight: "900",
       color:
-        COLORS.text,
+        "#FFFFFF",
+      marginTop: 5,
+    },
+
+    summaryScore: {
+      fontSize: 15,
+      fontWeight: "800",
+      color:
+        COLORS.neonLime,
+      marginTop: 6,
     },
 
     summaryReason: {
       fontSize: 12,
       lineHeight: 18,
       color:
-        COLORS.textSecondary,
+        "#C8CEC9",
       marginTop: 8,
-    },
-
-    summaryScoreRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: 5,
-      marginTop: 14,
-    },
-
-    summaryScore: {
-      fontSize: 24,
-      fontWeight: "900",
-      color:
-        COLORS.primary,
-    },
-
-    summaryScoreUnit: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: COLORS.textSecondary,
-      marginBottom: 3,
     },
 
     sectionTitle: {
       fontSize: 20,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       color:
         COLORS.text,
     },
@@ -2074,20 +1251,14 @@ const styles =
       marginBottom: 13,
       backgroundColor:
         COLORS.surface,
-
       shadowColor:
         "#000000",
-
       shadowOffset: {
         width: 0,
         height: 2,
       },
-
-      shadowOpacity:
-        0.04,
-
+      shadowOpacity: 0.04,
       shadowRadius: 5,
-
       elevation: 1,
     },
 
@@ -2101,17 +1272,15 @@ const styles =
     rankBox: {
       marginRight: 10,
       paddingVertical: 5,
-      paddingHorizontal:
-        9,
+      paddingHorizontal: 9,
       borderRadius: 12,
       backgroundColor:
-        COLORS.primaryLight,
+        COLORS.lime,
     },
 
     rank: {
       fontSize: 13,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       color:
         COLORS.primary,
     },
@@ -2122,8 +1291,7 @@ const styles =
 
     name: {
       fontSize: 18,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       color:
         COLORS.text,
     },
@@ -2138,8 +1306,7 @@ const styles =
 
     score: {
       fontSize: 18,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       color:
         COLORS.primary,
       marginLeft: 8,
@@ -2155,7 +1322,7 @@ const styles =
     previewItem: {
       flex: 1,
       backgroundColor:
-        COLORS.background,
+        "#F7F9F7",
       borderRadius: 12,
       padding: 10,
       borderWidth: 1,
@@ -2172,34 +1339,29 @@ const styles =
 
     previewValue: {
       fontSize: 12,
-      fontWeight:
-        "800",
+      fontWeight: "800",
       color:
         COLORS.text,
     },
 
     expandButton: {
       marginTop: 14,
-      paddingVertical:
-        10,
+      paddingVertical: 10,
       borderRadius: 12,
       backgroundColor:
-        COLORS.primary,
+        COLORS.neonLime,
     },
 
     expandText: {
-      textAlign:
-        "center",
+      textAlign: "center",
       color:
-        '#FFFFFF',
+        COLORS.text,
       fontSize: 12,
-      fontWeight:
-        "900",
+      fontWeight: "900",
     },
 
     detailContainer: {
-      borderTopWidth:
-        1,
+      borderTopWidth: 1,
       borderTopColor:
         COLORS.border,
       paddingTop: 18,
@@ -2208,20 +1370,10 @@ const styles =
 
     detailTitle: {
       fontSize: 16,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       marginBottom: 13,
       color:
         COLORS.text,
-    },
-
-    subSectionLabel: {
-      fontSize: 12,
-      fontWeight:
-        "900",
-      color:
-        COLORS.primary,
-      marginBottom: 12,
     },
 
     detailRow: {
@@ -2240,19 +1392,16 @@ const styles =
 
     detailValue: {
       fontSize: 13,
-      fontWeight:
-        "800",
+      fontWeight: "800",
       color:
         COLORS.text,
     },
 
     divider: {
-      borderTopWidth:
-        1,
+      borderTopWidth: 1,
       borderTopColor:
         COLORS.border,
-      marginVertical:
-        18,
+      marginVertical: 18,
     },
 
     finalScoreBox: {
@@ -2263,105 +1412,61 @@ const styles =
       alignItems:
         "center",
       backgroundColor:
-        COLORS.primaryLight,
+        "#F1FFF5",
       borderRadius: 14,
       padding: 16,
       marginTop: 10,
       borderWidth: 1,
       borderColor:
-        COLORS.border,
+        "#D8F5E2",
     },
 
     finalScoreLabel: {
       fontSize: 14,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       color:
         COLORS.text,
     },
 
     finalScoreValue: {
       fontSize: 21,
-      fontWeight:
-        "900",
+      fontWeight: "900",
       color:
         COLORS.primary,
     },
 
     aiButton: {
       marginTop: 14,
-      paddingVertical:
-        10,
+      paddingVertical: 10,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor:
-        COLORS.primary,
-      alignItems:
-        "center",
+      borderColor: COLORS.primary,
+      alignItems: 'center',
     },
     aiButtonText: {fontSize: 13, fontWeight: '800', color: COLORS.primary},
-    aiError: {fontSize: 12, color: COLORS.danger, marginTop: 10},
+    aiError: {fontSize: 12, color: '#D64545', marginTop: 10},
     aiBox: {
       marginTop: 14,
       paddingTop: 14,
-      borderTopWidth:
-        1,
-      borderTopColor:
-        COLORS.border,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
     },
-
     aiLabel: {
       fontSize: 12,
-      fontWeight:
-        "800",
-      color:
-        COLORS.textSecondary,
+      fontWeight: '800',
+      color: COLORS.textSecondary,
       marginTop: 10,
       marginBottom: 4,
     },
-
-    aiText: {
-      fontSize: 13,
-      color:
-        COLORS.text,
-      lineHeight: 19,
-    },
-
-    aiHighlight: {
-      fontWeight:
-        "900",
-      color:
-        COLORS.primary,
-    },
-
-    aiListItem: {
-      fontSize: 13,
-      color:
-        COLORS.text,
-      lineHeight: 19,
-      marginLeft: 4,
-    },
-
-    detailToggleButton: {
-      marginTop: 12,
-      alignItems:
-        "center",
-    },
-
-    detailToggleText: {
-      fontSize: 12,
-      fontWeight:
-        "700",
-      color:
-        COLORS.textSecondary,
-    },
-
+    aiText: {fontSize: 13, color: COLORS.text, lineHeight: 19},
+    aiHighlight: {fontWeight: '900', color: COLORS.primary},
+    aiListItem: {fontSize: 13, color: COLORS.text, lineHeight: 19, marginLeft: 4},
+    detailToggleButton: {marginTop: 12, alignItems: 'center'},
+    detailToggleText: {fontSize: 12, fontWeight: '700', color: COLORS.textSecondary},
     aiDetailSection: {
       marginTop: 6,
       paddingTop: 10,
-      borderTopWidth:
-        1,
-      borderTopColor:
-        COLORS.border,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
     },
   });

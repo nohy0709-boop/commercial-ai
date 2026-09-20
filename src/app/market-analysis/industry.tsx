@@ -1,6 +1,8 @@
+import AnalysisHeader from '@/components/analysis-header';
+import AnalysisStepper from '@/components/analysis-stepper';
 import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
-import { useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ScrollView,
@@ -12,8 +14,11 @@ import {
 
 export default function IndustrySelectionScreen() {
   const router = useRouter();
+  const { businesses: initialBusinesses } = useLocalSearchParams<{ businesses?: string }>();
 
-  const [selectedBusinesses, setSelectedBusinesses] = useState<string[]>([]);
+  const [selectedBusinesses, setSelectedBusinesses] = useState<string[]>(() =>
+    initialBusinesses ? initialBusinesses.split(',').filter(Boolean) : [],
+  );
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const activeCategoryData = businessCategories.find(
@@ -51,28 +56,17 @@ export default function IndustrySelectionScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 상단 앱바 */}
-      <View style={styles.appBar}>
-        <View style={styles.appBarTopRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>업종 선택</Text>
-        </View>
+      <Stack.Screen options={{ headerShown: false }} />
 
-        {/* 스테퍼 */}
-        <View style={styles.stepper}>
-          <Text style={styles.stepActive}>1 업종 선택</Text>
-          <Text style={styles.stepArrow}>›</Text>
-          <Text style={styles.stepInactive}>2 지역 선택</Text>
-          <Text style={styles.stepArrow}>›</Text>
-          <Text style={styles.stepInactive}>3 분석 결과</Text>
-        </View>
-      </View>
+      <AnalysisHeader
+        title="업종 선택"
+        onBack={() => router.replace('/market-analysis')}
+      />
+
+      <AnalysisStepper
+        steps={['업종 선택', '지역 선택', '분석 결과']}
+        currentStep={1}
+      />
 
       <ScrollView
         style={styles.scroll}

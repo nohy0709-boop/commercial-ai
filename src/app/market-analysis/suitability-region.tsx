@@ -7,6 +7,7 @@ import { sejongAreas } from '@/constants/sejongAreas';
 import { searchLocation } from '@/services/geocoding';
 
 import {
+  Stack,
   useLocalSearchParams,
   useRouter,
 } from 'expo-router';
@@ -54,6 +55,12 @@ export default function SuitabilityRegionScreen() {
     latitude: 36.48,
     longitude: 127.289,
   };
+
+  const [mapCenter, setMapCenter] =
+    useState({
+      latitude: SEJONG_CENTER.latitude,
+      longitude: SEJONG_CENTER.longitude,
+    });
 
   /**
    * 지역 선택 / 해제
@@ -107,6 +114,11 @@ export default function SuitabilityRegionScreen() {
             longitude: location.lng,
           },
         ]);
+
+        setMapCenter({
+          latitude: location.lat,
+          longitude: location.lng,
+        });
       }
     } catch (error) {
       console.error(
@@ -166,21 +178,27 @@ export default function SuitabilityRegionScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 상단 앱바 + 스테퍼 */}
-      <View style={styles.appBar}>
-        <View style={styles.appBarTopRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>지역 선택</Text>
-        </View>
+      <Stack.Screen
+        options={{
+          title: '지역 선택',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() =>
+                router.replace('/market-analysis/suitability')
+              }
+              style={styles.headerBackButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.headerBackText}>‹</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
+      {/* 진행 단계 */}
+      <View style={styles.appBar}>
         <View style={styles.stepper}>
-          <Text style={styles.stepDone}>✓ 1 업종 선택</Text>
+          <Text style={styles.stepPrevious}>1 업종 선택</Text>
           <Text style={styles.stepArrow}>›</Text>
           <Text style={styles.stepActive}>2 지역 선택</Text>
           <Text style={styles.stepArrow}>›</Text>
@@ -330,10 +348,10 @@ export default function SuitabilityRegionScreen() {
             <View style={styles.mapArea}>
               <AddressMap
                 latitude={
-                  SEJONG_CENTER.latitude
+                  mapCenter.latitude
                 }
                 longitude={
-                  SEJONG_CENTER.longitude
+                  mapCenter.longitude
                 }
                 markers={areaMarkers}
               />
@@ -597,38 +615,57 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
+  headerBackButton: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -6,
+    marginRight: 4,
+  },
+
+  headerBackText: {
+    fontSize: 28,
+    color: COLORS.text,
+    marginTop: -2,
+  },
+
   appBar: {
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     paddingHorizontal: 20,
-    paddingTop: 12,
   },
-  appBarTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-    marginLeft: -6,
-  },
-  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
-  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 12,
-    gap: 6,
+    paddingVertical: 14,
+    gap: 8,
   },
-  stepDone: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
-  stepActive: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
-  stepInactive: { fontSize: 12, color: '#9CA3AF' },
-  stepArrow: { fontSize: 12, color: '#9CA3AF' },
+
+  stepPrevious: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+
+  stepActive: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  stepInactive: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+
+  stepArrow: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
 
   scroll: { flex: 1 },
 

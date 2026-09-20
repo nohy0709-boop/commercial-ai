@@ -46,19 +46,8 @@ export default function SuitabilityScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 상단 앱바 + 스테퍼 */}
+      {/* 진행 단계만 표시 */}
       <View style={styles.appBar}>
-        <View style={styles.appBarTopRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>업종+입지 적합성 분석</Text>
-        </View>
-
         <View style={styles.stepper}>
           <Text style={styles.stepActive}>1 업종 선택</Text>
           <Text style={styles.stepArrow}>›</Text>
@@ -74,31 +63,23 @@ export default function SuitabilityScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerBox}>
-          <Text style={styles.header}>
-            업종을 선택해주세요
-          </Text>
+          <Text style={styles.header}>업종을 선택해주세요</Text>
 
           <Text style={styles.headerDescription}>
             입지 적합성을 분석하고 싶은 업종을 하나 선택해주세요.
           </Text>
 
           <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>
-              1개 선택
-            </Text>
+            <Text style={styles.headerBadgeText}>1개 선택</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>
-              업종
-            </Text>
+            <Text style={styles.sectionLabel}>업종</Text>
 
             {selectedBusinessName && (
-              <Text style={styles.selectedText}>
-                선택됨
-              </Text>
+              <Text style={styles.selectedText}>선택됨</Text>
             )}
           </View>
 
@@ -112,8 +93,7 @@ export default function SuitabilityScreen() {
                   key={business.name}
                   style={[
                     styles.optionChip,
-                    selected &&
-                      styles.optionChipSelected,
+                    selected && styles.optionChipSelected,
                   ]}
                   activeOpacity={0.7}
                   onPress={() =>
@@ -123,8 +103,7 @@ export default function SuitabilityScreen() {
                   <Text
                     style={[
                       styles.optionChipText,
-                      selected &&
-                        styles.optionChipTextSelected,
+                      selected && styles.optionChipTextSelected,
                     ]}
                   >
                     {business.name}
@@ -186,32 +165,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     paddingHorizontal: 20,
-    paddingTop: 12,
   },
-  appBarTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-    marginLeft: -6,
-  },
-  backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
-  appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 12,
-    gap: 6,
+    paddingVertical: 14,
+    gap: 8,
   },
-  stepActive: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
-  stepInactive: { fontSize: 12, color: '#9CA3AF' },
-  stepArrow: { fontSize: 12, color: '#9CA3AF' },
+
+  stepActive: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+
+  stepInactive: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+
+  stepArrow: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
 
   scroll: { flex: 1 },
 

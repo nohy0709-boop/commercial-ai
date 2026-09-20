@@ -8,7 +8,9 @@ import {
   searchLocation,
 } from '@/services/geocoding';
 
-import { useRouter } from 'expo-router';
+import AnalysisHeader from '@/components/analysis-header';
+import AnalysisStepper from '@/components/analysis-stepper';
+import { Stack, useRouter } from 'expo-router';
 
 import { useState } from 'react';
 
@@ -212,25 +214,17 @@ export default function LocationRecommendScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 상단 앱바 + 스테퍼 */}
-      <View style={styles.appBar}>
-        <View style={styles.appBarTopRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>보유 입지 업종 추천</Text>
-        </View>
+      <Stack.Screen options={{ headerShown: false }} />
 
-        <View style={styles.stepper}>
-          <Text style={styles.stepActive}>1 장소 입력</Text>
-          <Text style={styles.stepArrow}>›</Text>
-          <Text style={styles.stepInactive}>2 추천 결과</Text>
-        </View>
-      </View>
+      <AnalysisHeader
+        title="보유 장소 선택"
+        onBack={() => router.replace('/market-analysis')}
+      />
+
+      <AnalysisStepper
+        steps={['장소 입력', '추천 결과']}
+        currentStep={1}
+      />
 
       <ScrollView
         style={styles.scroll}
