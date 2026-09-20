@@ -186,6 +186,7 @@ export default function AddressMap({
    * 최신 props
    * =====================================================
    */
+
   useEffect(() => {
     selectableRef.current =
       selectable;
@@ -223,9 +224,10 @@ export default function AddressMap({
 
   /**
    * =====================================================
-   * 현재 지도 화면 부모에게 전달
+   * 현재 지도 화면 정보 전달
    * =====================================================
    */
+
   const emitViewport =
     () => {
       const map =
@@ -250,8 +252,7 @@ export default function AddressMap({
       const northEast =
         bounds.getNorthEast();
 
-      const viewport:
-        MapViewport = {
+      onViewportChangeRef.current?.({
         centerLatitude:
           center.getLat(),
 
@@ -274,11 +275,7 @@ export default function AddressMap({
           east:
             northEast.getLng(),
         },
-      };
-
-      onViewportChangeRef.current?.(
-        viewport,
-      );
+      });
     };
 
   /**
@@ -286,6 +283,7 @@ export default function AddressMap({
    * 지도 생성
    * =====================================================
    */
+
   useEffect(() => {
     if (!KAKAO_JS_KEY) {
       console.error(
@@ -331,6 +329,7 @@ export default function AddressMap({
                 mapContainerRef.current,
                 {
                   center,
+
                   level: 4,
                 },
               );
@@ -338,9 +337,6 @@ export default function AddressMap({
             mapRef.current =
               map;
 
-            /**
-             * 빈 지도 클릭
-             */
             const handleMapClick =
               (
                 mouseEvent: any,
@@ -371,10 +367,6 @@ export default function AddressMap({
                 );
               };
 
-            /**
-             * 지도 이동/확대/축소가 끝났을 때
-             * 현재 화면 범위 전달
-             */
             const handleIdle =
               () => {
                 emitViewport();
@@ -410,13 +402,8 @@ export default function AddressMap({
                   true,
                 );
 
-                /**
-                 * 최초 화면에서도 바로 점포 조회
-                 */
                 setTimeout(
-                  () => {
-                    emitViewport();
-                  },
+                  emitViewport,
                   50,
                 );
 
@@ -511,9 +498,10 @@ export default function AddressMap({
 
   /**
    * =====================================================
-   * 외부에서 중심 이동
+   * 외부에서 중심 변경
    * =====================================================
    */
+
   useEffect(() => {
     if (
       !mapReady ||
@@ -540,11 +528,15 @@ export default function AddressMap({
 
   /**
    * =====================================================
-   * 일반 개별 마커
+   * 일반 마커
    *
-   * 다른 화면 호환용
+   * 동 선택 등에 사용
+   *
+   * [어진동 ✓]
+   *     📍
    * =====================================================
    */
+
   useEffect(() => {
     if (
       !mapReady ||
@@ -557,63 +549,208 @@ export default function AddressMap({
     const map =
       mapRef.current;
 
-    const overlays:
-      any[] = [];
+    const overlays: {
+      overlay: any;
+
+      element:
+        HTMLDivElement;
+    }[] = [];
 
     markers.forEach(
-      markerData => {
+      (
+        markerData,
+        index,
+      ) => {
         const position =
           new window.kakao.maps.LatLng(
             markerData.latitude,
             markerData.longitude,
           );
 
+        /**
+         * 전체 마커
+         */
         const root =
           document.createElement(
             'div',
           );
 
-        root.style.width =
-          '30px';
-
-        root.style.height =
-          '30px';
-
         root.style.display =
           'flex';
+
+        root.style.flexDirection =
+          'column';
 
         root.style.alignItems =
           'center';
 
-        root.style.justifyContent =
-          'center';
-
-        root.style.borderRadius =
-          '50%';
-
-        root.style.border =
-          '3px solid white';
-
-        root.style.background =
-          '#22A447';
-
-        root.style.boxShadow =
-          '0 2px 7px rgba(0,0,0,0.2)';
-
         root.style.cursor =
-          'pointer';
+          onMarkerPressRef.current
+            ? 'pointer'
+            : 'default';
 
         root.style.pointerEvents =
           'auto';
 
-        root.onclick =
-          event => {
-            event.stopPropagation();
+        root.style.userSelect =
+          'none';
 
-            onMarkerPressRef.current?.(
-              markerData,
-            );
-          };
+        /**
+         * 동 이름 라벨
+         */
+        const label =
+          document.createElement(
+            'div',
+          );
+
+        label.innerText =
+          markerData.name;
+
+        label.style.padding =
+          '6px 11px';
+
+        label.style.marginBottom =
+          '4px';
+
+        label.style.borderRadius =
+          '999px';
+
+        label.style.background =
+          '#FFFFFF';
+
+        label.style.border =
+          '2px solid #43A652';
+
+        label.style.color =
+          '#26833A';
+
+        label.style.fontSize =
+          '12px';
+
+        label.style.fontWeight =
+          '800';
+
+        label.style.whiteSpace =
+          'nowrap';
+
+        label.style.boxShadow =
+          '0 3px 8px rgba(0,0,0,0.16)';
+
+        /**
+         * 실제 핀
+         */
+        const pin =
+          document.createElement(
+            'div',
+          );
+
+        pin.style.width =
+          '28px';
+
+        pin.style.height =
+          '36px';
+
+        pin.style.position =
+          'relative';
+
+        pin.style.display =
+          'flex';
+
+        pin.style.alignItems =
+          'flex-start';
+
+        pin.style.justifyContent =
+          'center';
+
+        /**
+         * 핀 머리
+         */
+        const pinHead =
+          document.createElement(
+            'div',
+          );
+
+        pinHead.style.width =
+          '24px';
+
+        pinHead.style.height =
+          '24px';
+
+        pinHead.style.borderRadius =
+          '50% 50% 50% 0';
+
+        pinHead.style.transform =
+          'rotate(-45deg)';
+
+        pinHead.style.background =
+          '#43A652';
+
+        pinHead.style.border =
+          '3px solid #FFFFFF';
+
+        pinHead.style.boxShadow =
+          '0 3px 7px rgba(0,0,0,0.22)';
+
+        const pinDot =
+          document.createElement(
+            'div',
+          );
+
+        pinDot.style.position =
+          'absolute';
+
+        pinDot.style.width =
+          '7px';
+
+        pinDot.style.height =
+          '7px';
+
+        pinDot.style.left =
+          '50%';
+
+        pinDot.style.top =
+          '50%';
+
+        pinDot.style.transform =
+          'translate(-50%, -50%)';
+
+        pinDot.style.borderRadius =
+          '50%';
+
+        pinDot.style.background =
+          '#FFFFFF';
+
+        pinHead.style.position =
+          'relative';
+
+        pinHead.appendChild(
+          pinDot,
+        );
+
+        pin.appendChild(
+          pinHead,
+        );
+
+        root.appendChild(
+          label,
+        );
+
+        root.appendChild(
+          pin,
+        );
+
+        if (
+          onMarkerPressRef.current
+        ) {
+          root.onclick =
+            event => {
+              event.stopPropagation();
+
+              onMarkerPressRef.current?.(
+                markerData,
+              );
+            };
+        }
 
         const overlay =
           new window.kakao.maps.CustomOverlay({
@@ -628,24 +765,34 @@ export default function AddressMap({
               0.5,
 
             yAnchor:
-              0.5,
+              1,
 
             clickable:
               true,
+
+            zIndex:
+              500 + index,
           });
 
-        overlays.push(
+        overlays.push({
           overlay,
-        );
+
+          element:
+            root,
+        });
       },
     );
 
     return () => {
       overlays.forEach(
-        overlay =>
-          overlay.setMap(
+        item => {
+          item.element.onclick =
+            null;
+
+          item.overlay.setMap(
             null,
-          ),
+          );
+        },
       );
     };
   }, [
@@ -655,13 +802,10 @@ export default function AddressMap({
 
   /**
    * =====================================================
-   * ★ 업종 클러스터
-   *
-   * ☕ 4
-   * 🍚 8
-   * 🏪 3
+   * 상권 클러스터
    * =====================================================
    */
+
   useEffect(() => {
     if (
       !mapReady ||
@@ -735,9 +879,6 @@ export default function AddressMap({
         root.style.userSelect =
           'none';
 
-        root.style.whiteSpace =
-          'nowrap';
-
         const icon =
           document.createElement(
             'span',
@@ -748,9 +889,6 @@ export default function AddressMap({
 
         icon.style.fontSize =
           '18px';
-
-        icon.style.lineHeight =
-          '1';
 
         const count =
           document.createElement(
@@ -788,18 +926,6 @@ export default function AddressMap({
             );
           };
 
-        root.onmouseenter =
-          () => {
-            root.style.transform =
-              'scale(1.08)';
-          };
-
-        root.onmouseleave =
-          () => {
-            root.style.transform =
-              'scale(1)';
-          };
-
         const overlay =
           new window.kakao.maps.CustomOverlay({
             map,
@@ -830,11 +956,10 @@ export default function AddressMap({
 
     return () => {
       overlays.forEach(
-        overlay => {
+        overlay =>
           overlay.setMap(
             null,
-          );
-        },
+          ),
       );
     };
   }, [
@@ -844,9 +969,10 @@ export default function AddressMap({
 
   /**
    * =====================================================
-   * 선택한 분석 위치
+   * 선택한 세부 위치
    * =====================================================
    */
+
   useEffect(() => {
     if (
       !mapReady ||
@@ -892,11 +1018,14 @@ export default function AddressMap({
       selectedPointLabel ??
       '선택 위치';
 
+    label.style.padding =
+      '6px 11px';
+
     label.style.marginBottom =
       '5px';
 
-    label.style.padding =
-      '5px 9px';
+    label.style.borderRadius =
+      '999px';
 
     label.style.background =
       '#FFFFFF';
@@ -904,50 +1033,53 @@ export default function AddressMap({
     label.style.border =
       '2px solid #4285F4';
 
-    label.style.borderRadius =
-      '999px';
+    label.style.color =
+      '#2563EB';
 
     label.style.fontSize =
-      '10px';
+      '11px';
 
     label.style.fontWeight =
       '800';
 
-    label.style.color =
-      '#2563EB';
-
     label.style.whiteSpace =
       'nowrap';
 
-    const point =
+    label.style.boxShadow =
+      '0 3px 8px rgba(0,0,0,0.16)';
+
+    const pin =
       document.createElement(
         'div',
       );
 
-    point.style.width =
-      '23px';
+    pin.style.width =
+      '28px';
 
-    point.style.height =
-      '23px';
+    pin.style.height =
+      '28px';
 
-    point.style.borderRadius =
-      '50%';
+    pin.style.borderRadius =
+      '50% 50% 50% 0';
 
-    point.style.background =
+    pin.style.transform =
+      'rotate(-45deg)';
+
+    pin.style.background =
       '#4285F4';
 
-    point.style.border =
+    pin.style.border =
       '4px solid #FFFFFF';
 
-    point.style.boxShadow =
-      '0 2px 8px rgba(0,0,0,0.25)';
+    pin.style.boxShadow =
+      '0 3px 8px rgba(0,0,0,0.25)';
 
     root.appendChild(
       label,
     );
 
     root.appendChild(
-      point,
+      pin,
     );
 
     const overlay =
@@ -972,10 +1104,6 @@ export default function AddressMap({
           1000,
       });
 
-    /**
-     * 분석 위치를 선택했을 때만
-     * 분석 반경 원 표시
-     */
     const circle =
       new window.kakao.maps.Circle({
         map,
@@ -1025,6 +1153,7 @@ export default function AddressMap({
    * 리사이즈
    * =====================================================
    */
+
   useEffect(() => {
     if (
       !mapContainerRef.current ||

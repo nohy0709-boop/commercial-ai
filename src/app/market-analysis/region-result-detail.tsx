@@ -1,9 +1,24 @@
-import { businessCategories } from '@/constants/businessTypes';
-import { COLORS } from '@/constants/colors';
-import { sejongAreas } from '@/constants/sejongAreas';
+import MonthlyCandidateComparison from '@/components/MonthlyCandidateComparison';
 
-import type { AIExplanation } from '@/services/aiExplanation';
-import { generateAIExplanation } from '@/services/aiExplanation';
+import {
+  businessCategories,
+} from '@/constants/businessTypes';
+
+import {
+  COLORS,
+} from '@/constants/colors';
+
+import {
+  sejongAreas,
+} from '@/constants/sejongAreas';
+
+import type {
+  AIExplanation,
+} from '@/services/aiExplanation';
+
+import {
+  generateAIExplanation,
+} from '@/services/aiExplanation';
 
 import {
   getAnalysisHistory,
@@ -11,10 +26,17 @@ import {
   toggleAnalysisFavorite,
 } from '@/services/analysisHistory';
 
-import type { NearbyStore } from '@/services/storeApi';
-import { getStoreList } from '@/services/storeApi';
+import type {
+  NearbyStore,
+} from '@/services/storeApi';
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  getStoreList,
+} from '@/services/storeApi';
+
+import {
+  useLocalSearchParams,
+} from 'expo-router';
 
 import {
   useEffect,
@@ -32,11 +54,38 @@ import {
   View,
 } from 'react-native';
 
-import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
+/**
+ * =====================================================
+ * TYPES
+ * =====================================================
+ */
+
+type CompareItem = {
+  areaName: string;
+
+  rank: number;
+
+  floatingPopulationScore?: number;
+  salesScore?: number;
+  averageSalesScore?: number;
+  competitionScore?: number;
+  livingPopulationScore?: number;
+  livingPopulationChangeScore?: number;
+  floatingPopulationChangeScore?: number;
+  accessibilityScore?: number;
+
+  [key: string]:
+    | number
+    | string
+    | undefined;
+};
 
 /**
- * AI 응답의 **강조 문구** 표시
+ * =====================================================
+ * AI 강조 문구
+ * =====================================================
  */
+
 function renderEmphasizedText(
   text: string,
   textStyle: object,
@@ -47,7 +96,11 @@ function renderEmphasizedText(
     );
 
   return (
-    <Text style={textStyle}>
+    <Text
+      style={
+        textStyle
+      }
+    >
       {parts.map(
         (
           part,
@@ -63,7 +116,9 @@ function renderEmphasizedText(
           ) {
             return (
               <Text
-                key={index}
+                key={
+                  index
+                }
                 style={
                   styles.aiHighlight
                 }
@@ -84,8 +139,11 @@ function renderEmphasizedText(
 }
 
 /**
+ * =====================================================
  * 증감률 표시
+ * =====================================================
  */
+
 function formatChangeRate(
   value: number,
 ) {
@@ -106,143 +164,13 @@ function formatChangeRate(
   )}%`;
 }
 
-// 점수를 매길 때 쓴 8개 지표를, 화면에서 다루기 좋게 3개 범주로 묶었습니다.
-const METRIC_GROUPS = [
-  {
-    key: 'population',
-    label: '인구 지표',
-    metrics: [
-      { key: 'floatingPopulationScore', label: '유동인구' },
-      { key: 'livingPopulationScore', label: '생활인구' },
-      { key: 'floatingPopulationChangeScore', label: '유동인구 증가세' },
-      { key: 'livingPopulationChangeScore', label: '생활인구 증가세' },
-    ],
-  },
-  {
-    key: 'sales',
-    label: '소비 지표',
-    metrics: [
-      { key: 'salesScore', label: '전체 소비' },
-      { key: 'averageSalesScore', label: '점포당 소비' },
-    ],
-  },
-  {
-    key: 'environment',
-    label: '환경 지표',
-    metrics: [
-      { key: 'competitionScore', label: '경쟁 여유도' },
-      { key: 'accessibilityScore', label: '교통 접근성' },
-    ],
-  },
-];
-
-const CHART_COLORS = [
-  '#1D4ED8',
-  '#F59E0B',
-  '#10B981',
-  '#EF4444',
-  '#8B5CF6',
-  '#0EA5E9',
-];
-
-type CompareItem = {
-  areaName: string;
-  rank: number;
-  [scoreKey: string]: number | string;
-};
-
-// 여러 지역을 하나의 선그래프로 비교합니다 (온도 그래프처럼, 지역마다 선 하나씩).
-function MultiAreaLineChart({
-  metrics,
-  series,
-}: {
-  metrics: { key: string; label: string }[];
-  series: { name: string; color: string; values: number[] }[];
-}) {
-  const W = 300;
-  const H = 170;
-  const padLeft = 22;
-  const padRight = 10;
-  const padTop = 14;
-  const padBottom = 30;
-  const plotW = W - padLeft - padRight;
-  const plotH = H - padTop - padBottom;
-
-  const xFor = (i: number) =>
-    metrics.length > 1
-      ? padLeft + (i / (metrics.length - 1)) * plotW
-      : padLeft + plotW / 2;
-  const yFor = (v: number) =>
-    padTop + plotH - (Math.max(0, Math.min(100, v)) / 100) * plotH;
-
-  const gridLines = [0, 50, 100];
-
-  return (
-    <View>
-      <View style={styles.legendRow}>
-        {series.map(s => (
-          <View key={s.name} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: s.color }]} />
-            <Text style={styles.legendText}>{s.name}</Text>
-          </View>
-        ))}
-      </View>
-
-      <Svg width="100%" height={190} viewBox={`0 0 ${W} ${H}`}>
-        {gridLines.map(g => (
-          <Line
-            key={g}
-            x1={padLeft}
-            x2={W - padRight}
-            y1={yFor(g)}
-            y2={yFor(g)}
-            stroke="#E5E7EB"
-            strokeWidth={1}
-          />
-        ))}
-
-        {series.map(s => (
-          <Polyline
-            key={s.name}
-            points={s.values.map((v, i) => `${xFor(i)},${yFor(v)}`).join(' ')}
-            fill="none"
-            stroke={s.color}
-            strokeWidth={2}
-          />
-        ))}
-
-        {series.map(s =>
-          s.values.map((v, i) => (
-            <Circle
-              key={`${s.name}-${i}`}
-              cx={xFor(i)}
-              cy={yFor(v)}
-              r={3}
-              fill={s.color}
-            />
-          )),
-        )}
-
-        {metrics.map((m, i) => (
-          <SvgText
-            key={m.key}
-            x={xFor(i)}
-            y={H - 8}
-            fontSize="9"
-            fill="#6B7280"
-            textAnchor="middle"
-          >
-            {m.label}
-          </SvgText>
-        ))}
-      </Svg>
-    </View>
-  );
-}
+/**
+ * =====================================================
+ * MAIN
+ * =====================================================
+ */
 
 export default function RegionResultDetailScreen() {
-  const router = useRouter();
-
   const params =
     useLocalSearchParams<{
       businessName: string;
@@ -275,9 +203,6 @@ export default function RegionResultDetailScreen() {
 
       compareData?: string;
 
-      /**
-       * 위치 기반 분석용
-       */
       analysisType?: string;
 
       dongName?: string;
@@ -333,28 +258,25 @@ export default function RegionResultDetailScreen() {
     params;
 
   /**
-   * 위치 기반 분석 여부
+   * =====================================================
+   * 위치 분석 정보
+   * =====================================================
    */
+
   const isPointAnalysis =
     analysisType ===
     'point';
 
-  /**
-   * 실제 행정동 이름
-   *
-   * 일반 동 분석:
-   * areaName
-   *
-   * 위치 기반 분석:
-   * dongName
-   */
   const actualDongName =
     dongName ||
     areaName;
 
   /**
+   * =====================================================
    * 행정동 찾기
+   * =====================================================
    */
+
   const area =
     sejongAreas.find(
       item =>
@@ -363,8 +285,11 @@ export default function RegionResultDetailScreen() {
     );
 
   /**
+   * =====================================================
    * 업종 찾기
+   * =====================================================
    */
+
   const business =
     businessCategories
       .flatMap(
@@ -379,9 +304,46 @@ export default function RegionResultDetailScreen() {
 
   /**
    * =====================================================
+   * 비교 데이터
+   * =====================================================
+   */
+
+  let compareItems:
+    CompareItem[] = [];
+
+  try {
+    const parsed =
+      JSON.parse(
+        compareData ||
+          '[]',
+      );
+
+    if (
+      Array.isArray(
+        parsed,
+      )
+    ) {
+      compareItems =
+        parsed;
+    }
+  } catch (
+    error
+  ) {
+    console.error(
+      '비교 데이터 파싱 오류:',
+      error,
+    );
+
+    compareItems =
+      [];
+  }
+
+  /**
+   * =====================================================
    * AI 분석
    * =====================================================
    */
+
   const [
     explanation,
     setExplanation,
@@ -421,6 +383,7 @@ export default function RegionResultDetailScreen() {
    * 주변 실제 점포
    * =====================================================
    */
+
   const [
     nearbyStores,
     setNearbyStores,
@@ -447,9 +410,10 @@ export default function RegionResultDetailScreen() {
 
   /**
    * =====================================================
-   * 찜 / 저장
+   * 찜
    * =====================================================
    */
+
   const [
     favorite,
     setFavorite,
@@ -476,27 +440,12 @@ export default function RegionResultDetailScreen() {
       false,
     );
 
-  const [
-    rawNumbersExpanded,
-    setRawNumbersExpanded,
-  ] =
-    useState(
-      false,
-    );
-
-  const [
-    activeMetricGroup,
-    setActiveMetricGroup,
-  ] =
-    useState(
-      METRIC_GROUPS[0].key,
-    );
-
   /**
    * =====================================================
-   * AI 분석 요청
+   * AI 설명 생성
    * =====================================================
    */
+
   useEffect(() => {
     const run =
       async () => {
@@ -568,7 +517,9 @@ export default function RegionResultDetailScreen() {
           setExplanation(
             result,
           );
-        } catch (error) {
+        } catch (
+          error
+        ) {
           console.error(
             'AI 설명 생성 오류:',
             error,
@@ -594,9 +545,10 @@ export default function RegionResultDetailScreen() {
 
   /**
    * =====================================================
-   * 실제 점포 목록 조회
+   * 실제 점포 조회
    * =====================================================
    */
+
   useEffect(() => {
     if (
       !area ||
@@ -654,7 +606,9 @@ export default function RegionResultDetailScreen() {
           setNearbyStores(
             stores,
           );
-        } catch (error) {
+        } catch (
+          error
+        ) {
           console.error(
             '주변 점포 조회 오류:',
             error,
@@ -680,9 +634,10 @@ export default function RegionResultDetailScreen() {
 
   /**
    * =====================================================
-   * 이미 저장된 분석인지 확인
+   * 기존 저장 분석 확인
    * =====================================================
    */
+
   useEffect(() => {
     const checkSaved =
       async () => {
@@ -690,11 +645,6 @@ export default function RegionResultDetailScreen() {
           const histories =
             await getAnalysisHistory();
 
-          /**
-           * 같은 지역 + 같은 업종 +
-           * 같은 분석 방식이면
-           * 동일 분석으로 간주
-           */
           const existing =
             histories.find(
               history => {
@@ -717,8 +667,7 @@ export default function RegionResultDetailScreen() {
                 }
 
                 /**
-                 * 위치 기반이면
-                 * 좌표 / 반경도 확인
+                 * 좌표 기반 분석
                  */
                 if (
                   isPointAnalysis
@@ -774,7 +723,9 @@ export default function RegionResultDetailScreen() {
             existing.isFavorite ??
               false,
           );
-        } catch (error) {
+        } catch (
+          error
+        ) {
           console.error(
             '저장된 분석 확인 실패:',
             error,
@@ -794,9 +745,10 @@ export default function RegionResultDetailScreen() {
 
   /**
    * =====================================================
-   * 하트 버튼
+   * 찜 버튼
    * =====================================================
    */
+
   const handleFavorite =
     async () => {
       if (
@@ -811,8 +763,7 @@ export default function RegionResultDetailScreen() {
         );
 
         /**
-         * 이미 분석 기록이 저장되어 있으면
-         * 찜 상태만 변경
+         * 이미 저장된 분석
          */
         if (
           savedAnalysisId
@@ -835,9 +786,7 @@ export default function RegionResultDetailScreen() {
         }
 
         /**
-         * 저장되지 않은 분석이면
-         * 하트를 누르는 순간
-         * 분석 기록에 추가 + 찜
+         * 처음 저장
          */
         const saved =
           await saveAnalysis(
@@ -961,7 +910,9 @@ export default function RegionResultDetailScreen() {
         setFavorite(
           true,
         );
-      } catch (error) {
+      } catch (
+        error
+      ) {
         console.error(
           '찜 저장 실패:',
           error,
@@ -978,66 +929,21 @@ export default function RegionResultDetailScreen() {
       }
     };
 
-  // 비교 데이터 파싱 (최대 5개 + 현재 지역은 항상 포함)
-  let compareItems: CompareItem[] = [];
-
-  try {
-    compareItems = JSON.parse(compareData || '[]');
-  } catch (error) {
-    console.error('비교 데이터 파싱 오류:', error);
-  }
-
-  let chartItems = compareItems.slice(0, 5);
-
-  if (!chartItems.find(item => item.areaName === areaName)) {
-    const current = compareItems.find(item => item.areaName === areaName);
-
-    if (current) {
-      chartItems = [...chartItems, current];
-    }
-  }
-
-  const activeGroup =
-    METRIC_GROUPS.find(group => group.key === activeMetricGroup) ??
-    METRIC_GROUPS[0];
-
-  const chartSeries = chartItems.map((item, index) => ({
-    name: `${item.rank}위 ${item.areaName}`,
-    color: CHART_COLORS[index % CHART_COLORS.length],
-    values: activeGroup.metrics.map(metric => Number(item[metric.key]) || 0),
-  }));
-
   return (
-    <View style={styles.screen}>
-      {/* 상단 앱바 */}
-      <View style={styles.appBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.appBarTitle}>상세 분석</Text>
-          <Text style={styles.appBarSubtitle}>
-            {areaName} · {businessName}
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={
-          styles.container
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
-      >
-      {/* =========================
-          HEADER (LEVEL 1)
-      ========================== */}
+    <ScrollView
+      style={
+        styles.screen
+      }
+      contentContainerStyle={
+        styles.container
+      }
+      showsVerticalScrollIndicator={
+        false
+      }
+    >
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
       <View
         style={
@@ -1059,7 +965,7 @@ export default function RegionResultDetailScreen() {
                 styles.rankPillText
               }
             >
-              {rank}위 추천
+              {rank}위
             </Text>
           </View>
 
@@ -1072,7 +978,8 @@ export default function RegionResultDetailScreen() {
           </Text>
         </View>
 
-        {/* 지역 이름 + 점수/하트 */}
+        {/* 지역명 + 찜 */}
+
         <View
           style={
             styles.titleRow
@@ -1091,14 +998,6 @@ export default function RegionResultDetailScreen() {
               {`${areaName} 일대`}
             </Text>
 
-            <Text
-              style={
-                styles.headerBusiness
-              }
-            >
-              {businessName}
-            </Text>
-
             {isPointAnalysis &&
               radius && (
                 <Text
@@ -1112,55 +1011,33 @@ export default function RegionResultDetailScreen() {
               )}
           </View>
 
-          <View style={styles.scoreCol}>
-            <Text
-              style={
-                styles.scoreValue
-              }
-            >
-              {
-                suitabilityScore
-              }
-            </Text>
+          <TouchableOpacity
+            style={[
+              styles.favoriteButton,
 
-            <Text
-              style={
-                styles.scoreLabel
-              }
-            >
-              종합 적합도
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.favoriteButton,
-
-            favorite &&
-              styles.favoriteButtonActive,
-          ]}
-          activeOpacity={
-            0.8
-          }
-          disabled={
-            favoriteLoading
-          }
-          onPress={
-            handleFavorite
-          }
-        >
-          {favoriteLoading ? (
-            <ActivityIndicator
-              size="small"
-              color={
-                favorite
-                  ? '#FFFFFF'
-                  : '#E54861'
-              }
-            />
-          ) : (
-            <>
+              favorite &&
+                styles.favoriteButtonActive,
+            ]}
+            activeOpacity={
+              0.8
+            }
+            disabled={
+              favoriteLoading
+            }
+            onPress={
+              handleFavorite
+            }
+          >
+            {favoriteLoading ? (
+              <ActivityIndicator
+                size="small"
+                color={
+                  favorite
+                    ? '#FFFFFF'
+                    : '#E54861'
+                }
+              />
+            ) : (
               <Text
                 style={[
                   styles.favoriteText,
@@ -1173,22 +1050,56 @@ export default function RegionResultDetailScreen() {
                   ? '♥'
                   : '♡'}
               </Text>
-              <Text
-                style={[
-                  styles.favoriteLabel,
-                  favorite && styles.favoriteLabelActive,
-                ]}
-              >
-                {favorite ? '찜한 분석' : '분석 찜하기'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <Text
+          style={
+            styles.headerBusiness
+          }
+        >
+          {
+            businessName
+          }
+        </Text>
+
+        <View
+          style={
+            styles.scoreRow
+          }
+        >
+          <Text
+            style={
+              styles.scoreLabel
+            }
+          >
+            종합 적합도
+          </Text>
+
+          <Text
+            style={
+              styles.scoreValue
+            }
+          >
+            {
+              suitabilityScore
+            }
+          </Text>
+
+          <Text
+            style={
+              styles.scoreUnit
+            }
+          >
+            / 100
+          </Text>
+        </View>
       </View>
 
-      {/* =========================
+      {/* =================================================
           핵심 지표
-      ========================== */}
+      ================================================= */}
 
       <View
         style={
@@ -1303,94 +1214,53 @@ export default function RegionResultDetailScreen() {
         </View>
       </View>
 
-      {chartSeries.length > 0 && (
-        <View style={styles.sectionBox}>
-          <Text style={styles.sectionTitle}>다른 후보와 비교</Text>
-          <Text style={styles.sectionDescription}>
-            같이 분석한 다른 지역들과 점수를 비교해봤어요 (0~100점).
+      {/* =================================================
+          ★ 실제 월별 후보 비교
+      ================================================= */}
+
+      {compareItems.length >
+        0 ? (
+        <View
+          style={
+            styles.comparisonWrapper
+          }
+        >
+          <MonthlyCandidateComparison
+            compareItems={
+              compareItems
+            }
+            currentAreaName={
+              actualDongName
+            }
+          />
+        </View>
+      ) : (
+        <View
+          style={
+            styles.sectionBox
+          }
+        >
+          <Text
+            style={
+              styles.sectionTitle
+            }
+          >
+            다른 후보와 비교
           </Text>
 
-          <View style={styles.tabRow}>
-            {METRIC_GROUPS.map(group => {
-              const isActive = activeMetricGroup === group.key;
-
-              return (
-                <TouchableOpacity
-                  key={group.key}
-                  style={[styles.tabButton, isActive && styles.tabButtonActive]}
-                  activeOpacity={0.7}
-                  onPress={() => setActiveMetricGroup(group.key)}
-                >
-                  <Text
-                    style={[
-                      styles.tabButtonText,
-                      isActive && styles.tabButtonTextActive,
-                    ]}
-                  >
-                    {group.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <MultiAreaLineChart
-            metrics={activeGroup.metrics}
-            series={chartSeries}
-          />
-
-          <TouchableOpacity
-            style={styles.detailToggleButton}
-            activeOpacity={0.7}
-            onPress={() => setRawNumbersExpanded(prev => !prev)}
+          <Text
+            style={
+              styles.noCompareText
+            }
           >
-            <Text style={styles.detailToggleText}>
-              {rawNumbersExpanded ? '실제 수치 접기 ▲' : '실제 수치로 보기 ▼'}
-            </Text>
-          </TouchableOpacity>
-
-          {rawNumbersExpanded && (
-            <View style={styles.aiDetailSection}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>생활인구</Text>
-                <Text style={styles.detailValue}>
-                  {Number(livingPopulation).toLocaleString()}명
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>생활인구 증감률</Text>
-                <Text style={styles.detailValue}>
-                  {formatChangeRate(Number(livingPopulationChangeRate))}
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>유동인구 증감률</Text>
-                <Text style={styles.detailValue}>
-                  {formatChangeRate(Number(floatingPopulationChangeRate))}
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>전체 카드소비</Text>
-                <Text style={styles.detailValue}>
-                  {Number(salesAmount).toLocaleString()}원
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>버스정류장</Text>
-                <Text style={styles.detailValue}>{busStopCount}개</Text>
-              </View>
-            </View>
-          )}
+            함께 분석한 다른 후보 지역이 없어요.
+          </Text>
         </View>
       )}
 
-      {/* =========================
+      {/* =================================================
           주변 실제 점포
-      ========================== */}
+      ================================================= */}
 
       <View
         style={
@@ -1414,9 +1284,7 @@ export default function RegionResultDetailScreen() {
             styles.sectionDescription
           }
         >
-          공공데이터에 등록된
-          이 지역의 실제 매장
-          정보예요.
+          공공데이터에 등록된 이 지역의 실제 매장 정보예요.
         </Text>
 
         {Platform.OS !==
@@ -1448,8 +1316,7 @@ export default function RegionResultDetailScreen() {
                 styles.smallLoadingText
               }
             >
-              주변 매장 정보를
-              불러오는 중...
+              주변 매장 정보를 불러오는 중...
             </Text>
           </View>
         )}
@@ -1478,8 +1345,7 @@ export default function RegionResultDetailScreen() {
                 styles.storesEmpty
               }
             >
-              등록된 매장 정보를
-              찾지 못했어요.
+              등록된 매장 정보를 찾지 못했어요.
             </Text>
           )}
 
@@ -1519,9 +1385,9 @@ export default function RegionResultDetailScreen() {
           )}
       </View>
 
-      {/* =========================
+      {/* =================================================
           지역 환경 상세
-      ========================== */}
+      ================================================= */}
 
       <View
         style={
@@ -1542,9 +1408,9 @@ export default function RegionResultDetailScreen() {
               styles.estimateNotice
             }
           >
-            위치 기반 분석의 인구·카드소비·접근성
-            지표는 행정동 데이터를 반경 내 점포
-            집중도에 따라 세분화한 추정값입니다.
+            위치 기반 분석의 인구·카드소비·접근성 지표는
+            행정동 데이터를 반경 내 점포 집중도에 따라
+            세분화한 추정값입니다.
           </Text>
         )}
 
@@ -1664,6 +1530,34 @@ export default function RegionResultDetailScreen() {
               styles.detailLabel
             }
           >
+            점포당 카드소비
+          </Text>
+
+          <Text
+            style={
+              styles.detailValue
+            }
+          >
+            {Math.round(
+              Number(
+                averageSalesPerStore,
+              ),
+            ).toLocaleString()}
+            원
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.detailRow,
+            styles.detailRowLast,
+          ]}
+        >
+          <Text
+            style={
+              styles.detailLabel
+            }
+          >
             {isPointAnalysis
               ? '추정 버스정류장'
               : '버스정류장'}
@@ -1682,27 +1576,22 @@ export default function RegionResultDetailScreen() {
         </View>
       </View>
 
-      {/* =========================
+      {/* =================================================
           AI 분석
-      ========================== */}
+      ================================================= */}
 
       <View
         style={
-          styles.aiSectionBox
+          styles.sectionBox
         }
       >
-        <View style={styles.aiSectionTitleRow}>
-          <View style={styles.aiIconBox}>
-            <Text style={styles.aiIconText}>✨</Text>
-          </View>
-          <Text
-            style={
-              styles.aiSectionTitle
-            }
-          >
-            AI 상권 인사이트
-          </Text>
-        </View>
+        <Text
+          style={
+            styles.sectionTitle
+          }
+        >
+          AI 분석 요약
+        </Text>
 
         {aiLoading && (
           <View
@@ -1713,7 +1602,7 @@ export default function RegionResultDetailScreen() {
             <ActivityIndicator
               size="small"
               color={
-                COLORS.ai
+                COLORS.primary
               }
             />
 
@@ -1746,6 +1635,7 @@ export default function RegionResultDetailScreen() {
             <>
               {renderEmphasizedText(
                 explanation.recommendationReason,
+
                 styles.aiReasonText,
               )}
 
@@ -1775,6 +1665,7 @@ export default function RegionResultDetailScreen() {
 
                       {renderEmphasizedText(
                         advantage,
+
                         styles.chunkTextGood,
                       )}
                     </View>
@@ -1802,6 +1693,7 @@ export default function RegionResultDetailScreen() {
 
                       {renderEmphasizedText(
                         risk,
+
                         styles.chunkTextWarn,
                       )}
                     </View>
@@ -1825,7 +1717,7 @@ export default function RegionResultDetailScreen() {
               >
                 <Text
                   style={
-                    styles.detailToggleTextAi
+                    styles.detailToggleText
                   }
                 >
                   {detailExpanded
@@ -1850,6 +1742,7 @@ export default function RegionResultDetailScreen() {
 
                   {renderEmphasizedText(
                     explanation.keyFeatures,
+
                     styles.aiReasonText,
                   )}
 
@@ -1875,14 +1768,16 @@ export default function RegionResultDetailScreen() {
             </>
           )}
       </View>
-      </ScrollView>
-    </View>
+    </ScrollView>
   );
 }
 
 /**
- * 네이티브에서만 지도 표시
+ * =====================================================
+ * 네이티브 실제 점포 지도
+ * =====================================================
  */
+
 function NativeStoreMap({
   stores,
 }: {
@@ -1953,6 +1848,12 @@ function NativeStoreMap({
   );
 }
 
+/**
+ * =====================================================
+ * STYLES
+ * =====================================================
+ */
+
 const styles =
   StyleSheet.create({
     screen: {
@@ -1962,46 +1863,33 @@ const styles =
         COLORS.background,
     },
 
-    appBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: COLORS.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.border,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-    },
-    backButton: {
-      width: 32,
-      height: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 8,
-      marginLeft: -6,
-    },
-    backButtonText: { fontSize: 26, color: COLORS.text, marginTop: -2 },
-    appBarTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-    appBarSubtitle: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
-
-    scroll: { flex: 1 },
-
     container: {
+      width:
+        '100%',
+
+      maxWidth: 1200,
+
+      alignSelf:
+        'center',
+
       padding: 20,
 
-      paddingBottom: 40,
+      paddingBottom: 50,
     },
 
+    /**
+     * HEADER
+     */
+
     headerCard: {
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-
-      borderRadius: 20,
-
       padding: 20,
 
       marginBottom: 16,
+
+      borderRadius: 20,
+
+      backgroundColor:
+        '#111111',
     },
 
     headerTopRow: {
@@ -2013,35 +1901,35 @@ const styles =
 
       gap: 10,
 
-      marginBottom: 12,
+      marginBottom: 10,
     },
 
     rankPill: {
-      backgroundColor:
-        COLORS.primaryLight,
-
-      borderRadius: 12,
-
       paddingVertical: 4,
 
       paddingHorizontal: 10,
+
+      borderRadius: 12,
+
+      backgroundColor:
+        COLORS.primary,
     },
 
     rankPillText: {
-      color:
-        COLORS.primary,
-
       fontSize: 12,
 
       fontWeight:
         '800',
+
+      color:
+        '#FFFFFF',
     },
 
     headerSubText: {
+      fontSize: 12,
+
       color:
         '#9CA3AF',
-
-      fontSize: 12,
     },
 
     titleRow: {
@@ -2049,13 +1937,12 @@ const styles =
         'row',
 
       alignItems:
-        'flex-start',
+        'center',
 
       justifyContent:
         'space-between',
 
       gap: 12,
-      marginBottom: 16,
     },
 
     titleArea: {
@@ -2063,26 +1950,19 @@ const styles =
     },
 
     headerTitle: {
-      color:
-        COLORS.text,
+      marginBottom: 4,
 
-      fontSize: 22,
+      fontSize: 24,
 
       fontWeight:
         '900',
 
-      marginBottom: 4,
-    },
-
-    headerBusiness: {
       color:
-        COLORS.textSecondary,
-
-      fontSize: 14,
+        '#FFFFFF',
     },
 
     pointSubtitle: {
-      marginTop: 6,
+      marginTop: 2,
 
       fontSize: 11,
 
@@ -2090,59 +1970,43 @@ const styles =
         '700',
 
       color:
-        COLORS.primary,
-    },
-
-    scoreCol: {
-      alignItems: 'flex-end',
-    },
-
-    scoreValue: {
-      color:
-        COLORS.primary,
-
-      fontSize: 28,
-
-      fontWeight:
-        '900',
-    },
-
-    scoreLabel: {
-      color:
-        COLORS.textSecondary,
-
-      fontSize: 11,
-      marginTop: 2,
+        '#A7F3D0',
     },
 
     favoriteButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      borderRadius: 14,
+      width: 44,
 
-      backgroundColor:
-        COLORS.background,
+      height: 44,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
 
       borderWidth: 1,
 
       borderColor:
-        COLORS.border,
+        '#E5E7EB',
+
+      borderRadius: 22,
+
+      backgroundColor:
+        '#FFFFFF',
     },
 
     favoriteButtonActive: {
-      backgroundColor:
+      borderColor:
         '#E54861',
 
-      borderColor:
+      backgroundColor:
         '#E54861',
     },
 
     favoriteText: {
-      fontSize: 18,
-      lineHeight: 20,
+      fontSize: 27,
+
+      lineHeight: 31,
 
       color:
         '#E54861',
@@ -2153,15 +2017,58 @@ const styles =
         '#FFFFFF',
     },
 
-    favoriteLabel: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: COLORS.textSecondary,
+    headerBusiness: {
+      marginTop: 6,
+
+      marginBottom: 16,
+
+      fontSize: 14,
+
+      color:
+        '#D1D5DB',
     },
 
-    favoriteLabelActive: {
-      color: '#FFFFFF',
+    scoreRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'flex-end',
+
+      gap: 6,
     },
+
+    scoreLabel: {
+      marginBottom: 4,
+
+      fontSize: 12,
+
+      color:
+        '#9CA3AF',
+    },
+
+    scoreValue: {
+      fontSize: 30,
+
+      fontWeight:
+        '900',
+
+      color:
+        COLORS.neonLime,
+    },
+
+    scoreUnit: {
+      marginBottom: 4,
+
+      fontSize: 13,
+
+      color:
+        '#9CA3AF',
+    },
+
+    /**
+     * 핵심 지표
+     */
 
     metricGrid: {
       flexDirection:
@@ -2176,11 +2083,14 @@ const styles =
     },
 
     metricBox: {
-      width:
+      flexGrow: 1,
+
+      flexBasis:
         '47%',
 
-      backgroundColor:
-        COLORS.surface,
+      minWidth: 220,
+
+      padding: 14,
 
       borderWidth: 1,
 
@@ -2189,16 +2099,17 @@ const styles =
 
       borderRadius: 14,
 
-      padding: 14,
+      backgroundColor:
+        COLORS.surface,
     },
 
     metricLabel: {
+      marginBottom: 6,
+
       fontSize: 11,
 
       color:
         COLORS.textSecondary,
-
-      marginBottom: 6,
     },
 
     metricValue: {
@@ -2211,9 +2122,31 @@ const styles =
         COLORS.text,
     },
 
+    /**
+     * 비교 그래프
+     */
+
+    comparisonWrapper: {
+      marginBottom: 16,
+    },
+
+    noCompareText: {
+      marginTop: 8,
+
+      fontSize: 12,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    /**
+     * 공통 SECTION
+     */
+
     sectionBox: {
-      backgroundColor:
-        COLORS.surface,
+      padding: 16,
+
+      marginBottom: 16,
 
       borderWidth: 1,
 
@@ -2222,12 +2155,13 @@ const styles =
 
       borderRadius: 18,
 
-      padding: 16,
-
-      marginBottom: 16,
+      backgroundColor:
+        COLORS.surface,
     },
 
     sectionTitle: {
+      marginBottom: 4,
+
       fontSize: 15,
 
       fontWeight:
@@ -2235,73 +2169,15 @@ const styles =
 
       color:
         COLORS.text,
-
-      marginBottom: 4,
     },
 
     sectionDescription: {
+      marginBottom: 12,
+
       fontSize: 12,
 
       color:
         COLORS.textSecondary,
-
-      marginBottom: 12,
-    },
-
-    tabRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginBottom: 14,
-    },
-
-    tabButton: {
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-      borderRadius: 16,
-      backgroundColor: COLORS.background,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-
-    tabButtonActive: {
-      backgroundColor: COLORS.primary,
-      borderColor: COLORS.primary,
-    },
-
-    tabButtonText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: COLORS.textSecondary,
-    },
-
-    tabButtonTextActive: {
-      color: '#FFFFFF',
-    },
-
-    legendRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-      marginBottom: 6,
-    },
-
-    legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-    },
-
-    legendDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-    },
-
-    legendText: {
-      fontSize: 11,
-      color: COLORS.textSecondary,
-      fontWeight: '600',
     },
 
     estimateNotice: {
@@ -2314,7 +2190,7 @@ const styles =
       borderRadius: 10,
 
       backgroundColor:
-        COLORS.primaryLight,
+        '#F5FCF6',
 
       fontSize: 11,
 
@@ -2324,15 +2200,19 @@ const styles =
         COLORS.textSecondary,
     },
 
+    /**
+     * 실제 점포
+     */
+
     map: {
       width:
         '100%',
 
       height: 200,
 
-      borderRadius: 14,
-
       marginBottom: 12,
+
+      borderRadius: 14,
     },
 
     smallLoadingBox: {
@@ -2358,7 +2238,7 @@ const styles =
       fontSize: 12,
 
       color:
-        COLORS.danger,
+        '#D14343',
     },
 
     storesEmpty: {
@@ -2388,13 +2268,17 @@ const styles =
     },
 
     storeAddress: {
+      marginTop: 2,
+
       fontSize: 12,
 
       color:
         COLORS.textSecondary,
-
-      marginTop: 2,
     },
+
+    /**
+     * 상세 지표
+     */
 
     detailRow: {
       flexDirection:
@@ -2403,7 +2287,21 @@ const styles =
       justifyContent:
         'space-between',
 
-      marginBottom: 10,
+      alignItems:
+        'center',
+
+      gap: 20,
+
+      paddingVertical: 10,
+
+      borderBottomWidth: 1,
+
+      borderBottomColor:
+        COLORS.border,
+    },
+
+    detailRowLast: {
+      borderBottomWidth: 0,
     },
 
     detailLabel: {
@@ -2414,6 +2312,11 @@ const styles =
     },
 
     detailValue: {
+      flexShrink: 1,
+
+      textAlign:
+        'right',
+
       fontSize: 13,
 
       fontWeight:
@@ -2423,38 +2326,9 @@ const styles =
         COLORS.text,
     },
 
-    aiSectionBox: {
-      backgroundColor: COLORS.aiLight,
-      borderWidth: 1,
-      borderColor: 'rgba(14,165,233,0.2)',
-      borderRadius: 18,
-      padding: 18,
-      marginBottom: 16,
-    },
-
-    aiSectionTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 12,
-    },
-
-    aiIconBox: {
-      width: 28,
-      height: 28,
-      borderRadius: 10,
-      backgroundColor: COLORS.ai,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    aiIconText: { fontSize: 13 },
-
-    aiSectionTitle: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: COLORS.ai,
-    },
+    /**
+     * AI
+     */
 
     aiReasonText: {
       fontSize: 13,
@@ -2488,22 +2362,22 @@ const styles =
 
       gap: 8,
 
-      backgroundColor:
-        COLORS.primaryLight,
+      padding: 10,
 
       borderRadius: 10,
 
-      padding: 10,
+      backgroundColor:
+        '#F1FFF5',
     },
 
     chunkIconGood: {
-      color:
-        COLORS.primary,
+      fontSize: 13,
 
       fontWeight:
         '900',
 
-      fontSize: 13,
+      color:
+        '#1B9C4F',
     },
 
     chunkTextGood: {
@@ -2514,7 +2388,7 @@ const styles =
       lineHeight: 18,
 
       color:
-        COLORS.primaryDark,
+        '#1B4332',
     },
 
     chunkRowWarn: {
@@ -2526,22 +2400,22 @@ const styles =
 
       gap: 8,
 
-      backgroundColor:
-        COLORS.warningLight,
+      padding: 10,
 
       borderRadius: 10,
 
-      padding: 10,
+      backgroundColor:
+        '#FFF8E8',
     },
 
     chunkIconWarn: {
-      color:
-        COLORS.warning,
+      fontSize: 13,
 
       fontWeight:
         '900',
 
-      fontSize: 13,
+      color:
+        '#B45309',
     },
 
     chunkTextWarn: {
@@ -2558,6 +2432,8 @@ const styles =
     detailToggleButton: {
       marginTop: 14,
 
+      paddingVertical: 6,
+
       alignItems:
         'center',
     },
@@ -2572,12 +2448,6 @@ const styles =
         COLORS.textSecondary,
     },
 
-    detailToggleTextAi: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: COLORS.ai,
-    },
-
     aiDetailSection: {
       marginTop: 10,
 
@@ -2590,6 +2460,10 @@ const styles =
     },
 
     aiLabel: {
+      marginTop: 8,
+
+      marginBottom: 4,
+
       fontSize: 12,
 
       fontWeight:
@@ -2597,9 +2471,5 @@ const styles =
 
       color:
         COLORS.textSecondary,
-
-      marginTop: 8,
-
-      marginBottom: 4,
     },
   });
