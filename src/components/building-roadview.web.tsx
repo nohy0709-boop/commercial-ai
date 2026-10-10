@@ -1,15 +1,15 @@
 import {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface BuildingRoadviewProps {
@@ -64,224 +64,127 @@ export default function BuildingRoadview({
     useState(false);
 
   useEffect(() => {
-    let cancelled =
-      false;
+    let cancelled = false;
+    let sdkTimer: ReturnType<typeof setTimeout> | undefined;
+    let panoTimer: ReturnType<typeof setTimeout> | undefined;
+    let script: HTMLScriptElement | null = null;
 
-    const initRoadview =
-      () => {
-        if (
-          !window.kakao?.maps ||
-          !containerRef.current
-        ) {
-          return;
-        }
+    setLoading(true);
+    setError('');
+    setPanoFound(false);
 
-        window.kakao.maps.load(
-          () => {
-            if (
-              cancelled ||
-              !containerRef.current
-            ) {
+    const fail = (message: string, detail?: unknown) => {
+      if (cancelled) return;
+      if (sdkTimer) clearTimeout(sdkTimer);
+      if (panoTimer) clearTimeout(panoTimer);
+      console.error('[로드뷰]', message, detail ?? '');
+      setLoading(false);
+      setPanoFound(false);
+      setError(message);
+    };
+
+    const initRoadview = () => {
+      if (cancelled || !containerRef.current) return;
+      if (!window.kakao?.maps?.load) {
+        fail('카카오 지도 SDK가 준비되지 않았어요. 배포 주소와 JS 키를 확인해 주세요.');
+        return;
+      }
+
+      try {
+        window.kakao.maps.load(() => {
+          if (cancelled || !containerRef.current) return;
+          if (sdkTimer) clearTimeout(sdkTimer);
+
+          try {
+            const maps = window.kakao.maps;
+            if (!maps.Roadview || !maps.RoadviewClient) {
+              fail('로드뷰 API를 사용할 수 없어요. 카카오 지도 SDK 설정을 확인해 주세요.');
               return;
             }
 
-            try {
-              setLoading(
-                true,
-              );
+            const position = new maps.LatLng(latitude, longitude);
+            const roadview = new maps.Roadview(containerRef.current);
+            const client = new maps.RoadviewClient();
 
-              setError('');
+            // 네트워크/인증 오류로 콜백이 오지 않아도 무한 로딩되지 않도록 보호
+            panoTimer = setTimeout(() => {
+              fail('로드뷰 검색 응답이 지연되고 있어요. F12 콘솔/Network에서 카카오 요청을 확인해 주세요.');
+            }, 15000);
 
-              setPanoFound(
-                false,
-              );
+            client.getNearestPanoId(position, 100, (panoId: number | null) => {
+              if (cancelled) return;
+              if (panoTimer) clearTimeout(panoTimer);
 
-              const position =
-                new window.kakao.maps.LatLng(
-                  latitude,
-                  longitude,
-                );
+              if (!panoId) {
+                fail('선택한 건물 주변 100m 안에서 거리뷰를 찾지 못했습니다.');
+                return;
+              }
 
-              const roadview =
-                new window.kakao.maps.Roadview(
-                  containerRef.current,
-                );
+              try {
+                roadview.setPanoId(panoId, position);
+                setPanoFound(true);
+                setLoading(false);
+                setError('');
+                console.log('✅ Kakao 거리뷰 파노라마 설정 완료', { panoId, latitude, longitude });
+              } catch (e) {
+                fail('로드뷰 화면을 표시하는 중 오류가 발생했어요.', e);
+              }
+            });
+          } catch (e) {
+            fail('로드뷰 초기화 중 오류가 발생했어요.', e);
+          }
+        });
+      } catch (e) {
+        fail('카카오 지도 SDK 초기화에 실패했어요.', e);
+      }
+    };
 
-              const roadviewClient =
-                new window.kakao.maps.RoadviewClient();
-
-              /**
-               * 선택 위치 기준 100m 안의
-               * 가장 가까운 로드뷰 검색
-               */
-              roadviewClient.getNearestPanoId(
-                position,
-                100,
-                (
-                  panoId:
-                    number | null,
-                ) => {
-                  if (
-                    cancelled
-                  ) {
-                    return;
-                  }
-
-                  if (
-                    !panoId
-                  ) {
-                    setLoading(
-                      false,
-                    );
-
-                    setPanoFound(
-                      false,
-                    );
-
-                    setError(
-                      '선택한 건물 주변 100m 안에서 거리뷰를 찾지 못했습니다.',
-                    );
-
-                    return;
-                  }
-
-                  roadview.setPanoId(
-                    panoId,
-                    position,
-                  );
-
-                  setPanoFound(
-                    true,
-                  );
-
-                  setLoading(
-                    false,
-                  );
-
-                  console.log(
-                    '✅ Kakao 거리뷰 로드 완료',
-                    {
-                      panoId,
-                      latitude,
-                      longitude,
-                    },
-                  );
-                },
-              );
-            } catch (
-              roadviewError
-            ) {
-              console.error(
-                '❌ 거리뷰 초기화 실패:',
-                roadviewError,
-              );
-
-              setLoading(
-                false,
-              );
-
-              setError(
-                '거리뷰를 불러오지 못했습니다.',
-              );
-            }
-          },
-        );
-      };
-
-    if (
-      !KAKAO_JS_KEY
-    ) {
-      setLoading(
-        false,
-      );
-
-      setError(
-        'Kakao 지도 API 키를 확인해주세요.',
-      );
-
-      return;
-    }
-
-    /**
-     * 지도 페이지에서
-     * 이미 SDK가 로드된 경우
-     */
-    if (
-      window.kakao?.maps
-    ) {
-      initRoadview();
-
-      return () => {
-        cancelled =
-          true;
-      };
-    }
-
-    const existingScript =
-      document.getElementById(
-        'kakao-map-sdk',
-      ) as HTMLScriptElement | null;
-
-    if (
-      existingScript
-    ) {
-      existingScript.addEventListener(
-        'load',
-        initRoadview,
-      );
+    if (!KAKAO_JS_KEY) {
+      fail('EXPO_PUBLIC_KAKAO_JS_KEY가 배포 빌드에 포함되지 않았어요.');
+    } else if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      fail('선택한 위치의 좌표가 올바르지 않아요.');
     } else {
-      const script =
-        document.createElement(
-          'script',
-        );
+      sdkTimer = setTimeout(() => {
+        fail('카카오 지도 SDK를 제한 시간 안에 불러오지 못했어요. F12 콘솔을 확인해 주세요.');
+      }, 15000);
 
-      script.id =
-        'kakao-map-sdk';
+      if (window.kakao?.maps?.load) {
+        initRoadview();
+      } else {
+        // 지도 화면에서 생성한 같은 id의 script가 이미 존재할 수 있음.
+        // 그 스크립트가 로딩 중이라면 load 이벤트를 기다리고,
+        // 이미 실패했다면 timeout으로 오류를 명확하게 표시함.
+        const existing = document.getElementById('kakao-map-sdk') as HTMLScriptElement | null;
+        if (existing) {
+          script = existing;
+          script.addEventListener('load', initRoadview);
+          script.addEventListener('error', onScriptError);
+        } else {
+          script = document.createElement('script');
+          script.id = 'kakao-map-sdk';
+          script.async = true;
+          script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(KAKAO_JS_KEY)}&autoload=false`;
+          script.addEventListener('load', initRoadview);
+          script.addEventListener('error', onScriptError);
+          document.head.appendChild(script);
+        }
+      }
+    }
 
-      script.async =
-        true;
-
-      script.src =
-        `https://dapi.kakao.com/v2/maps/sdk.js` +
-        `?appkey=${KAKAO_JS_KEY}` +
-        `&autoload=false`;
-
-      script.onload =
-        initRoadview;
-
-      script.onerror =
-        () => {
-          setLoading(
-            false,
-          );
-
-          setError(
-            'Kakao 지도 SDK를 불러오지 못했습니다.',
-          );
-        };
-
-      document.head.appendChild(
-        script,
-      );
+    function onScriptError(event: Event) {
+      fail('카카오 지도 SDK 요청이 실패했어요. F12 Network에서 dapi.kakao.com 응답을 확인해 주세요.', event);
     }
 
     return () => {
-      cancelled =
-        true;
-
-      if (
-        existingScript
-      ) {
-        existingScript.removeEventListener(
-          'load',
-          initRoadview,
-        );
+      cancelled = true;
+      if (sdkTimer) clearTimeout(sdkTimer);
+      if (panoTimer) clearTimeout(panoTimer);
+      if (script) {
+        script.removeEventListener('load', initRoadview);
+        script.removeEventListener('error', onScriptError);
       }
     };
-  }, [
-    latitude,
-    longitude,
-  ]);
+  }, [latitude, longitude]);
 
   return (
     <View
