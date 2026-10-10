@@ -2,37 +2,25 @@ import AnalysisHeader from '@/components/analysis-header';
 
 import MonthlyCandidateComparison from '@/components/MonthlyCandidateComparison';
 
-
-
 import {
   businessCategories,
 } from '@/constants/businessTypes';
-
-
 
 import {
   COLORS,
 } from '@/constants/colors';
 
-
-
 import {
   sejongAreas,
 } from '@/constants/sejongAreas';
-
-
 
 import type {
   AIExplanation,
 } from '@/services/aiExplanation';
 
-
-
 import {
   generateAIExplanation,
 } from '@/services/aiExplanation';
-
-
 
 import {
   getAnalysisHistory,
@@ -42,19 +30,13 @@ import {
   toggleAnalysisFavorite,
 } from '@/services/analysisHistory';
 
-
-
 import type {
   NearbyStore,
 } from '@/services/storeApi';
 
-
-
 import {
   getStoreList,
 } from '@/services/storeApi';
-
-
 
 import {
   useLocalSearchParams,
@@ -62,15 +44,11 @@ import {
   useRouter,
 } from 'expo-router';
 
-
-
 import {
   useEffect,
 
   useState,
 } from 'react';
-
-
 
 import {
   ActivityIndicator,
@@ -90,29 +68,21 @@ import {
   View,
 } from 'react-native';
 
+/**
 
+ * =====================================================
 
-/*\*
+ * TYPES
 
- \* =====================================================
-
- \* TYPES
-
- \* =====================================================
+ * =====================================================
 
  */
-
-
 
 type CompareItem = {
 
   areaName: string;
 
-
-
   rank: number;
-
-
 
   floatingPopulationScore?: number;
 
@@ -130,8 +100,6 @@ type CompareItem = {
 
   accessibilityScore?: number;
 
-
-
   [key: string]:
 
     | number
@@ -142,135 +110,54 @@ type CompareItem = {
 
 };
 
+/**
 
+ * =====================================================
 
-/*\*
+ * AI 강조 문구
 
- \* =====================================================
-
- \* AI 강조 문구
-
- \* =====================================================
+ * =====================================================
 
  */
-
-
 
 function renderEmphasizedText(
-
   text: string,
-
   textStyle: object,
-
 ) {
-
-  const parts =
-
-    text.split(
-
-      /(\*\*.*?\*\*)/g,
-
-    );
-
-
+  const parts = text.split(/(\*\*.*?\*\*)/g);
 
   return (
+    <Text style={textStyle}>
+      {parts.map((part, index) => {
+        if (
+          part.startsWith('**') &&
+          part.endsWith('**')
+        ) {
+          return (
+            <Text
+              key={index}
+              style={styles.aiHighlight}
+            >
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
 
-    <Text
-
-      style={
-
-        textStyle
-
-      }
-
-    >
-
-      {parts.map(
-
-        (
-
-          part,
-
-          index,
-
-        ) => {
-
-          if (
-
-            part.startsWith(
-
-              '\*\*',
-
-            ) &&
-
-            part.endsWith(
-
-              '\*\*',
-
-            )
-
-          ) {
-
-            return (
-
-              <Text
-
-                key={
-
-                  index
-
-                }
-
-                style={
-
-                  styles.aiHighlight
-
-                }
-
-              >
-
-                {part.slice(
-
-                  2,
-
-                  -2,
-
-                )}
-
-              </Text>
-
-            );
-
-          }
-
-
-
-          return part;
-
-        },
-
-      )}
-
+        return part;
+      })}
     </Text>
-
   );
-
 }
 
+/**
 
+ * =====================================================
 
-/*\*
+ * 증감률 표시
 
- \* =====================================================
-
- \* 증감률 표시
-
- \* =====================================================
+ * =====================================================
 
  */
-
-
 
 function formatChangeRate(
 
@@ -292,8 +179,6 @@ function formatChangeRate(
 
   }
 
-
-
   return `${
 
     value > 0
@@ -310,23 +195,20 @@ function formatChangeRate(
 
 }
 
+/**
 
+ * =====================================================
 
-/*\*
+ * MAIN
 
- \* =====================================================
-
- \* MAIN
-
- \* =====================================================
+ * =====================================================
 
  */
-
-
 
 export default function RegionResultDetailScreen() {
 
   const router =
+
     useRouter();
 
   const params =
@@ -341,85 +223,45 @@ export default function RegionResultDetailScreen() {
 
       businessName: string;
 
-
-
       areaName: string;
-
-
 
       rank: string;
 
-
-
       totalCount: string;
-
-
 
       suitabilityScore: string;
 
-
-
       floatingPopulation: string;
-
-
 
       livingPopulation: string;
 
-
-
       storeCount: string;
-
-
 
       competitionDensity: string;
 
-
-
       salesAmount: string;
-
-
 
       averageSalesPerStore: string;
 
-
-
       busStopCount: string;
-
-
 
       livingPopulationChangeRate: string;
 
-
-
       floatingPopulationChangeRate: string;
-
-
 
       compareData?: string;
 
-
-
       analysisType?: string;
-
-
 
       dongName?: string;
 
-
-
       latitude?: string;
 
-
-
       longitude?: string;
-
-
 
       radius?: string;
 
     }>();
-
-
 
   const {
 
@@ -431,79 +273,41 @@ export default function RegionResultDetailScreen() {
 
     businessName,
 
-
-
     areaName,
-
-
 
     rank,
 
-
-
     totalCount,
-
-
 
     suitabilityScore,
 
-
-
     floatingPopulation,
-
-
 
     livingPopulation,
 
-
-
     storeCount,
-
-
 
     competitionDensity,
 
-
-
     salesAmount,
-
-
 
     averageSalesPerStore,
 
-
-
     busStopCount,
-
-
 
     livingPopulationChangeRate,
 
-
-
     floatingPopulationChangeRate,
-
-
 
     compareData,
 
-
-
     analysisType,
-
-
 
     dongName,
 
-
-
     latitude,
 
-
-
     longitude,
-
-
 
     radius,
 
@@ -511,27 +315,21 @@ export default function RegionResultDetailScreen() {
 
     params;
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 위치 분석 정보
 
-   \* =====================================================
-
-   \* 위치 분석 정보
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const isPointAnalysis =
 
     analysisType ===
 
     'point';
-
-
 
   const actualDongName =
 
@@ -540,48 +338,68 @@ export default function RegionResultDetailScreen() {
     areaName;
 
   const backBusinesses =
+
     originBusinesses ||
+
     businessName;
 
   const backAreas =
+
     originAreas !== undefined
+
       ? originAreas
+
       : isPointAnalysis
+
         ? ''
+
         : areaName;
 
   const backDetailedLocations =
+
     originDetailedLocations !== undefined
+
       ? originDetailedLocations
+
       : isPointAnalysis &&
+
           latitude &&
+
           longitude
+
         ? JSON.stringify([
+
             {
+
               label: areaName,
+
               dongName: actualDongName,
+
               coordinates: {
+
                 lat: Number(latitude),
+
                 lng: Number(longitude),
+
               },
+
               radius: Number(radius || 500),
+
             },
+
           ])
+
         : '';
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 행정동 찾기
 
-   \* =====================================================
-
-   \* 행정동 찾기
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const area =
 
@@ -595,19 +413,15 @@ export default function RegionResultDetailScreen() {
 
     );
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 업종 찾기
 
-   \* =====================================================
-
-   \* 업종 찾기
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const business =
 
@@ -631,25 +445,19 @@ export default function RegionResultDetailScreen() {
 
       );
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 비교 데이터
 
-   \* =====================================================
-
-   \* 비교 데이터
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   let compareItems:
 
     CompareItem[] = [];
-
-
 
   try {
 
@@ -662,8 +470,6 @@ export default function RegionResultDetailScreen() {
           '[]',
 
       );
-
-
 
     if (
 
@@ -695,27 +501,21 @@ export default function RegionResultDetailScreen() {
 
     );
 
-
-
     compareItems =
 
       [];
 
   }
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * AI 분석
 
-   \* =====================================================
-
-   \* AI 분석
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const [
 
@@ -735,8 +535,6 @@ export default function RegionResultDetailScreen() {
 
     );
 
-
-
   const [
 
     aiLoading,
@@ -750,8 +548,6 @@ export default function RegionResultDetailScreen() {
       true,
 
     );
-
-
 
   const [
 
@@ -767,8 +563,6 @@ export default function RegionResultDetailScreen() {
 
     );
 
-
-
   const [
 
     detailExpanded,
@@ -783,19 +577,15 @@ export default function RegionResultDetailScreen() {
 
     );
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 주변 실제 점포
 
-   \* =====================================================
-
-   \* 주변 실제 점포
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const [
 
@@ -811,8 +601,6 @@ export default function RegionResultDetailScreen() {
 
     >([]);
 
-
-
   const [
 
     storesLoading,
@@ -826,8 +614,6 @@ export default function RegionResultDetailScreen() {
       true,
 
     );
-
-
 
   const [
 
@@ -843,19 +629,15 @@ export default function RegionResultDetailScreen() {
 
     );
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 찜
 
-   \* =====================================================
-
-   \* 찜
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const [
 
@@ -870,8 +652,6 @@ export default function RegionResultDetailScreen() {
       false,
 
     );
-
-
 
   const [
 
@@ -891,8 +671,6 @@ export default function RegionResultDetailScreen() {
 
     );
 
-
-
   const [
 
     favoriteLoading,
@@ -907,19 +685,15 @@ export default function RegionResultDetailScreen() {
 
     );
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * AI 설명 생성
 
-   \* =====================================================
-
-   \* AI 설명 생성
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   useEffect(() => {
 
@@ -935,15 +709,11 @@ export default function RegionResultDetailScreen() {
 
           );
 
-
-
           setAiError(
 
             '',
 
           );
-
-
 
           const result =
 
@@ -955,13 +725,9 @@ export default function RegionResultDetailScreen() {
 
                   areaName,
 
-
-
                 업종:
 
                   businessName,
-
-
 
                 유동인구:
 
@@ -971,8 +737,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 생활인구:
 
                   Number(
@@ -980,8 +744,6 @@ export default function RegionResultDetailScreen() {
                     livingPopulation,
 
                   ),
-
-
 
                 점포수:
 
@@ -991,8 +753,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 경쟁밀도:
 
                   Number(
@@ -1000,8 +760,6 @@ export default function RegionResultDetailScreen() {
                     competitionDensity,
 
                   ),
-
-
 
                 전체카드소비:
 
@@ -1011,8 +769,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 점포당카드소비:
 
                   Number(
@@ -1020,8 +776,6 @@ export default function RegionResultDetailScreen() {
                     averageSalesPerStore,
 
                   ),
-
-
 
                 버스정류장수:
 
@@ -1031,8 +785,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 적합도점수:
 
                   Number(
@@ -1040,8 +792,6 @@ export default function RegionResultDetailScreen() {
                     suitabilityScore,
 
                   ),
-
-
 
                 순위:
 
@@ -1054,8 +804,6 @@ export default function RegionResultDetailScreen() {
               },
 
             );
-
-
 
           setExplanation(
 
@@ -1076,8 +824,6 @@ export default function RegionResultDetailScreen() {
             error,
 
           );
-
-
 
           setAiError(
 
@@ -1103,29 +849,21 @@ export default function RegionResultDetailScreen() {
 
       };
 
-
-
     run();
-
-
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
 
   }, []);
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 실제 점포 조회
 
-   \* =====================================================
-
-   \* 실제 점포 조회
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   useEffect(() => {
 
@@ -1145,15 +883,9 @@ export default function RegionResultDetailScreen() {
 
           actualDongName,
 
-
-
           businessName,
 
-
-
           area,
-
-
 
           business,
 
@@ -1161,21 +893,15 @@ export default function RegionResultDetailScreen() {
 
       );
 
-
-
       setStoresLoading(
 
         false,
 
       );
 
-
-
       return;
 
     }
-
-
 
     const run =
 
@@ -1189,15 +915,11 @@ export default function RegionResultDetailScreen() {
 
           );
 
-
-
           setStoresError(
 
             '',
 
           );
-
-
 
           const stores =
 
@@ -1205,25 +927,15 @@ export default function RegionResultDetailScreen() {
 
               area.code,
 
-
-
               business.lclsCode,
-
-
 
               business.mclsCode,
 
-
-
               business.sclsCode,
-
-
 
               10,
 
             );
-
-
 
           console.log(
 
@@ -1232,8 +944,6 @@ export default function RegionResultDetailScreen() {
             stores,
 
           );
-
-
 
           setNearbyStores(
 
@@ -1254,8 +964,6 @@ export default function RegionResultDetailScreen() {
             error,
 
           );
-
-
 
           setStoresError(
 
@@ -1281,29 +989,21 @@ export default function RegionResultDetailScreen() {
 
       };
 
-
-
     run();
-
-
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
 
   }, []);
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 기존 저장 분석 확인
 
-   \* =====================================================
-
-   \* 기존 저장 분석 확인
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   useEffect(() => {
 
@@ -1317,8 +1017,6 @@ export default function RegionResultDetailScreen() {
 
             await getAnalysisHistory();
 
-
-
           const existing =
 
             histories.find(
@@ -1328,8 +1026,6 @@ export default function RegionResultDetailScreen() {
                 const data =
 
                   history.resultData;
-
-
 
                 if (
 
@@ -1342,8 +1038,6 @@ export default function RegionResultDetailScreen() {
                   return false;
 
                 }
-
-
 
                 if (
 
@@ -1359,11 +1053,9 @@ export default function RegionResultDetailScreen() {
 
                 }
 
+                /**
 
-
-                /*\*
-
-                 \* 좌표 기반 분석
+                 * 좌표 기반 분석
 
                  */
 
@@ -1431,8 +1123,6 @@ export default function RegionResultDetailScreen() {
 
                 }
 
-
-
                 return (
 
                   data?.analysisType !==
@@ -1445,8 +1135,6 @@ export default function RegionResultDetailScreen() {
 
             );
 
-
-
           if (
 
             !existing
@@ -1457,15 +1145,11 @@ export default function RegionResultDetailScreen() {
 
           }
 
-
-
           setSavedAnalysisId(
 
             existing.id,
 
           );
-
-
 
           setFavorite(
 
@@ -1493,8 +1177,6 @@ export default function RegionResultDetailScreen() {
 
       };
 
-
-
     checkSaved();
 
   }, [
@@ -1513,19 +1195,15 @@ export default function RegionResultDetailScreen() {
 
   ]);
 
+  /**
 
+   * =====================================================
 
-  /*\*
+   * 찜 버튼
 
-   \* =====================================================
-
-   \* 찜 버튼
-
-   \* =====================================================
+   * =====================================================
 
    */
-
-
 
   const handleFavorite =
 
@@ -1541,8 +1219,6 @@ export default function RegionResultDetailScreen() {
 
       }
 
-
-
       try {
 
         setFavoriteLoading(
@@ -1551,11 +1227,9 @@ export default function RegionResultDetailScreen() {
 
         );
 
+        /**
 
-
-        /*\*
-
-         \* 이미 저장된 분석
+         * 이미 저장된 분석
 
          */
 
@@ -1573,8 +1247,6 @@ export default function RegionResultDetailScreen() {
 
             );
 
-
-
           if (
 
             updated
@@ -1591,17 +1263,13 @@ export default function RegionResultDetailScreen() {
 
           }
 
-
-
           return;
 
         }
 
+        /**
 
-
-        /*\*
-
-         \* 처음 저장
+         * 처음 저장
 
          */
 
@@ -1615,17 +1283,11 @@ export default function RegionResultDetailScreen() {
 
                 'comparison',
 
-
-
               title:
 
                 `${areaName} ${businessName} 분석`,
 
-
-
               businessName,
-
-
 
               regions: [
 
@@ -1633,23 +1295,15 @@ export default function RegionResultDetailScreen() {
 
               ],
 
-
-
               isFavorite:
 
                 true,
-
-
 
               resultData: {
 
                 businessName,
 
-
-
                 areaName,
-
-
 
                 rank:
 
@@ -1659,8 +1313,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 totalCount:
 
                   Number(
@@ -1668,8 +1320,6 @@ export default function RegionResultDetailScreen() {
                     totalCount,
 
                   ),
-
-
 
                 suitabilityScore:
 
@@ -1679,8 +1329,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 floatingPopulation:
 
                   Number(
@@ -1688,8 +1336,6 @@ export default function RegionResultDetailScreen() {
                     floatingPopulation,
 
                   ),
-
-
 
                 livingPopulation:
 
@@ -1699,8 +1345,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 storeCount:
 
                   Number(
@@ -1708,8 +1352,6 @@ export default function RegionResultDetailScreen() {
                     storeCount,
 
                   ),
-
-
 
                 competitionDensity:
 
@@ -1719,8 +1361,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 salesAmount:
 
                   Number(
@@ -1728,8 +1368,6 @@ export default function RegionResultDetailScreen() {
                     salesAmount,
 
                   ),
-
-
 
                 averageSalesPerStore:
 
@@ -1739,8 +1377,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 busStopCount:
 
                   Number(
@@ -1748,8 +1384,6 @@ export default function RegionResultDetailScreen() {
                     busStopCount,
 
                   ),
-
-
 
                 livingPopulationChangeRate:
 
@@ -1759,8 +1393,6 @@ export default function RegionResultDetailScreen() {
 
                   ),
 
-
-
                 floatingPopulationChangeRate:
 
                   Number(
@@ -1768,8 +1400,6 @@ export default function RegionResultDetailScreen() {
                     floatingPopulationChangeRate,
 
                   ),
-
-
 
                 analysisType:
 
@@ -1779,13 +1409,9 @@ export default function RegionResultDetailScreen() {
 
                     : 'area',
 
-
-
                 dongName:
 
                   actualDongName,
-
-
 
                 latitude:
 
@@ -1799,8 +1425,6 @@ export default function RegionResultDetailScreen() {
 
                     : null,
 
-
-
                 longitude:
 
                   longitude
@@ -1812,8 +1436,6 @@ export default function RegionResultDetailScreen() {
                       )
 
                     : null,
-
-
 
                 radius:
 
@@ -1833,15 +1455,11 @@ export default function RegionResultDetailScreen() {
 
           );
 
-
-
         setSavedAnalysisId(
 
           saved.id,
 
         );
-
-
 
         setFavorite(
 
@@ -1863,8 +1481,6 @@ export default function RegionResultDetailScreen() {
 
         );
 
-
-
         Alert.alert(
 
           '오류',
@@ -1885,23 +1501,62 @@ export default function RegionResultDetailScreen() {
 
     };
 
-
+  const handleOpenChat = () => {
+    router.push({
+      pathname: '/chat',
+      params: {
+          returnTo: '/market-analysis/region-result-detail',
+        businessName,
+        areaName,
+        rank,
+        totalCount,
+        suitabilityScore,
+        floatingPopulation,
+        livingPopulation,
+        storeCount,
+        competitionDensity,
+        salesAmount,
+        averageSalesPerStore,
+        busStopCount,
+        livingPopulationChangeRate,
+        floatingPopulationChangeRate,
+        analysisType: isPointAnalysis ? 'point' : 'area',
+        dongName: actualDongName,
+        latitude: latitude ?? '',
+        longitude: longitude ?? '',
+        radius: radius ?? '',
+      },
+    });
+  };
 
   return (
 
     <View style={styles.screen}>
+
       <AnalysisHeader
+
         title="상세 분석"
+
         onBack={() =>
+
           router.replace({
+
             pathname: '/market-analysis/region-result',
+
             params: {
+
               businesses: backBusinesses,
+
               areas: backAreas,
+
               detailedLocations: backDetailedLocations,
+
             },
+
           })
+
         }
+
       />
 
       <ScrollView
@@ -1927,8 +1582,6 @@ export default function RegionResultDetailScreen() {
           HEADER
 
       ================================================= */}
-
-
 
       <View
 
@@ -1976,8 +1629,6 @@ export default function RegionResultDetailScreen() {
 
           </View>
 
-
-
           <Text
 
             style={
@@ -1994,11 +1645,7 @@ export default function RegionResultDetailScreen() {
 
         </View>
 
-
-
         {/* 지역명 + 찜 */}
-
-
 
         <View
 
@@ -2034,8 +1681,6 @@ export default function RegionResultDetailScreen() {
 
             </Text>
 
-
-
             {isPointAnalysis &&
 
               radius && (
@@ -2060,15 +1705,11 @@ export default function RegionResultDetailScreen() {
 
           </View>
 
-
-
           <TouchableOpacity
 
             style={[
 
               styles.favoriteButton,
-
-
 
               favorite &&
 
@@ -2122,8 +1763,6 @@ export default function RegionResultDetailScreen() {
 
                   styles.favoriteText,
 
-
-
                   favorite &&
 
                     styles.favoriteTextActive,
@@ -2146,8 +1785,6 @@ export default function RegionResultDetailScreen() {
 
         </View>
 
-
-
         <Text
 
           style={
@@ -2165,8 +1802,6 @@ export default function RegionResultDetailScreen() {
           }
 
         </Text>
-
-
 
         <View
 
@@ -2192,8 +1827,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2211,8 +1844,6 @@ export default function RegionResultDetailScreen() {
             }
 
           </Text>
-
-
 
           <Text
 
@@ -2232,15 +1863,33 @@ export default function RegionResultDetailScreen() {
 
       </View>
 
+      <TouchableOpacity
+        style={styles.chatButton}
+        activeOpacity={0.8}
+        onPress={handleOpenChat}
+      >
+        <View style={styles.chatIcon}>
+          <Text style={styles.chatIconText}>AI</Text>
+        </View>
 
+        <View style={styles.chatButtonContent}>
+          <Text style={styles.chatButtonTitle}>
+            AI에게 물어보기
+          </Text>
+
+          <Text style={styles.chatButtonDescription}>
+            현재 분석 결과를 바탕으로 궁금한 점을 질문해보세요
+          </Text>
+        </View>
+
+        <Text style={styles.chatButtonArrow}>›</Text>
+      </TouchableOpacity>
 
       {/* =================================================
 
           핵심 지표
 
       ================================================= */}
-
-
 
       <View
 
@@ -2280,8 +1929,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2303,8 +1950,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -2334,8 +1979,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2357,8 +2000,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -2384,8 +2025,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2410,8 +2049,6 @@ export default function RegionResultDetailScreen() {
 
         </View>
 
-
-
         <View
 
           style={
@@ -2435,8 +2072,6 @@ export default function RegionResultDetailScreen() {
             점포당 카드소비
 
           </Text>
-
-
 
           <Text
 
@@ -2466,15 +2101,11 @@ export default function RegionResultDetailScreen() {
 
       </View>
 
-
-
       {/* =================================================
 
           ★ 실제 월별 후보 비교
 
       ================================================= */}
-
-
 
       {compareItems.length >
 
@@ -2534,8 +2165,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2554,15 +2183,11 @@ export default function RegionResultDetailScreen() {
 
       )}
 
-
-
       {/* =================================================
 
           주변 실제 점포
 
       ================================================= */}
-
-
 
       <View
 
@@ -2596,8 +2221,6 @@ export default function RegionResultDetailScreen() {
 
         </Text>
 
-
-
         <Text
 
           style={
@@ -2611,8 +2234,6 @@ export default function RegionResultDetailScreen() {
           공공데이터에 등록된 이 지역의 실제 매장 정보예요.
 
         </Text>
-
-
 
         {Platform.OS !==
 
@@ -2633,8 +2254,6 @@ export default function RegionResultDetailScreen() {
             />
 
           )}
-
-
 
         {storesLoading && (
 
@@ -2660,8 +2279,6 @@ export default function RegionResultDetailScreen() {
 
             />
 
-
-
             <Text
 
               style={
@@ -2679,8 +2296,6 @@ export default function RegionResultDetailScreen() {
           </View>
 
         )}
-
-
 
         {!storesLoading &&
 
@@ -2708,8 +2323,6 @@ export default function RegionResultDetailScreen() {
 
           )}
 
-
-
         {!storesLoading &&
 
           storesError ===
@@ -2735,8 +2348,6 @@ export default function RegionResultDetailScreen() {
             </Text>
 
           )}
-
-
 
         {!storesLoading &&
 
@@ -2780,8 +2391,6 @@ export default function RegionResultDetailScreen() {
 
                 </Text>
 
-
-
                 <Text
 
                   style={
@@ -2808,15 +2417,11 @@ export default function RegionResultDetailScreen() {
 
       </View>
 
-
-
       {/* =================================================
 
           지역 환경 상세
 
       ================================================= */}
-
-
 
       <View
 
@@ -2842,8 +2447,6 @@ export default function RegionResultDetailScreen() {
 
         </Text>
 
-
-
         {isPointAnalysis && (
 
           <Text
@@ -2865,8 +2468,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         )}
-
-
 
         <View
 
@@ -2896,8 +2497,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2919,8 +2518,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -2946,8 +2543,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -2971,8 +2566,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -2998,8 +2591,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -3023,8 +2614,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -3054,8 +2643,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -3077,8 +2664,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -3103,8 +2688,6 @@ export default function RegionResultDetailScreen() {
             점포당 카드소비
 
           </Text>
-
-
 
           <Text
 
@@ -3131,8 +2714,6 @@ export default function RegionResultDetailScreen() {
           </Text>
 
         </View>
-
-
 
         <View
 
@@ -3164,8 +2745,6 @@ export default function RegionResultDetailScreen() {
 
           </Text>
 
-
-
           <Text
 
             style={
@@ -3190,15 +2769,11 @@ export default function RegionResultDetailScreen() {
 
       </View>
 
-
-
       {/* =================================================
 
           AI 분석
 
       ================================================= */}
-
-
 
       <View
 
@@ -3224,8 +2799,6 @@ export default function RegionResultDetailScreen() {
 
         </Text>
 
-
-
         {aiLoading && (
 
           <View
@@ -3250,8 +2823,6 @@ export default function RegionResultDetailScreen() {
 
             />
 
-
-
             <Text
 
               style={
@@ -3269,8 +2840,6 @@ export default function RegionResultDetailScreen() {
           </View>
 
         )}
-
-
 
         {!aiLoading &&
 
@@ -3298,8 +2867,6 @@ export default function RegionResultDetailScreen() {
 
           )}
 
-
-
         {!aiLoading &&
 
           explanation && (
@@ -3310,13 +2877,9 @@ export default function RegionResultDetailScreen() {
 
                 explanation.recommendationReason,
 
-
-
                 styles.aiReasonText,
 
               )}
-
-
 
               <View
 
@@ -3364,13 +2927,9 @@ export default function RegionResultDetailScreen() {
 
                       </Text>
 
-
-
                       {renderEmphasizedText(
 
                         advantage,
-
-
 
                         styles.chunkTextGood,
 
@@ -3381,8 +2940,6 @@ export default function RegionResultDetailScreen() {
                   ),
 
                 )}
-
-
 
                 {explanation.risks.map(
 
@@ -3420,13 +2977,9 @@ export default function RegionResultDetailScreen() {
 
                       </Text>
 
-
-
                       {renderEmphasizedText(
 
                         risk,
-
-
 
                         styles.chunkTextWarn,
 
@@ -3439,8 +2992,6 @@ export default function RegionResultDetailScreen() {
                 )}
 
               </View>
-
-
 
               <TouchableOpacity
 
@@ -3490,8 +3041,6 @@ export default function RegionResultDetailScreen() {
 
               </TouchableOpacity>
 
-
-
               {detailExpanded && (
 
                 <View
@@ -3518,19 +3067,13 @@ export default function RegionResultDetailScreen() {
 
                   </Text>
 
-
-
                   {renderEmphasizedText(
 
                     explanation.keyFeatures,
 
-
-
                     styles.aiReasonText,
 
                   )}
-
-
 
                   <Text
 
@@ -3545,8 +3088,6 @@ export default function RegionResultDetailScreen() {
                     고려사항
 
                   </Text>
-
-
 
                   <Text
 
@@ -3577,25 +3118,22 @@ export default function RegionResultDetailScreen() {
       </View>
 
     </ScrollView>
+
     </View>
 
   );
 
 }
 
+/**
 
+ * =====================================================
 
-/*\*
+ * 네이티브 실제 점포 지도
 
- \* =====================================================
-
- \* 네이티브 실제 점포 지도
-
- \* =====================================================
+ * =====================================================
 
  */
-
-
 
 function NativeStoreMap({
 
@@ -3617,8 +3155,6 @@ function NativeStoreMap({
 
     ).default;
 
-
-
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 
   const {
@@ -3633,13 +3169,9 @@ function NativeStoreMap({
 
     );
 
-
-
   const center =
 
     stores[0];
-
-
 
   return (
 
@@ -3657,19 +3189,13 @@ function NativeStoreMap({
 
           center.lat,
 
-
-
         longitude:
 
           center.lng,
 
-
-
         latitudeDelta:
 
           0.02,
-
-
 
         longitudeDelta:
 
@@ -3703,8 +3229,6 @@ function NativeStoreMap({
 
                 store.lat,
 
-
-
               longitude:
 
                 store.lng,
@@ -3735,19 +3259,15 @@ function NativeStoreMap({
 
 }
 
+/**
 
+ * =====================================================
 
-/*\*
+ * STYLES
 
- \* =====================================================
-
- \* STYLES
-
- \* =====================================================
+ * =====================================================
 
  */
-
-
 
 const styles =
 
@@ -3757,15 +3277,11 @@ const styles =
 
       flex: 1,
 
-
-
       backgroundColor:
 
         COLORS.background,
 
     },
-
-
 
     container: {
 
@@ -3773,49 +3289,31 @@ const styles =
 
         '100%',
 
-
-
       maxWidth: 1200,
-
-
 
       alignSelf:
 
         'center',
 
-
-
       padding: 20,
-
-
 
       paddingBottom: 50,
 
     },
 
+    /**
 
-
-    /*\*
-
-     \* HEADER
+     * HEADER
 
      */
-
-
 
     headerCard: {
 
       padding: 20,
 
-
-
       marginBottom: 16,
 
-
-
       borderRadius: 20,
-
-
 
       backgroundColor:
 
@@ -3823,45 +3321,29 @@ const styles =
 
     },
 
-
-
     headerTopRow: {
 
       flexDirection:
 
         'row',
 
-
-
       alignItems:
 
         'center',
 
-
-
       gap: 10,
-
-
 
       marginBottom: 10,
 
     },
 
-
-
     rankPill: {
 
       paddingVertical: 4,
 
-
-
       paddingHorizontal: 10,
 
-
-
       borderRadius: 12,
-
-
 
       backgroundColor:
 
@@ -3869,19 +3351,13 @@ const styles =
 
     },
 
-
-
     rankPillText: {
 
       fontSize: 12,
 
-
-
       fontWeight:
 
         '800',
-
-
 
       color:
 
@@ -3889,13 +3365,9 @@ const styles =
 
     },
 
-
-
     headerSubText: {
 
       fontSize: 12,
-
-
 
       color:
 
@@ -3903,33 +3375,23 @@ const styles =
 
     },
 
-
-
     titleRow: {
 
       flexDirection:
 
         'row',
 
-
-
       alignItems:
 
         'center',
-
-
 
       justifyContent:
 
         'space-between',
 
-
-
       gap: 12,
 
     },
-
-
 
     titleArea: {
 
@@ -3937,23 +3399,15 @@ const styles =
 
     },
 
-
-
     headerTitle: {
 
       marginBottom: 4,
 
-
-
       fontSize: 24,
-
-
 
       fontWeight:
 
         '900',
-
-
 
       color:
 
@@ -3961,23 +3415,15 @@ const styles =
 
     },
 
-
-
     pointSubtitle: {
 
       marginTop: 2,
 
-
-
       fontSize: 11,
-
-
 
       fontWeight:
 
         '700',
-
-
 
       color:
 
@@ -3985,43 +3431,27 @@ const styles =
 
     },
 
-
-
     favoriteButton: {
 
       width: 44,
 
-
-
       height: 44,
-
-
 
       alignItems:
 
         'center',
 
-
-
       justifyContent:
 
         'center',
 
-
-
       borderWidth: 1,
-
-
 
       borderColor:
 
         '#E5E7EB',
 
-
-
       borderRadius: 22,
-
-
 
       backgroundColor:
 
@@ -4029,15 +3459,11 @@ const styles =
 
     },
 
-
-
     favoriteButtonActive: {
 
       borderColor:
 
         '#E54861',
-
-
 
       backgroundColor:
 
@@ -4045,25 +3471,17 @@ const styles =
 
     },
 
-
-
     favoriteText: {
 
       fontSize: 27,
 
-
-
       lineHeight: 31,
-
-
 
       color:
 
         '#E54861',
 
     },
-
-
 
     favoriteTextActive: {
 
@@ -4073,21 +3491,13 @@ const styles =
 
     },
 
-
-
     headerBusiness: {
 
       marginTop: 6,
 
-
-
       marginBottom: 16,
 
-
-
       fontSize: 14,
-
-
 
       color:
 
@@ -4095,37 +3505,25 @@ const styles =
 
     },
 
-
-
     scoreRow: {
 
       flexDirection:
 
         'row',
 
-
-
       alignItems:
 
         'flex-end',
-
-
 
       gap: 6,
 
     },
 
-
-
     scoreLabel: {
 
       marginBottom: 4,
 
-
-
       fontSize: 12,
-
-
 
       color:
 
@@ -4133,19 +3531,13 @@ const styles =
 
     },
 
-
-
     scoreValue: {
 
       fontSize: 30,
 
-
-
       fontWeight:
 
         '900',
-
-
 
       color:
 
@@ -4153,17 +3545,11 @@ const styles =
 
     },
 
-
-
     scoreUnit: {
 
       marginBottom: 4,
 
-
-
       fontSize: 13,
-
-
 
       color:
 
@@ -4171,15 +3557,11 @@ const styles =
 
     },
 
+    /**
 
-
-    /*\*
-
-     \* 핵심 지표
+     * 핵심 지표
 
      */
-
-
 
     metricGrid: {
 
@@ -4187,57 +3569,35 @@ const styles =
 
         'row',
 
-
-
       flexWrap:
 
         'wrap',
 
-
-
       gap: 10,
-
-
 
       marginBottom: 16,
 
     },
 
-
-
     metricBox: {
 
       flexGrow: 1,
-
-
 
       flexBasis:
 
         '47%',
 
-
-
       minWidth: 220,
-
-
 
       padding: 14,
 
-
-
       borderWidth: 1,
-
-
 
       borderColor:
 
         COLORS.border,
 
-
-
       borderRadius: 14,
-
-
 
       backgroundColor:
 
@@ -4245,17 +3605,11 @@ const styles =
 
     },
 
-
-
     metricLabel: {
 
       marginBottom: 6,
 
-
-
       fontSize: 11,
-
-
 
       color:
 
@@ -4263,19 +3617,13 @@ const styles =
 
     },
 
-
-
     metricValue: {
 
       fontSize: 15,
 
-
-
       fontWeight:
 
         '800',
-
-
 
       color:
 
@@ -4283,15 +3631,11 @@ const styles =
 
     },
 
+    /**
 
-
-    /*\*
-
-     \* 비교 그래프
+     * 비교 그래프
 
      */
-
-
 
     comparisonWrapper: {
 
@@ -4299,17 +3643,11 @@ const styles =
 
     },
 
-
-
     noCompareText: {
 
       marginTop: 8,
 
-
-
       fontSize: 12,
-
-
 
       color:
 
@@ -4317,39 +3655,25 @@ const styles =
 
     },
 
+    /**
 
-
-    /*\*
-
-     \* 공통 SECTION
+     * 공통 SECTION
 
      */
-
-
 
     sectionBox: {
 
       padding: 16,
 
-
-
       marginBottom: 16,
 
-
-
       borderWidth: 1,
-
-
 
       borderColor:
 
         COLORS.border,
 
-
-
       borderRadius: 18,
-
-
 
       backgroundColor:
 
@@ -4357,23 +3681,15 @@ const styles =
 
     },
 
-
-
     sectionTitle: {
 
       marginBottom: 4,
 
-
-
       fontSize: 15,
-
-
 
       fontWeight:
 
         '800',
-
-
 
       color:
 
@@ -4381,57 +3697,35 @@ const styles =
 
     },
 
-
-
     sectionDescription: {
 
       marginBottom: 12,
 
-
-
       fontSize: 12,
-
-
 
       color:
 
         COLORS.textSecondary,
 
     },
-
-
 
     estimateNotice: {
 
       marginTop: 8,
 
-
-
       marginBottom: 14,
-
-
 
       padding: 10,
 
-
-
       borderRadius: 10,
-
-
 
       backgroundColor:
 
         '#F5FCF6',
 
-
-
       fontSize: 11,
 
-
-
       lineHeight: 17,
-
-
 
       color:
 
@@ -4439,15 +3733,11 @@ const styles =
 
     },
 
+    /**
 
-
-    /*\*
-
-     \* 실제 점포
+     * 실제 점포
 
      */
-
-
 
     map: {
 
@@ -4455,21 +3745,13 @@ const styles =
 
         '100%',
 
-
-
       height: 200,
 
-
-
       marginBottom: 12,
-
-
 
       borderRadius: 14,
 
     },
-
-
 
     smallLoadingBox: {
 
@@ -4477,29 +3759,19 @@ const styles =
 
         'row',
 
-
-
       alignItems:
 
         'center',
 
-
-
       gap: 8,
-
-
 
       paddingVertical: 10,
 
     },
 
-
-
     smallLoadingText: {
 
       fontSize: 12,
-
-
 
       color:
 
@@ -4507,13 +3779,9 @@ const styles =
 
     },
 
-
-
     storesError: {
 
       fontSize: 12,
-
-
 
       color:
 
@@ -4521,13 +3789,9 @@ const styles =
 
     },
 
-
-
     storesEmpty: {
 
       fontSize: 12,
-
-
 
       color:
 
@@ -4535,17 +3799,11 @@ const styles =
 
     },
 
-
-
     storeRow: {
 
       paddingVertical: 10,
 
-
-
       borderTopWidth: 1,
-
-
 
       borderTopColor:
 
@@ -4553,19 +3811,13 @@ const styles =
 
     },
 
-
-
     storeName: {
 
       fontSize: 13,
 
-
-
       fontWeight:
 
         '700',
-
-
 
       color:
 
@@ -4573,17 +3825,11 @@ const styles =
 
     },
 
-
-
     storeAddress: {
 
       marginTop: 2,
 
-
-
       fontSize: 12,
-
-
 
       color:
 
@@ -4591,15 +3837,11 @@ const styles =
 
     },
 
+    /**
 
-
-    /*\*
-
-     \* 상세 지표
+     * 상세 지표
 
      */
-
-
 
     detailRow: {
 
@@ -4607,31 +3849,19 @@ const styles =
 
         'row',
 
-
-
       justifyContent:
 
         'space-between',
-
-
 
       alignItems:
 
         'center',
 
-
-
       gap: 20,
-
-
 
       paddingVertical: 10,
 
-
-
       borderBottomWidth: 1,
-
-
 
       borderBottomColor:
 
@@ -4639,21 +3869,15 @@ const styles =
 
     },
 
-
-
     detailRowLast: {
 
       borderBottomWidth: 0,
 
     },
 
-
-
     detailLabel: {
 
       fontSize: 13,
-
-
 
       color:
 
@@ -4661,63 +3885,96 @@ const styles =
 
     },
 
-
-
     detailValue: {
 
       flexShrink: 1,
-
-
 
       textAlign:
 
         'right',
 
-
-
       fontSize: 13,
-
-
 
       fontWeight:
 
         '800',
 
-
-
       color:
 
         COLORS.text,
 
     },
 
+    chatButton: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: '#CDEED7',
+      borderRadius: 16,
+      backgroundColor: '#F3FBF5',
+    },
 
+    chatIcon: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 21,
+      backgroundColor: COLORS.primary,
+    },
 
-    /*\*
+    chatIconText: {
+      fontSize: 12,
+      fontWeight: '900',
+      color: '#FFFFFF',
+    },
 
-     \* AI
+    chatButtonContent: {
+      flex: 1,
+    },
+
+    chatButtonTitle: {
+      marginBottom: 3,
+      fontSize: 14,
+      fontWeight: '800',
+      color: COLORS.text,
+    },
+
+    chatButtonDescription: {
+      fontSize: 11,
+      lineHeight: 16,
+      color: COLORS.textSecondary,
+    },
+
+    chatButtonArrow: {
+      marginLeft: 4,
+      fontSize: 27,
+      fontWeight: '400',
+      color: COLORS.primary,
+    },
+
+    /**
+
+     * AI
 
      */
-
-
 
     aiReasonText: {
 
       fontSize: 13,
 
-
-
       lineHeight: 20,
-
-
 
       color:
 
         COLORS.text,
 
     },
-
-
 
     aiHighlight: {
 
@@ -4725,27 +3982,19 @@ const styles =
 
         '900',
 
-
-
       color:
 
         COLORS.primary,
 
     },
 
-
-
     chunkList: {
 
       marginTop: 12,
 
-
-
       gap: 8,
 
     },
-
-
 
     chunkRowGood: {
 
@@ -4753,25 +4002,15 @@ const styles =
 
         'row',
 
-
-
       alignItems:
 
         'flex-start',
 
-
-
       gap: 8,
-
-
 
       padding: 10,
 
-
-
       borderRadius: 10,
-
-
 
       backgroundColor:
 
@@ -4779,19 +4018,13 @@ const styles =
 
     },
 
-
-
     chunkIconGood: {
 
       fontSize: 13,
 
-
-
       fontWeight:
 
         '900',
-
-
 
       color:
 
@@ -4799,21 +4032,13 @@ const styles =
 
     },
 
-
-
     chunkTextGood: {
 
       flex: 1,
 
-
-
       fontSize: 12,
 
-
-
       lineHeight: 18,
-
-
 
       color:
 
@@ -4821,33 +4046,21 @@ const styles =
 
     },
 
-
-
     chunkRowWarn: {
 
       flexDirection:
 
         'row',
 
-
-
       alignItems:
 
         'flex-start',
 
-
-
       gap: 8,
-
-
 
       padding: 10,
 
-
-
       borderRadius: 10,
-
-
 
       backgroundColor:
 
@@ -4855,19 +4068,13 @@ const styles =
 
     },
 
-
-
     chunkIconWarn: {
 
       fontSize: 13,
 
-
-
       fontWeight:
 
         '900',
-
-
 
       color:
 
@@ -4875,21 +4082,13 @@ const styles =
 
     },
 
-
-
     chunkTextWarn: {
 
       flex: 1,
 
-
-
       fontSize: 12,
 
-
-
       lineHeight: 18,
-
-
 
       color:
 
@@ -4897,17 +4096,11 @@ const styles =
 
     },
 
-
-
     detailToggleButton: {
 
       marginTop: 14,
 
-
-
       paddingVertical: 6,
-
-
 
       alignItems:
 
@@ -4915,19 +4108,13 @@ const styles =
 
     },
 
-
-
     detailToggleText: {
 
       fontSize: 12,
 
-
-
       fontWeight:
 
         '700',
-
-
 
       color:
 
@@ -4935,21 +4122,13 @@ const styles =
 
     },
 
-
-
     aiDetailSection: {
 
       marginTop: 10,
 
-
-
       paddingTop: 10,
 
-
-
       borderTopWidth: 1,
-
-
 
       borderTopColor:
 
@@ -4957,27 +4136,17 @@ const styles =
 
     },
 
-
-
     aiLabel: {
 
       marginTop: 8,
 
-
-
       marginBottom: 4,
 
-
-
       fontSize: 12,
-
-
 
       fontWeight:
 
         '800',
-
-
 
       color:
 
