@@ -1,3 +1,5 @@
+import AnalysisHeader from '@/components/analysis-header';
+import AnalysisStepper from '@/components/analysis-stepper';
 import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
@@ -46,16 +48,15 @@ export default function SuitabilityScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 진행 단계만 표시 */}
-      <View style={styles.appBar}>
-        <View style={styles.stepper}>
-          <Text style={styles.stepActive}>1 업종 선택</Text>
-          <Text style={styles.stepArrow}>›</Text>
-          <Text style={styles.stepInactive}>2 지역 선택</Text>
-          <Text style={styles.stepArrow}>›</Text>
-          <Text style={styles.stepInactive}>3 분석 결과</Text>
-        </View>
-      </View>
+      <AnalysisHeader
+        title="업종 선택"
+        onBack={() => router.replace('/')}
+      />
+
+      <AnalysisStepper
+        steps={['업종 선택', '지역 선택', '분석 결과']}
+        currentStep={1}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -160,38 +161,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  appBar: {
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: 20,
+  scroll: {
+    flex: 1,
   },
-
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    gap: 8,
-  },
-
-  stepActive: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-
-  stepInactive: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9CA3AF',
-  },
-
-  stepArrow: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
-
-  scroll: { flex: 1 },
 
   container: {
     padding: 20,

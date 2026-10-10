@@ -2,42 +2,32 @@ import { Stack } from 'expo-router';
 
 export default function MarketAnalysisLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: '장기 상권 분석' }} />
-      <Stack.Screen name="industry" options={{ title: '업종 선택' }} />
-      <Stack.Screen name="region" options={{ title: '지역 선택' }} />
-      <Stack.Screen
-        name="region-result"
-        options={{ title: '지역별 적합도 순위' }}
-      />
-      <Stack.Screen name="result" options={{ title: '분석 결과' }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="index" />
 
-      <Stack.Screen name="region-result-detail" options={{title: '상세 분석'}} />
+      <Stack.Screen name="industry" />
 
-      <Stack.Screen
-        name="location-recommend"
-        options={{ title: '보유 장소 선택' }}
-      />
+      <Stack.Screen name="region" />
 
-      <Stack.Screen
-        name="location-recommend-result"
-        options={{ title: '업종 추천 순위' }}
-      />
+      <Stack.Screen name="region-result" />
 
-      <Stack.Screen
-        name="suitability"
-        options={{ title: '적합성 분석' }}
-      />
+      <Stack.Screen name="region-result-detail" />
 
-      <Stack.Screen
-        name="suitability-region"
-        options={{ title: '지역 선택' }}
-      />
+      <Stack.Screen name="result" />
 
-      <Stack.Screen
-        name="address-input"
-        options={{ title: '주소로 찾기' }}
-      />
+      <Stack.Screen name="location-recommend" />
+
+      <Stack.Screen name="location-recommend-result" />
+
+      <Stack.Screen name="suitability" />
+
+      <Stack.Screen name="suitability-region" />
+
+      <Stack.Screen name="address-input" />
     </Stack>
   );
 }
