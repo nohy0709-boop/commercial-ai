@@ -1,61 +1,51 @@
+import { businessCategories } from '@/constants/businessTypes';
+
+import { COLORS } from '@/constants/colors';
+
+import { sejongAreas } from '@/constants/sejongAreas';
+
+
+
+import type {
+  ScoredCommercialAnalysisResult,
+} from '@/services/commercialAnalysis';
+
+
+
+import {
+  analyzeCommercialArea,
+
+  analyzeCommercialPoint,
+
+  calculateSuitabilityScores,
+} from '@/services/commercialAnalysis';
+
+
+
+import { generateAIExplanation } from '@/services/aiExplanation';
+
+import type { Coordinates } from '@/services/geocoding';
+
+import { searchLocation } from '@/services/geocoding';
+
+
+
 import AnalysisHeader from '@/components/analysis-header';
 
-import MonthlyCandidateComparison from '@/components/MonthlyCandidateComparison';
+import AnalysisStepper from '@/components/analysis-stepper';
 
-import {
-  businessCategories,
-} from '@/constants/businessTypes';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
-import {
-  COLORS,
-} from '@/constants/colors';
+import { useEffect, useState } from 'react';
 
-import {
-  sejongAreas,
-} from '@/constants/sejongAreas';
 
-import type {
-  AIExplanation,
-} from '@/services/aiExplanation';
-
-import {
-  generateAIExplanation,
-} from '@/services/aiExplanation';
-
-import {
-  getAnalysisHistory,
-
-  saveAnalysis,
-
-  toggleAnalysisFavorite,
-} from '@/services/analysisHistory';
-
-import type {
-  NearbyStore,
-} from '@/services/storeApi';
-
-import {
-  getStoreList,
-} from '@/services/storeApi';
-
-import {
-  useLocalSearchParams,
-
-  useRouter,
-} from 'expo-router';
-
-import {
-  useEffect,
-
-  useState,
-} from 'react';
 
 import {
   ActivityIndicator,
 
-  Alert,
-
   Platform,
+
+  Pressable,
 
   ScrollView,
 
@@ -68,3083 +58,323 @@ import {
   View,
 } from 'react-native';
 
-/**
 
- * =====================================================
 
- * TYPES
+type DetailedLocation = {
 
- * =====================================================
+  label: string;
 
- */
+  dongName: string;
 
-type CompareItem = {
+  coordinates: {
 
-  areaName: string;
+    lat: number;
 
-  rank: number;
+    lng: number;
 
-  floatingPopulationScore?: number;
+  };
 
-  salesScore?: number;
-
-  averageSalesScore?: number;
-
-  competitionScore?: number;
-
-  livingPopulationScore?: number;
-
-  livingPopulationChangeScore?: number;
-
-  floatingPopulationChangeScore?: number;
-
-  accessibilityScore?: number;
-
-  [key: string]:
-
-    | number
-
-    | string
-
-    | undefined;
+  radius: number;
 
 };
 
-/**
 
- * =====================================================
 
- * AI 강조 문구
+type RankedResult =
 
- * =====================================================
+  ScoredCommercialAnalysisResult & {
 
- */
+    rank: number;
 
-function renderEmphasizedText(
-  text: string,
-  textStyle: object,
-) {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+    analysisType?: 'point';
 
-  return (
-    <Text style={textStyle}>
-      {parts.map((part, index) => {
-        if (
-          part.startsWith('**') &&
-          part.endsWith('**')
-        ) {
-          return (
-            <Text
-              key={index}
-              style={styles.aiHighlight}
-            >
-              {part.slice(2, -2)}
-            </Text>
-          );
-        }
+    dongName?: string;
 
-        return part;
-      })}
-    </Text>
+    latitude?: number;
+
+    longitude?: number;
+
+    radius?: number;
+
+    isEstimated?: boolean;
+
+  };
+
+
+
+type GroupedResult = {
+
+  businessName: string;
+
+  items: RankedResult[];
+
+};
+
+
+
+const delay = (ms: number) =>
+
+  new Promise(resolve =>
+
+    setTimeout(resolve, ms),
+
   );
-}
 
-/**
 
- * =====================================================
 
- * 증감률 표시
+function getLevelLabel(
 
- * =====================================================
+  score: number,
 
- */
+): string {
 
-function formatChangeRate(
+  if (score >= 75) {
 
-  value: number,
-
-) {
-
-  if (
-
-    Number.isNaN(
-
-      value,
-
-    )
-
-  ) {
-
-    return '데이터 없음';
+    return '매우 높음';
 
   }
 
-  return `${
 
-    value > 0
 
-      ? '+'
+  if (score >= 50) {
 
-      : ''
+    return '높음';
 
-  }${value.toFixed(
+  }
 
-    2,
 
-  )}%`;
+
+  if (score >= 25) {
+
+    return '보통';
+
+  }
+
+
+
+  return '낮음';
 
 }
 
-/**
 
- * =====================================================
 
- * MAIN
+function getCompetitionLabel(
 
- * =====================================================
+  score: number,
 
- */
+): string {
 
-export default function RegionResultDetailScreen() {
+  if (score >= 75) return '경쟁 여유';
 
-  const router =
+  if (score >= 50) return '경쟁 보통';
 
-    useRouter();
+  if (score >= 25) return '경쟁 있음';
 
-  const params =
+  return '경쟁 치열';
 
-    useLocalSearchParams<{
+}
 
-      originBusinesses?: string;
 
-      originAreas?: string;
 
-      originDetailedLocations?: string;
+function getOneLineSummary(
 
-      businessName: string;
+  result: ScoredCommercialAnalysisResult,
 
-      areaName: string;
+): string {
 
-      rank: string;
+  const reasons = [
 
-      totalCount: string;
+    {
 
-      suitabilityScore: string;
+      text: '유동인구가 풍부해요',
 
-      floatingPopulation: string;
+      score:
 
-      livingPopulation: string;
+        result.floatingPopulationScore,
 
-      storeCount: string;
+    },
 
-      competitionDensity: string;
+    {
 
-      salesAmount: string;
+      text: '점포당 소비 규모가 커요',
 
-      averageSalesPerStore: string;
+      score:
 
-      busStopCount: string;
+        result.averageSalesScore,
 
-      livingPopulationChangeRate: string;
+    },
 
-      floatingPopulationChangeRate: string;
+    {
 
-      compareData?: string;
+      text: '경쟁 부담이 적은 편이에요',
 
-      analysisType?: string;
+      score:
 
-      dongName?: string;
+        result.competitionScore,
 
-      latitude?: string;
+    },
 
-      longitude?: string;
+    {
 
-      radius?: string;
+      text: '생활인구가 꾸준해요',
 
-    }>();
+      score:
 
-  const {
+        result.livingPopulationScore,
 
-    originBusinesses,
+    },
 
-    originAreas,
+    {
 
-    originDetailedLocations,
+      text: '접근성이 좋아요',
 
-    businessName,
+      score:
 
-    areaName,
+        result.accessibilityScore,
 
-    rank,
+    },
 
-    totalCount,
+  ];
 
-    suitabilityScore,
 
-    floatingPopulation,
 
-    livingPopulation,
+  const top = [...reasons].sort(
 
-    storeCount,
+    (a, b) =>
 
-    competitionDensity,
+      b.score - a.score,
 
-    salesAmount,
+  )[0];
 
-    averageSalesPerStore,
 
-    busStopCount,
 
-    livingPopulationChangeRate,
+  return top.text;
 
-    floatingPopulationChangeRate,
+}
 
-    compareData,
 
-    analysisType,
 
-    dongName,
+function parseDetailedLocations(
 
-    latitude,
+  value?: string,
 
-    longitude,
+): DetailedLocation[] {
 
-    radius,
+  if (!value) {
 
-  } =
+    return [];
 
-    params;
+  }
 
-  /**
 
-   * =====================================================
-
-   * 위치 분석 정보
-
-   * =====================================================
-
-   */
-
-  const isPointAnalysis =
-
-    analysisType ===
-
-    'point';
-
-  const actualDongName =
-
-    dongName ||
-
-    areaName;
-
-  const backBusinesses =
-
-    originBusinesses ||
-
-    businessName;
-
-  const backAreas =
-
-    originAreas !== undefined
-
-      ? originAreas
-
-      : isPointAnalysis
-
-        ? ''
-
-        : areaName;
-
-  const backDetailedLocations =
-
-    originDetailedLocations !== undefined
-
-      ? originDetailedLocations
-
-      : isPointAnalysis &&
-
-          latitude &&
-
-          longitude
-
-        ? JSON.stringify([
-
-            {
-
-              label: areaName,
-
-              dongName: actualDongName,
-
-              coordinates: {
-
-                lat: Number(latitude),
-
-                lng: Number(longitude),
-
-              },
-
-              radius: Number(radius || 500),
-
-            },
-
-          ])
-
-        : '';
-
-  /**
-
-   * =====================================================
-
-   * 행정동 찾기
-
-   * =====================================================
-
-   */
-
-  const area =
-
-    sejongAreas.find(
-
-      item =>
-
-        item.name ===
-
-        actualDongName,
-
-    );
-
-  /**
-
-   * =====================================================
-
-   * 업종 찾기
-
-   * =====================================================
-
-   */
-
-  const business =
-
-    businessCategories
-
-      .flatMap(
-
-        category =>
-
-          category.businesses,
-
-      )
-
-      .find(
-
-        item =>
-
-          item.name ===
-
-          businessName,
-
-      );
-
-  /**
-
-   * =====================================================
-
-   * 비교 데이터
-
-   * =====================================================
-
-   */
-
-  let compareItems:
-
-    CompareItem[] = [];
 
   try {
 
     const parsed =
 
-      JSON.parse(
+      JSON.parse(value);
 
-        compareData ||
 
-          '[]',
 
-      );
+    if (!Array.isArray(parsed)) {
 
-    if (
-
-      Array.isArray(
-
-        parsed,
-
-      )
-
-    ) {
-
-      compareItems =
-
-        parsed;
+      return [];
 
     }
 
-  } catch (
 
-    error
 
-  ) {
+    return parsed.filter(
+
+      (
+
+        item: any,
+
+      ): item is DetailedLocation =>
+
+        typeof item?.label === 'string' &&
+
+        typeof item?.dongName === 'string' &&
+
+        typeof item?.coordinates?.lat === 'number' &&
+
+        typeof item?.coordinates?.lng === 'number' &&
+
+        typeof item?.radius === 'number',
+
+    );
+
+  } catch (error) {
 
     console.error(
 
-      '비교 데이터 파싱 오류:',
+      '상세 위치 파싱 실패:',
 
       error,
 
     );
 
-    compareItems =
 
-      [];
+
+    return [];
 
   }
 
-  /**
-
-   * =====================================================
-
-   * AI 분석
-
-   * =====================================================
-
-   */
-
-  const [
-
-    explanation,
-
-    setExplanation,
-
-  ] =
-
-    useState<
-
-      AIExplanation | null
-
-    >(
-
-      null,
-
-    );
-
-  const [
-
-    aiLoading,
-
-    setAiLoading,
-
-  ] =
-
-    useState(
-
-      true,
-
-    );
-
-  const [
-
-    aiError,
-
-    setAiError,
-
-  ] =
-
-    useState(
-
-      '',
-
-    );
-
-  const [
-
-    detailExpanded,
-
-    setDetailExpanded,
-
-  ] =
-
-    useState(
-
-      false,
-
-    );
-
-  /**
-
-   * =====================================================
-
-   * 주변 실제 점포
-
-   * =====================================================
-
-   */
-
-  const [
-
-    nearbyStores,
-
-    setNearbyStores,
-
-  ] =
-
-    useState<
-
-      NearbyStore[]
-
-    >([]);
-
-  const [
-
-    storesLoading,
-
-    setStoresLoading,
-
-  ] =
-
-    useState(
-
-      true,
-
-    );
-
-  const [
-
-    storesError,
-
-    setStoresError,
-
-  ] =
-
-    useState(
-
-      '',
-
-    );
-
-  /**
-
-   * =====================================================
-
-   * 찜
-
-   * =====================================================
-
-   */
-
-  const [
-
-    favorite,
-
-    setFavorite,
-
-  ] =
-
-    useState(
-
-      false,
-
-    );
-
-  const [
-
-    savedAnalysisId,
-
-    setSavedAnalysisId,
-
-  ] =
-
-    useState<
-
-      string | null
-
-    >(
-
-      null,
-
-    );
-
-  const [
-
-    favoriteLoading,
-
-    setFavoriteLoading,
-
-  ] =
-
-    useState(
-
-      false,
-
-    );
-
-  /**
-
-   * =====================================================
-
-   * AI 설명 생성
-
-   * =====================================================
-
-   */
-
-  useEffect(() => {
-
-    const run =
-
-      async () => {
-
-        try {
-
-          setAiLoading(
-
-            true,
-
-          );
-
-          setAiError(
-
-            '',
-
-          );
-
-          const result =
-
-            await generateAIExplanation(
-
-              {
-
-                지역:
-
-                  areaName,
-
-                업종:
-
-                  businessName,
-
-                유동인구:
-
-                  Number(
-
-                    floatingPopulation,
-
-                  ),
-
-                생활인구:
-
-                  Number(
-
-                    livingPopulation,
-
-                  ),
-
-                점포수:
-
-                  Number(
-
-                    storeCount,
-
-                  ),
-
-                경쟁밀도:
-
-                  Number(
-
-                    competitionDensity,
-
-                  ),
-
-                전체카드소비:
-
-                  Number(
-
-                    salesAmount,
-
-                  ),
-
-                점포당카드소비:
-
-                  Number(
-
-                    averageSalesPerStore,
-
-                  ),
-
-                버스정류장수:
-
-                  Number(
-
-                    busStopCount,
-
-                  ),
-
-                적합도점수:
-
-                  Number(
-
-                    suitabilityScore,
-
-                  ),
-
-                순위:
-
-                  Number(
-
-                    rank,
-
-                  ),
-
-              },
-
-            );
-
-          setExplanation(
-
-            result,
-
-          );
-
-        } catch (
-
-          error
-
-        ) {
-
-          console.error(
-
-            'AI 설명 생성 오류:',
-
-            error,
-
-          );
-
-          setAiError(
-
-            error instanceof
-
-              Error
-
-              ? error.message
-
-              : 'AI 설명을 가져오지 못했습니다.',
-
-          );
-
-        } finally {
-
-          setAiLoading(
-
-            false,
-
-          );
-
-        }
-
-      };
-
-    run();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-
-  }, []);
-
-  /**
-
-   * =====================================================
-
-   * 실제 점포 조회
-
-   * =====================================================
-
-   */
-
-  useEffect(() => {
-
-    if (
-
-      !area ||
-
-      !business
-
-    ) {
-
-      console.log(
-
-        '점포 조회 불가:',
-
-        {
-
-          actualDongName,
-
-          businessName,
-
-          area,
-
-          business,
-
-        },
-
-      );
-
-      setStoresLoading(
-
-        false,
-
-      );
-
-      return;
-
-    }
-
-    const run =
-
-      async () => {
-
-        try {
-
-          setStoresLoading(
-
-            true,
-
-          );
-
-          setStoresError(
-
-            '',
-
-          );
-
-          const stores =
-
-            await getStoreList(
-
-              area.code,
-
-              business.lclsCode,
-
-              business.mclsCode,
-
-              business.sclsCode,
-
-              10,
-
-            );
-
-          console.log(
-
-            '상세화면 점포 조회 결과:',
-
-            stores,
-
-          );
-
-          setNearbyStores(
-
-            stores,
-
-          );
-
-        } catch (
-
-          error
-
-        ) {
-
-          console.error(
-
-            '주변 점포 조회 오류:',
-
-            error,
-
-          );
-
-          setStoresError(
-
-            error instanceof
-
-              Error
-
-              ? error.message
-
-              : '주변 점포 정보를 가져오지 못했습니다.',
-
-          );
-
-        } finally {
-
-          setStoresLoading(
-
-            false,
-
-          );
-
-        }
-
-      };
-
-    run();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-
-  }, []);
-
-  /**
-
-   * =====================================================
-
-   * 기존 저장 분석 확인
-
-   * =====================================================
-
-   */
-
-  useEffect(() => {
-
-    const checkSaved =
-
-      async () => {
-
-        try {
-
-          const histories =
-
-            await getAnalysisHistory();
-
-          const existing =
-
-            histories.find(
-
-              history => {
-
-                const data =
-
-                  history.resultData;
-
-                if (
-
-                  history.businessName !==
-
-                  businessName
-
-                ) {
-
-                  return false;
-
-                }
-
-                if (
-
-                  !history.regions.includes(
-
-                    areaName,
-
-                  )
-
-                ) {
-
-                  return false;
-
-                }
-
-                /**
-
-                 * 좌표 기반 분석
-
-                 */
-
-                if (
-
-                  isPointAnalysis
-
-                ) {
-
-                  return (
-
-                    data?.analysisType ===
-
-                      'point' &&
-
-                    String(
-
-                      data?.latitude ??
-
-                        '',
-
-                    ) ===
-
-                      String(
-
-                        latitude ??
-
-                          '',
-
-                      ) &&
-
-                    String(
-
-                      data?.longitude ??
-
-                        '',
-
-                    ) ===
-
-                      String(
-
-                        longitude ??
-
-                          '',
-
-                      ) &&
-
-                    String(
-
-                      data?.radius ??
-
-                        '',
-
-                    ) ===
-
-                      String(
-
-                        radius ??
-
-                          '',
-
-                      )
-
-                  );
-
-                }
-
-                return (
-
-                  data?.analysisType !==
-
-                  'point'
-
-                );
-
-              },
-
-            );
-
-          if (
-
-            !existing
-
-          ) {
-
-            return;
-
-          }
-
-          setSavedAnalysisId(
-
-            existing.id,
-
-          );
-
-          setFavorite(
-
-            existing.isFavorite ??
-
-              false,
-
-          );
-
-        } catch (
-
-          error
-
-        ) {
-
-          console.error(
-
-            '저장된 분석 확인 실패:',
-
-            error,
-
-          );
-
-        }
-
-      };
-
-    checkSaved();
-
-  }, [
-
-    businessName,
-
-    areaName,
-
-    isPointAnalysis,
-
-    latitude,
-
-    longitude,
-
-    radius,
-
-  ]);
-
-  /**
-
-   * =====================================================
-
-   * 찜 버튼
-
-   * =====================================================
-
-   */
-
-  const handleFavorite =
-
-    async () => {
-
-      if (
-
-        favoriteLoading
-
-      ) {
-
-        return;
-
-      }
-
-      try {
-
-        setFavoriteLoading(
-
-          true,
-
-        );
-
-        /**
-
-         * 이미 저장된 분석
-
-         */
-
-        if (
-
-          savedAnalysisId
-
-        ) {
-
-          const updated =
-
-            await toggleAnalysisFavorite(
-
-              savedAnalysisId,
-
-            );
-
-          if (
-
-            updated
-
-          ) {
-
-            setFavorite(
-
-              updated.isFavorite ??
-
-                false,
-
-            );
-
-          }
-
-          return;
-
-        }
-
-        /**
-
-         * 처음 저장
-
-         */
-
-        const saved =
-
-          await saveAnalysis(
-
-            {
-
-              type:
-
-                'comparison',
-
-              title:
-
-                `${areaName} ${businessName} 분석`,
-
-              businessName,
-
-              regions: [
-
-                areaName,
-
-              ],
-
-              isFavorite:
-
-                true,
-
-              resultData: {
-
-                businessName,
-
-                areaName,
-
-                rank:
-
-                  Number(
-
-                    rank,
-
-                  ),
-
-                totalCount:
-
-                  Number(
-
-                    totalCount,
-
-                  ),
-
-                suitabilityScore:
-
-                  Number(
-
-                    suitabilityScore,
-
-                  ),
-
-                floatingPopulation:
-
-                  Number(
-
-                    floatingPopulation,
-
-                  ),
-
-                livingPopulation:
-
-                  Number(
-
-                    livingPopulation,
-
-                  ),
-
-                storeCount:
-
-                  Number(
-
-                    storeCount,
-
-                  ),
-
-                competitionDensity:
-
-                  Number(
-
-                    competitionDensity,
-
-                  ),
-
-                salesAmount:
-
-                  Number(
-
-                    salesAmount,
-
-                  ),
-
-                averageSalesPerStore:
-
-                  Number(
-
-                    averageSalesPerStore,
-
-                  ),
-
-                busStopCount:
-
-                  Number(
-
-                    busStopCount,
-
-                  ),
-
-                livingPopulationChangeRate:
-
-                  Number(
-
-                    livingPopulationChangeRate,
-
-                  ),
-
-                floatingPopulationChangeRate:
-
-                  Number(
-
-                    floatingPopulationChangeRate,
-
-                  ),
-
-                analysisType:
-
-                  isPointAnalysis
-
-                    ? 'point'
-
-                    : 'area',
-
-                dongName:
-
-                  actualDongName,
-
-                latitude:
-
-                  latitude
-
-                    ? Number(
-
-                        latitude,
-
-                      )
-
-                    : null,
-
-                longitude:
-
-                  longitude
-
-                    ? Number(
-
-                        longitude,
-
-                      )
-
-                    : null,
-
-                radius:
-
-                  radius
-
-                    ? Number(
-
-                        radius,
-
-                      )
-
-                    : null,
-
-              },
-
-            },
-
-          );
-
-        setSavedAnalysisId(
-
-          saved.id,
-
-        );
-
-        setFavorite(
-
-          true,
-
-        );
-
-      } catch (
-
-        error
-
-      ) {
-
-        console.error(
-
-          '찜 저장 실패:',
-
-          error,
-
-        );
-
-        Alert.alert(
-
-          '오류',
-
-          '분석 결과를 저장하지 못했습니다.',
-
-        );
-
-      } finally {
-
-        setFavoriteLoading(
-
-          false,
-
-        );
-
-      }
-
-    };
-
-  const handleOpenChat = () => {
-    router.push({
-      pathname: '/chat',
-      params: {
-          returnTo: '/market-analysis/region-result-detail',
-        returnParams: JSON.stringify(params),
-        businessName,
-        areaName,
-        rank,
-        totalCount,
-        suitabilityScore,
-        floatingPopulation,
-        livingPopulation,
-        storeCount,
-        competitionDensity,
-        salesAmount,
-        averageSalesPerStore,
-        busStopCount,
-        livingPopulationChangeRate,
-        floatingPopulationChangeRate,
-        analysisType: isPointAnalysis ? 'point' : 'area',
-        dongName: actualDongName,
-        latitude: latitude ?? '',
-        longitude: longitude ?? '',
-        radius: radius ?? '',
-      },
-    });
-  };
-
-  return (
-
-    <View style={styles.screen}>
-
-      <AnalysisHeader
-
-        title="상세 분석"
-
-        onBack={() =>
-
-          router.replace({
-
-            pathname: '/market-analysis/region-result',
-
-            params: {
-
-              businesses: backBusinesses,
-
-              areas: backAreas,
-
-              detailedLocations: backDetailedLocations,
-
-            },
-
-          })
-
-        }
-
-      />
-
-      <ScrollView
-
-      style={{ flex: 1 }}
-
-      contentContainerStyle={
-
-        styles.container
-
-      }
-
-      showsVerticalScrollIndicator={
-
-        false
-
-      }
-
-    >
-
-      {/* =================================================
-
-          HEADER
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.headerCard
-
-        }
-
-      >
-
-        <View
-
-          style={
-
-            styles.headerTopRow
-
-          }
-
-        >
-
-          <View
-
-            style={
-
-              styles.rankPill
-
-            }
-
-          >
-
-            <Text
-
-              style={
-
-                styles.rankPillText
-
-              }
-
-            >
-
-              {rank}위
-
-            </Text>
-
-          </View>
-
-          <Text
-
-            style={
-
-              styles.headerSubText
-
-            }
-
-          >
-
-            {`${businessName} 후보 ${totalCount}곳 중`}
-
-          </Text>
-
-        </View>
-
-        {/* 지역명 + 찜 */}
-
-        <View
-
-          style={
-
-            styles.titleRow
-
-          }
-
-        >
-
-          <View
-
-            style={
-
-              styles.titleArea
-
-            }
-
-          >
-
-            <Text
-
-              style={
-
-                styles.headerTitle
-
-              }
-
-            >
-
-              {`${areaName} 일대`}
-
-            </Text>
-
-            {isPointAnalysis &&
-
-              radius && (
-
-                <Text
-
-                  style={
-
-                    styles.pointSubtitle
-
-                  }
-
-                >
-
-                  {actualDongName} · 반경{' '}
-
-                  {radius}m 위치 기반 분석
-
-                </Text>
-
-              )}
-
-          </View>
-
-          <TouchableOpacity
-
-            style={[
-
-              styles.favoriteButton,
-
-              favorite &&
-
-                styles.favoriteButtonActive,
-
-            ]}
-
-            activeOpacity={
-
-              0.8
-
-            }
-
-            disabled={
-
-              favoriteLoading
-
-            }
-
-            onPress={
-
-              handleFavorite
-
-            }
-
-          >
-
-            {favoriteLoading ? (
-
-              <ActivityIndicator
-
-                size="small"
-
-                color={
-
-                  favorite
-
-                    ? '#FFFFFF'
-
-                    : '#E54861'
-
-                }
-
-              />
-
-            ) : (
-
-              <Text
-
-                style={[
-
-                  styles.favoriteText,
-
-                  favorite &&
-
-                    styles.favoriteTextActive,
-
-                ]}
-
-              >
-
-                {favorite
-
-                  ? '♥'
-
-                  : '♡'}
-
-              </Text>
-
-            )}
-
-          </TouchableOpacity>
-
-        </View>
-
-        <Text
-
-          style={
-
-            styles.headerBusiness
-
-          }
-
-        >
-
-          {
-
-            businessName
-
-          }
-
-        </Text>
-
-        <View
-
-          style={
-
-            styles.scoreRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.scoreLabel
-
-            }
-
-          >
-
-            종합 적합도
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.scoreValue
-
-            }
-
-          >
-
-            {
-
-              suitabilityScore
-
-            }
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.scoreUnit
-
-            }
-
-          >
-
-            / 100
-
-          </Text>
-
-        </View>
-
-      </View>
-
-      <TouchableOpacity
-        style={styles.chatButton}
-        activeOpacity={0.8}
-        onPress={handleOpenChat}
-      >
-        <View style={styles.chatIcon}>
-          <Text style={styles.chatIconText}>AI</Text>
-        </View>
-
-        <View style={styles.chatButtonContent}>
-          <Text style={styles.chatButtonTitle}>
-            AI에게 물어보기
-          </Text>
-
-          <Text style={styles.chatButtonDescription}>
-            현재 분석 결과를 바탕으로 궁금한 점을 질문해보세요
-          </Text>
-        </View>
-
-        <Text style={styles.chatButtonArrow}>›</Text>
-      </TouchableOpacity>
-
-      {/* =================================================
-
-          핵심 지표
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.metricGrid
-
-        }
-
-      >
-
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 유동인구'
-
-              : '유동인구'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {Number(
-
-              floatingPopulation,
-
-            ).toLocaleString()}
-
-            명
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? `반경 내 ${businessName} 수`
-
-              : `${businessName} 수`}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {
-
-              storeCount
-
-            }
-
-            개
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            경쟁밀도
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {Number(
-
-              competitionDensity,
-
-            ).toFixed(
-
-              3,
-
-            )}
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            점포당 카드소비
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {Math.round(
-
-              Number(
-
-                averageSalesPerStore,
-
-              ),
-
-            ).toLocaleString()}
-
-            원
-
-          </Text>
-
-        </View>
-
-      </View>
-
-      {/* =================================================
-
-          ★ 실제 월별 후보 비교
-
-      ================================================= */}
-
-      {compareItems.length >
-
-        0 ? (
-
-        <View
-
-          style={
-
-            styles.comparisonWrapper
-
-          }
-
-        >
-
-          <MonthlyCandidateComparison
-
-            compareItems={
-
-              compareItems
-
-            }
-
-            currentAreaName={
-
-              actualDongName
-
-            }
-
-          />
-
-        </View>
-
-      ) : (
-
-        <View
-
-          style={
-
-            styles.sectionBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.sectionTitle
-
-            }
-
-          >
-
-            다른 후보와 비교
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.noCompareText
-
-            }
-
-          >
-
-            함께 분석한 다른 후보 지역이 없어요.
-
-          </Text>
-
-        </View>
-
-      )}
-
-      {/* =================================================
-
-          주변 실제 점포
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.sectionBox
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.sectionTitle
-
-          }
-
-        >
-
-          주변 실제{' '}
-
-          {
-
-            businessName
-
-          }{' '}
-
-          매장
-
-        </Text>
-
-        <Text
-
-          style={
-
-            styles.sectionDescription
-
-          }
-
-        >
-
-          공공데이터에 등록된 이 지역의 실제 매장 정보예요.
-
-        </Text>
-
-        {Platform.OS !==
-
-          'web' &&
-
-          nearbyStores.length >
-
-            0 && (
-
-            <NativeStoreMap
-
-              stores={
-
-                nearbyStores
-
-              }
-
-            />
-
-          )}
-
-        {storesLoading && (
-
-          <View
-
-            style={
-
-              styles.smallLoadingBox
-
-            }
-
-          >
-
-            <ActivityIndicator
-
-              size="small"
-
-              color={
-
-                COLORS.primary
-
-              }
-
-            />
-
-            <Text
-
-              style={
-
-                styles.smallLoadingText
-
-              }
-
-            >
-
-              주변 매장 정보를 불러오는 중...
-
-            </Text>
-
-          </View>
-
-        )}
-
-        {!storesLoading &&
-
-          storesError !==
-
-            '' && (
-
-            <Text
-
-              style={
-
-                styles.storesError
-
-              }
-
-            >
-
-              {
-
-                storesError
-
-              }
-
-            </Text>
-
-          )}
-
-        {!storesLoading &&
-
-          storesError ===
-
-            '' &&
-
-          nearbyStores.length ===
-
-            0 && (
-
-            <Text
-
-              style={
-
-                styles.storesEmpty
-
-              }
-
-            >
-
-              등록된 매장 정보를 찾지 못했어요.
-
-            </Text>
-
-          )}
-
-        {!storesLoading &&
-
-          nearbyStores.map(
-
-            (
-
-              store,
-
-              index,
-
-            ) => (
-
-              <View
-
-                key={`${store.name}-${index}`}
-
-                style={
-
-                  styles.storeRow
-
-                }
-
-              >
-
-                <Text
-
-                  style={
-
-                    styles.storeName
-
-                  }
-
-                >
-
-                  {
-
-                    store.name
-
-                  }
-
-                </Text>
-
-                <Text
-
-                  style={
-
-                    styles.storeAddress
-
-                  }
-
-                >
-
-                  {
-
-                    store.address
-
-                  }
-
-                </Text>
-
-              </View>
-
-            ),
-
-          )}
-
-      </View>
-
-      {/* =================================================
-
-          지역 환경 상세
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.sectionBox
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.sectionTitle
-
-          }
-
-        >
-
-          지역 환경 상세
-
-        </Text>
-
-        {isPointAnalysis && (
-
-          <Text
-
-            style={
-
-              styles.estimateNotice
-
-            }
-
-          >
-
-            위치 기반 분석의 인구·카드소비·접근성 지표는
-
-            행정동 데이터를 반경 내 점포 집중도에 따라
-
-            세분화한 추정값입니다.
-
-          </Text>
-
-        )}
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 생활인구'
-
-              : '생활인구'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {Number(
-
-              livingPopulation,
-
-            ).toLocaleString()}
-
-            명
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            생활인구 증감률
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {formatChangeRate(
-
-              Number(
-
-                livingPopulationChangeRate,
-
-              ),
-
-            )}
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            유동인구 증감률
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {formatChangeRate(
-
-              Number(
-
-                floatingPopulationChangeRate,
-
-              ),
-
-            )}
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 카드소비'
-
-              : '전체 카드소비'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {Number(
-
-              salesAmount,
-
-            ).toLocaleString()}
-
-            원
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            점포당 카드소비
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {Math.round(
-
-              Number(
-
-                averageSalesPerStore,
-
-              ),
-
-            ).toLocaleString()}
-
-            원
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={[
-
-            styles.detailRow,
-
-            styles.detailRowLast,
-
-          ]}
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 버스정류장'
-
-              : '버스정류장'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {
-
-              busStopCount
-
-            }
-
-            개
-
-          </Text>
-
-        </View>
-
-      </View>
-
-      {/* =================================================
-
-          AI 분석
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.sectionBox
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.sectionTitle
-
-          }
-
-        >
-
-          AI 분석 요약
-
-        </Text>
-
-        {aiLoading && (
-
-          <View
-
-            style={
-
-              styles.smallLoadingBox
-
-            }
-
-          >
-
-            <ActivityIndicator
-
-              size="small"
-
-              color={
-
-                COLORS.primary
-
-              }
-
-            />
-
-            <Text
-
-              style={
-
-                styles.smallLoadingText
-
-              }
-
-            >
-
-              AI가 분석하는 중...
-
-            </Text>
-
-          </View>
-
-        )}
-
-        {!aiLoading &&
-
-          aiError !==
-
-            '' && (
-
-            <Text
-
-              style={
-
-                styles.storesError
-
-              }
-
-            >
-
-              {
-
-                aiError
-
-              }
-
-            </Text>
-
-          )}
-
-        {!aiLoading &&
-
-          explanation && (
-
-            <>
-
-              {renderEmphasizedText(
-
-                explanation.recommendationReason,
-
-                styles.aiReasonText,
-
-              )}
-
-              <View
-
-                style={
-
-                  styles.chunkList
-
-                }
-
-              >
-
-                {explanation.advantages.map(
-
-                  (
-
-                    advantage,
-
-                    index,
-
-                  ) => (
-
-                    <View
-
-                      key={`adv-${index}`}
-
-                      style={
-
-                        styles.chunkRowGood
-
-                      }
-
-                    >
-
-                      <Text
-
-                        style={
-
-                          styles.chunkIconGood
-
-                        }
-
-                      >
-
-                        ✓
-
-                      </Text>
-
-                      {renderEmphasizedText(
-
-                        advantage,
-
-                        styles.chunkTextGood,
-
-                      )}
-
-                    </View>
-
-                  ),
-
-                )}
-
-                {explanation.risks.map(
-
-                  (
-
-                    risk,
-
-                    index,
-
-                  ) => (
-
-                    <View
-
-                      key={`risk-${index}`}
-
-                      style={
-
-                        styles.chunkRowWarn
-
-                      }
-
-                    >
-
-                      <Text
-
-                        style={
-
-                          styles.chunkIconWarn
-
-                        }
-
-                      >
-
-                        !
-
-                      </Text>
-
-                      {renderEmphasizedText(
-
-                        risk,
-
-                        styles.chunkTextWarn,
-
-                      )}
-
-                    </View>
-
-                  ),
-
-                )}
-
-              </View>
-
-              <TouchableOpacity
-
-                style={
-
-                  styles.detailToggleButton
-
-                }
-
-                activeOpacity={
-
-                  0.7
-
-                }
-
-                onPress={() =>
-
-                  setDetailExpanded(
-
-                    prev =>
-
-                      !prev,
-
-                  )
-
-                }
-
-              >
-
-                <Text
-
-                  style={
-
-                    styles.detailToggleText
-
-                  }
-
-                >
-
-                  {detailExpanded
-
-                    ? 'AI 상세 분석 접기 ▲'
-
-                    : 'AI 상세 분석 더보기 ▼'}
-
-                </Text>
-
-              </TouchableOpacity>
-
-              {detailExpanded && (
-
-                <View
-
-                  style={
-
-                    styles.aiDetailSection
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.aiLabel
-
-                    }
-
-                  >
-
-                    주요 특징
-
-                  </Text>
-
-                  {renderEmphasizedText(
-
-                    explanation.keyFeatures,
-
-                    styles.aiReasonText,
-
-                  )}
-
-                  <Text
-
-                    style={
-
-                      styles.aiLabel
-
-                    }
-
-                  >
-
-                    고려사항
-
-                  </Text>
-
-                  <Text
-
-                    style={
-
-                      styles.aiReasonText
-
-                    }
-
-                  >
-
-                    {
-
-                      explanation.considerations
-
-                    }
-
-                  </Text>
-
-                </View>
-
-              )}
-
-            </>
-
-          )}
-
-      </View>
-
-    </ScrollView>
-
-    </View>
-
-  );
-
 }
 
-/**
 
- * =====================================================
 
- * 네이티브 실제 점포 지도
+function CardMapThumbnail({
 
- * =====================================================
-
- */
-
-function NativeStoreMap({
-
-  stores,
+  coords,
 
 }: {
 
-  stores: NearbyStore[];
+  coords: Coordinates | undefined;
 
 }) {
+
+  if (
+
+    Platform.OS === 'web' ||
+
+    !coords
+
+  ) {
+
+    return (
+
+      <View
+
+        style={
+
+          styles.mapFallback
+
+        }
+
+      >
+
+        <Text
+
+          style={
+
+            styles.mapFallbackText
+
+          }
+
+        >
+
+          📍
+
+        </Text>
+
+      </View>
+
+    );
+
+  }
+
+
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 
@@ -3155,6 +385,8 @@ function NativeStoreMap({
       'react-native-maps',
 
     ).default;
+
+
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 
@@ -3170,9 +402,7 @@ function NativeStoreMap({
 
     );
 
-  const center =
 
-    stores[0];
 
   return (
 
@@ -3180,7 +410,33 @@ function NativeStoreMap({
 
       style={
 
-        styles.map
+        styles.cardMap
+
+      }
+
+      pointerEvents="none"
+
+      scrollEnabled={
+
+        false
+
+      }
+
+      zoomEnabled={
+
+        false
+
+      }
+
+      pitchEnabled={
+
+        false
+
+      }
+
+      rotateEnabled={
+
+        false
 
       }
 
@@ -3188,11 +444,11 @@ function NativeStoreMap({
 
         latitude:
 
-          center.lat,
+          coords.lat,
 
         longitude:
 
-          center.lng,
+          coords.lng,
 
         latitudeDelta:
 
@@ -3206,53 +462,21 @@ function NativeStoreMap({
 
     >
 
-      {stores.map(
+      <Marker
 
-        (
+        coordinate={{
 
-          store,
+          latitude:
 
-          index,
+            coords.lat,
 
-        ) => (
+          longitude:
 
-          <Marker
+            coords.lng,
 
-            key={
+        }}
 
-              index
-
-            }
-
-            coordinate={{
-
-              latitude:
-
-                store.lat,
-
-              longitude:
-
-                store.lng,
-
-            }}
-
-            title={
-
-              store.name
-
-            }
-
-            description={
-
-              store.address
-
-            }
-
-          />
-
-        ),
-
-      )}
+      />
 
     </MapView>
 
@@ -3260,15 +484,2211 @@ function NativeStoreMap({
 
 }
 
-/**
 
- * =====================================================
 
- * STYLES
+export default function RegionResultScreen() {
 
- * =====================================================
+  const router =
 
- */
+    useRouter();
+
+
+
+  const {
+
+    businesses,
+
+    areas,
+
+    detailedLocations:
+
+      detailedLocationsParam,
+
+  } =
+
+    useLocalSearchParams<{
+
+      businesses?: string;
+
+      areas?: string;
+
+      detailedLocations?: string;
+
+    }>();
+
+
+
+  const [
+
+    groupedResults,
+
+    setGroupedResults,
+
+  ] =
+
+    useState<
+
+      GroupedResult[]
+
+    >([]);
+
+
+
+  const [
+
+    loading,
+
+    setLoading,
+
+  ] =
+
+    useState(true);
+
+
+
+  const [
+
+    errorMessage,
+
+    setErrorMessage,
+
+  ] =
+
+    useState('');
+
+
+
+  const [
+
+    topAiSummary,
+
+    setTopAiSummary,
+
+  ] =
+
+    useState<
+
+      Record<string, string>
+
+    >({});
+
+
+
+  const [
+
+    topAiLoading,
+
+    setTopAiLoading,
+
+  ] =
+
+    useState<
+
+      Record<string, boolean>
+
+    >({});
+
+
+
+  const [
+
+    activeTab,
+
+    setActiveTab,
+
+  ] =
+
+    useState<
+
+      string | null
+
+    >(null);
+
+
+
+  const [
+
+    areaCoordinates,
+
+    setAreaCoordinates,
+
+  ] =
+
+    useState<
+
+      Record<
+
+        string,
+
+        Coordinates
+
+      >
+
+    >({});
+
+
+
+  useEffect(() => {
+
+    if (!businesses) {
+
+      setErrorMessage(
+
+        '선택한 업종 정보를 찾을 수 없습니다.',
+
+      );
+
+
+
+      setLoading(false);
+
+
+
+      return;
+
+    }
+
+
+
+    const selectedBusinessNames =
+
+      businesses
+
+        .split(',')
+
+        .filter(Boolean);
+
+
+
+    const selectedAreaNames =
+
+      areas
+
+        ? areas
+
+            .split(',')
+
+            .filter(Boolean)
+
+        : [];
+
+
+
+    const selectedDetailedLocations =
+
+      parseDetailedLocations(
+
+        detailedLocationsParam,
+
+      );
+
+
+
+    if (
+
+      selectedAreaNames.length === 0 &&
+
+      selectedDetailedLocations.length === 0
+
+    ) {
+
+      setErrorMessage(
+
+        '선택한 지역 정보를 찾을 수 없습니다.',
+
+      );
+
+
+
+      setLoading(false);
+
+
+
+      return;
+
+    }
+
+
+
+    const allBusinesses =
+
+      businessCategories.flatMap(
+
+        category =>
+
+          category.businesses,
+
+      );
+
+
+
+    const targetBusinesses =
+
+      allBusinesses.filter(
+
+        business =>
+
+          selectedBusinessNames.includes(
+
+            business.name,
+
+          ),
+
+      );
+
+
+
+    const targetAreas =
+
+      sejongAreas.filter(
+
+        area =>
+
+          selectedAreaNames.includes(
+
+            area.name,
+
+          ),
+
+      );
+
+
+
+    Promise.all(
+
+      targetAreas.map(
+
+        async area => {
+
+          try {
+
+            const coords =
+
+              await searchLocation(
+
+                `세종특별자치시 ${area.name}`,
+
+              );
+
+
+
+            return [
+
+              area.name,
+
+              coords,
+
+            ] as const;
+
+          } catch (error) {
+
+            console.error(
+
+              `${area.name} 좌표 조회 실패`,
+
+              error,
+
+            );
+
+
+
+            return [
+
+              area.name,
+
+              null,
+
+            ] as const;
+
+          }
+
+        },
+
+      ),
+
+    ).then(results => {
+
+      const map: Record<
+
+        string,
+
+        Coordinates
+
+      > = {};
+
+
+
+      results.forEach(
+
+        (
+
+          [
+
+            name,
+
+            coords,
+
+          ],
+
+        ) => {
+
+          if (coords) {
+
+            map[name] =
+
+              coords;
+
+          }
+
+        },
+
+      );
+
+
+
+      setAreaCoordinates(
+
+        map,
+
+      );
+
+    });
+
+
+
+    const run =
+
+      async () => {
+
+        try {
+
+          setLoading(true);
+
+          setErrorMessage('');
+
+          setGroupedResults([]);
+
+          setTopAiSummary({});
+
+          setTopAiLoading({});
+
+
+
+          const groups: GroupedResult[] =
+
+            [];
+
+
+
+          for (
+
+            const business of targetBusinesses
+
+          ) {
+
+            const analysisResults: any[] =
+
+              [];
+
+
+
+            for (
+
+              const area of targetAreas
+
+            ) {
+
+              try {
+
+                const result =
+
+                  await analyzeCommercialArea(
+
+                    area.name,
+
+                    area.code,
+
+                    business.name,
+
+                    business.lclsCode,
+
+                    business.mclsCode,
+
+                    business.sclsCode,
+
+                  );
+
+
+
+                analysisResults.push(
+
+                  result,
+
+                );
+
+
+
+                await delay(600);
+
+              } catch (error) {
+
+                console.error(
+
+                  `${area.name} ${business.name} 분석 실패`,
+
+                  error,
+
+                );
+
+
+
+                if (
+
+                  error instanceof Error &&
+
+                  error.message.includes(
+
+                    '429',
+
+                  )
+
+                ) {
+
+                  await delay(2000);
+
+                }
+
+              }
+
+            }
+
+
+
+            for (
+
+              const location of selectedDetailedLocations
+
+            ) {
+
+              try {
+
+                const areaInfo =
+
+                  sejongAreas.find(
+
+                    area =>
+
+                      area.name ===
+
+                      location.dongName,
+
+                  );
+
+
+
+                if (!areaInfo) {
+
+                  console.error(
+
+                    `${location.dongName} 행정동 코드 없음`,
+
+                  );
+
+
+
+                  continue;
+
+                }
+
+
+
+                const result =
+
+                  await analyzeCommercialPoint(
+
+                    location.label,
+
+                    location.dongName,
+
+                    areaInfo.code,
+
+                    location.coordinates.lat,
+
+                    location.coordinates.lng,
+
+                    location.radius,
+
+                    business.name,
+
+                    business.lclsCode,
+
+                    business.mclsCode,
+
+                    business.sclsCode,
+
+                  );
+
+
+
+                analysisResults.push(
+
+                  result,
+
+                );
+
+
+
+                await delay(600);
+
+              } catch (error) {
+
+                console.error(
+
+                  `${location.label} ${business.name} 반경 분석 실패`,
+
+                  error,
+
+                );
+
+
+
+                if (
+
+                  error instanceof Error &&
+
+                  error.message.includes(
+
+                    '429',
+
+                  )
+
+                ) {
+
+                  await delay(2000);
+
+                }
+
+              }
+
+            }
+
+
+
+            if (
+
+              analysisResults.length === 0
+
+            ) {
+
+              continue;
+
+            }
+
+
+
+            const scoredResults =
+
+              calculateSuitabilityScores(
+
+                analysisResults,
+
+              );
+
+
+
+            groups.push({
+
+              businessName:
+
+                business.name,
+
+              items:
+
+                scoredResults.map(
+
+                  (
+
+                    result,
+
+                    index,
+
+                  ) => ({
+
+                    ...result,
+
+                    rank:
+
+                      index + 1,
+
+                  }),
+
+                ),
+
+            });
+
+
+
+            await delay(800);
+
+          }
+
+
+
+          if (
+
+            groups.length === 0
+
+          ) {
+
+            setErrorMessage(
+
+              '분석 결과를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.',
+
+            );
+
+
+
+            return;
+
+          }
+
+
+
+          setGroupedResults(
+
+            groups,
+
+          );
+
+
+
+          setActiveTab(
+
+            groups[0]?.businessName ??
+
+              null,
+
+          );
+
+
+
+          groups.forEach(
+
+            group => {
+
+              const top =
+
+                group.items[0];
+
+
+
+              if (!top) {
+
+                return;
+
+              }
+
+
+
+              setTopAiLoading(
+
+                prev => ({
+
+                  ...prev,
+
+                  [group.businessName]:
+
+                    true,
+
+                }),
+
+              );
+
+
+
+              generateAIExplanation(
+
+                {
+
+                  지역:
+
+                    top.areaName,
+
+                  업종:
+
+                    group.businessName,
+
+                  유동인구:
+
+                    top.floatingPopulation,
+
+                  생활인구:
+
+                    top.livingPopulation,
+
+                  점포수:
+
+                    top.storeCount,
+
+                  경쟁밀도:
+
+                    top.competitionDensity,
+
+                  전체카드소비:
+
+                    top.salesAmount,
+
+                  점포당카드소비:
+
+                    top.averageSalesPerStore,
+
+                  버스정류장수:
+
+                    top.busStopCount,
+
+                  적합도점수:
+
+                    top.suitabilityScore,
+
+                  순위:
+
+                    top.rank,
+
+                },
+
+              )
+
+                .then(
+
+                  explanation => {
+
+                    setTopAiSummary(
+
+                      prev => ({
+
+                        ...prev,
+
+                        [group.businessName]:
+
+                          explanation.recommendationReason,
+
+                      }),
+
+                    );
+
+                  },
+
+                )
+
+                .catch(
+
+                  error => {
+
+                    console.error(
+
+                      'AI 요약 생성 오류:',
+
+                      error,
+
+                    );
+
+                  },
+
+                )
+
+                .finally(
+
+                  () => {
+
+                    setTopAiLoading(
+
+                      prev => ({
+
+                        ...prev,
+
+                        [group.businessName]:
+
+                          false,
+
+                      }),
+
+                    );
+
+                  },
+
+                );
+
+            },
+
+          );
+
+        } catch (error) {
+
+          console.error(
+
+            '상권 분석 오류:',
+
+            error,
+
+          );
+
+
+
+          setErrorMessage(
+
+            error instanceof Error
+
+              ? error.message
+
+              : '상권 분석 중 오류가 발생했습니다.',
+
+          );
+
+        } finally {
+
+          setLoading(false);
+
+        }
+
+      };
+
+
+
+    run();
+
+
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+  }, [
+
+    businesses,
+
+    areas,
+
+    detailedLocationsParam,
+
+  ]);
+
+
+
+  const handleCardPress = (
+
+    businessName: string,
+
+    result: RankedResult,
+
+    allItems: RankedResult[],
+
+  ) => {
+
+    router.push({
+
+      pathname:
+
+        '/market-analysis/region-result-detail',
+
+      params: {
+
+        originBusinesses:
+          businesses ??
+          businessName,
+
+        originAreas:
+          areas ??
+          '',
+
+        originDetailedLocations:
+          detailedLocationsParam ??
+          '',
+
+        businessName,
+
+        areaName:
+
+          result.areaName,
+
+        rank:
+
+          String(
+
+            result.rank,
+
+          ),
+
+        totalCount:
+
+          String(
+
+            allItems.length,
+
+          ),
+
+        suitabilityScore:
+
+          String(
+
+            result.suitabilityScore,
+
+          ),
+
+        floatingPopulation:
+
+          String(
+
+            result.floatingPopulation,
+
+          ),
+
+        livingPopulation:
+
+          String(
+
+            result.livingPopulation,
+
+          ),
+
+        storeCount:
+
+          String(
+
+            result.storeCount,
+
+          ),
+
+        competitionDensity:
+
+          String(
+
+            result.competitionDensity,
+
+          ),
+
+        salesAmount:
+
+          String(
+
+            result.salesAmount,
+
+          ),
+
+        averageSalesPerStore:
+
+          String(
+
+            result.averageSalesPerStore,
+
+          ),
+
+        busStopCount:
+
+          String(
+
+            result.busStopCount,
+
+          ),
+
+        livingPopulationChangeRate:
+
+          String(
+
+            result.livingPopulationChangeRate,
+
+          ),
+
+        floatingPopulationChangeRate:
+
+          String(
+
+            result.floatingPopulationChangeRate,
+
+          ),
+
+        analysisType:
+
+          result.analysisType ??
+
+          'area',
+
+        dongName:
+
+          result.dongName ??
+
+          result.areaName,
+
+        latitude:
+
+          result.latitude !==
+
+          undefined
+
+            ? String(
+
+                result.latitude,
+
+              )
+
+            : '',
+
+        longitude:
+
+          result.longitude !==
+
+          undefined
+
+            ? String(
+
+                result.longitude,
+
+              )
+
+            : '',
+
+        radius:
+
+          result.radius !==
+
+          undefined
+
+            ? String(
+
+                result.radius,
+
+              )
+
+            : '',
+
+        floatingPopulationScore:
+
+          String(
+
+            result.floatingPopulationScore,
+
+          ),
+
+        salesScore:
+
+          String(
+
+            result.salesScore,
+
+          ),
+
+        averageSalesScore:
+
+          String(
+
+            result.averageSalesScore,
+
+          ),
+
+        competitionScore:
+
+          String(
+
+            result.competitionScore,
+
+          ),
+
+        livingPopulationScore:
+
+          String(
+
+            result.livingPopulationScore,
+
+          ),
+
+        livingPopulationChangeScore:
+
+          String(
+
+            result.livingPopulationChangeScore,
+
+          ),
+
+        floatingPopulationChangeScore:
+
+          String(
+
+            result.floatingPopulationChangeScore,
+
+          ),
+
+        accessibilityScore:
+
+          String(
+
+            result.accessibilityScore,
+
+          ),
+
+        compareData:
+
+          JSON.stringify(
+
+            allItems.map(
+
+              item => ({
+
+                areaName:
+
+                  item.areaName,
+
+                rank:
+
+                  item.rank,
+
+                floatingPopulationScore:
+
+                  item.floatingPopulationScore,
+
+                salesScore:
+
+                  item.salesScore,
+
+                averageSalesScore:
+
+                  item.averageSalesScore,
+
+                competitionScore:
+
+                  item.competitionScore,
+
+                livingPopulationScore:
+
+                  item.livingPopulationScore,
+
+                livingPopulationChangeScore:
+
+                  item.livingPopulationChangeScore,
+
+                floatingPopulationChangeScore:
+
+                  item.floatingPopulationChangeScore,
+
+                accessibilityScore:
+
+                  item.accessibilityScore,
+
+              }),
+
+            ),
+
+          ),
+
+      },
+
+    });
+
+  };
+
+
+
+  const visibleGroups =
+
+    groupedResults.length > 1
+
+      ? groupedResults.filter(
+
+          group =>
+
+            group.businessName ===
+
+            activeTab,
+
+        )
+
+      : groupedResults;
+
+
+
+  return (
+
+    <View style={styles.screen}>
+
+      <Stack.Screen options={{ headerShown: false }} />
+
+
+
+      <AnalysisHeader
+
+        title="분석 결과"
+
+        onBack={() =>
+
+          router.replace({
+
+            pathname: '/market-analysis/region',
+
+            params: { businesses },
+
+          })
+
+        }
+
+      />
+
+
+
+      <AnalysisStepper
+
+        steps={['업종 선택', '지역 선택', '분석 결과']}
+
+        currentStep={3}
+
+      />
+
+
+
+      <ScrollView
+
+        style={styles.screen}
+
+        contentContainerStyle={styles.container}
+
+        showsVerticalScrollIndicator={false}
+
+      >
+
+      <View
+
+        style={
+
+          styles.headerBackground
+
+        }
+
+      >
+
+        <Text
+
+          style={
+
+            styles.title
+
+          }
+
+        >
+
+          입지 추천 결과
+
+        </Text>
+
+
+
+        <Text
+
+          style={
+
+            styles.subTitle
+
+          }
+
+        >
+
+          데이터와 AI 분석을 통해 적합한 입지를 추천해드려요
+
+        </Text>
+
+      </View>
+
+
+
+      {loading && (
+
+        <View
+
+          style={
+
+            styles.loadingBox
+
+          }
+
+        >
+
+          <ActivityIndicator
+
+            size="large"
+
+            color={
+
+              COLORS.primary
+
+            }
+
+          />
+
+
+
+          <Text
+
+            style={
+
+              styles.loadingText
+
+            }
+
+          >
+
+            상권 데이터를 분석하는 중...
+
+          </Text>
+
+
+
+          <Text
+
+            style={
+
+              styles.loadingSubText
+
+            }
+
+          >
+
+            여러 업종이나 지역을 선택한 경우 시간이 걸릴 수 있어요.
+
+          </Text>
+
+        </View>
+
+      )}
+
+
+
+      {!loading &&
+
+        errorMessage !== '' && (
+
+          <View
+
+            style={
+
+              styles.errorBox
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.errorTitle
+
+              }
+
+            >
+
+              분석 결과를 불러오지 못했어요
+
+            </Text>
+
+
+
+            <Text
+
+              style={
+
+                styles.error
+
+              }
+
+            >
+
+              {
+
+                errorMessage
+
+              }
+
+            </Text>
+
+          </View>
+
+        )}
+
+
+
+      {!loading &&
+
+        errorMessage === '' &&
+
+        groupedResults.length > 1 && (
+
+          <View
+
+            style={
+
+              styles.tabRow
+
+            }
+
+          >
+
+            {groupedResults.map(
+
+              group => {
+
+                const isActive =
+
+                  activeTab ===
+
+                  group.businessName;
+
+
+
+                return (
+
+                  <TouchableOpacity
+
+                    key={
+
+                      group.businessName
+
+                    }
+
+                    style={[
+
+                      styles.tabButton,
+
+                      isActive &&
+
+                        styles.tabButtonActive,
+
+                    ]}
+
+                    activeOpacity={
+
+                      0.7
+
+                    }
+
+                    onPress={() =>
+
+                      setActiveTab(
+
+                        group.businessName,
+
+                      )
+
+                    }
+
+                  >
+
+                    <Text
+
+                      style={[
+
+                        styles.tabButtonText,
+
+                        isActive &&
+
+                          styles.tabButtonTextActive,
+
+                      ]}
+
+                    >
+
+                      {
+
+                        group.businessName
+
+                      }
+
+                    </Text>
+
+                  </TouchableOpacity>
+
+                );
+
+              },
+
+            )}
+
+          </View>
+
+        )}
+
+
+
+      {!loading &&
+
+        errorMessage === '' &&
+
+        visibleGroups.map(
+
+          group => (
+
+            <View
+
+              key={
+
+                group.businessName
+
+              }
+
+              style={
+
+                styles.businessSection
+
+              }
+
+            >
+
+              <View
+
+                style={
+
+                  styles.businessChip
+
+                }
+
+              >
+
+                <Text
+
+                  style={
+
+                    styles.businessChipLabel
+
+                  }
+
+                >
+
+                  선택한 업종
+
+                </Text>
+
+
+
+                <Text
+
+                  style={
+
+                    styles.businessChipName
+
+                  }
+
+                >
+
+                  {
+
+                    group.businessName
+
+                  }
+
+                </Text>
+
+              </View>
+
+
+
+              <Text
+
+                style={
+
+                  styles.groupTitle
+
+                }
+
+              >
+
+                {`${group.businessName} 업종에 적합한 입지 TOP ${group.items.length}를 분석했어요!`}
+
+              </Text>
+
+
+
+              <Text
+
+                style={
+
+                  styles.groupDescription
+
+                }
+
+              >
+
+                유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.
+
+              </Text>
+
+
+
+              {(topAiLoading[
+
+                group.businessName
+
+              ] ||
+
+                topAiSummary[
+
+                  group.businessName
+
+                ]) && (
+
+                <View
+
+                  style={
+
+                    styles.aiCallout
+
+                  }
+
+                >
+
+                  <Text
+
+                    style={
+
+                      styles.aiCalloutTitle
+
+                    }
+
+                  >
+
+                    💡 AI 한줄 요약
+
+                  </Text>
+
+
+
+                  {topAiLoading[
+
+                    group.businessName
+
+                  ] ? (
+
+                    <View
+
+                      style={
+
+                        styles.aiCalloutLoading
+
+                      }
+
+                    >
+
+                      <ActivityIndicator
+
+                        size="small"
+
+                        color={
+
+                          COLORS.primary
+
+                        }
+
+                      />
+
+
+
+                      <Text
+
+                        style={
+
+                          styles.aiCalloutLoadingText
+
+                        }
+
+                      >
+
+                        AI가 요약하는 중...
+
+                      </Text>
+
+                    </View>
+
+                  ) : (
+
+                    <Text
+
+                      style={
+
+                        styles.aiCalloutText
+
+                      }
+
+                    >
+
+                      {
+
+                        topAiSummary[
+
+                          group.businessName
+
+                        ]
+
+                      }
+
+                    </Text>
+
+                  )}
+
+                </View>
+
+              )}
+
+
+
+              {group.items.map(
+
+                result => {
+
+                  const isFirst =
+
+                    result.rank === 1;
+
+
+
+                  const isPoint =
+
+                    result.analysisType ===
+
+                    'point';
+
+
+
+                  return (
+
+                    <Pressable
+
+                      key={`${group.businessName}-${result.areaName}-${result.rank}`}
+
+                      style={[
+
+                        styles.card,
+
+                        isFirst &&
+
+                          styles.firstCard,
+
+                      ]}
+
+                      onPress={() =>
+
+                        handleCardPress(
+
+                          group.businessName,
+
+                          result,
+
+                          group.items,
+
+                        )
+
+                      }
+
+                    >
+
+                      <View
+
+                        style={
+
+                          styles.cardImageWrap
+
+                        }
+
+                      >
+
+                        {isPoint &&
+
+                        result.latitude !== undefined &&
+
+                        result.longitude !== undefined ? (
+
+                          <CardMapThumbnail
+
+                            coords={{
+
+                              lat:
+
+                                result.latitude,
+
+                              lng:
+
+                                result.longitude,
+
+                            }}
+
+                          />
+
+                        ) : (
+
+                          <CardMapThumbnail
+
+                            coords={
+
+                              areaCoordinates[
+
+                                result.areaName
+
+                              ]
+
+                            }
+
+                          />
+
+                        )}
+
+
+
+                        <View
+
+                          style={[
+
+                            styles.rankBadge,
+
+                            isFirst &&
+
+                              styles.rankBadgeFirst,
+
+                          ]}
+
+                        >
+
+                          <Text
+
+                            style={[
+
+                              styles.rankText,
+
+                              isFirst &&
+
+                                styles.rankTextFirst,
+
+                            ]}
+
+                          >
+
+                            {
+
+                              result.rank
+
+                            }
+
+                          </Text>
+
+                        </View>
+
+                      </View>
+
+
+
+                      <View
+
+                        style={
+
+                          styles.cardBody
+
+                        }
+
+                      >
+
+                        <View
+
+                          style={
+
+                            styles.cardTopRow
+
+                          }
+
+                        >
+
+                          <View
+
+                            style={{
+
+                              flex: 1,
+
+                            }}
+
+                          >
+
+                            <Text
+
+                              style={
+
+                                styles.areaName
+
+                              }
+
+                            >
+
+                              {
+
+                                result.areaName
+
+                              }
+
+                            </Text>
+
+
+
+                            {isPoint &&
+
+                              result.radius && (
+
+                                <Text
+
+                                  style={
+
+                                    styles.pointInfo
+
+                                  }
+
+                                >
+
+                                  반경{' '}
+
+                                  {
+
+                                    result.radius
+
+                                  }
+
+                                  m 분석
+
+                                </Text>
+
+                              )}
+
+                          </View>
+
+
+
+                          <View
+
+                            style={
+
+                              styles.scoreBox
+
+                            }
+
+                          >
+
+                            <Text
+
+                              style={
+
+                                styles.scoreValue
+
+                              }
+
+                            >
+
+                              {
+
+                                result.suitabilityScore
+
+                              }
+
+                            </Text>
+
+
+
+                            <Text
+
+                              style={
+
+                                styles.scoreUnit
+
+                              }
+
+                            >
+
+                              점
+
+                            </Text>
+
+                          </View>
+
+                        </View>
+
+
+
+                        <View
+
+                          style={
+
+                            styles.tagRow
+
+                          }
+
+                        >
+
+                          <View
+
+                            style={
+
+                              styles.tag
+
+                            }
+
+                          >
+
+                            <Text
+
+                              style={
+
+                                styles.tagText
+
+                              }
+
+                            >
+
+                              유동인구{' '}
+
+                              {getLevelLabel(
+
+                                result.floatingPopulationScore,
+
+                              )}
+
+                            </Text>
+
+                          </View>
+
+
+
+                          <View
+
+                            style={
+
+                              styles.tag
+
+                            }
+
+                          >
+
+                            <Text
+
+                              style={
+
+                                styles.tagText
+
+                              }
+
+                            >
+
+                              {getCompetitionLabel(
+
+                                result.competitionScore,
+
+                              )}
+
+                            </Text>
+
+                          </View>
+
+
+
+                          {isPoint && (
+
+                            <View
+
+                              style={
+
+                                styles.pointTag
+
+                              }
+
+                            >
+
+                              <Text
+
+                                style={
+
+                                  styles.pointTagText
+
+                                }
+
+                              >
+
+                                위치 기반
+
+                              </Text>
+
+                            </View>
+
+                          )}
+
+                        </View>
+
+
+
+                        <View
+
+                          style={
+
+                            styles.cardBottomRow
+
+                          }
+
+                        >
+
+                          <Text
+
+                            style={
+
+                              styles.oneLineSummary
+
+                            }
+
+                          >
+
+                            {getOneLineSummary(
+
+                              result,
+
+                            )}
+
+                          </Text>
+
+
+
+                          <Text
+
+                            style={
+
+                              styles.arrow
+
+                            }
+
+                          >
+
+                            ›
+
+                          </Text>
+
+                        </View>
+
+                      </View>
+
+                    </Pressable>
+
+                  );
+
+                },
+
+              )}
+
+            </View>
+
+          ),
+
+        )}
+
+      </ScrollView>
+
+    </View>
+
+  );
+
+}
+
+
 
 const styles =
 
@@ -3284,287 +2704,169 @@ const styles =
 
     },
 
+
+
     container: {
 
-      width:
-
-        '100%',
-
-      maxWidth: 1200,
-
-      alignSelf:
-
-        'center',
-
       padding: 20,
 
-      paddingBottom: 50,
+      paddingBottom: 40,
 
     },
 
-    /**
 
-     * HEADER
 
-     */
+    headerBackground: {
 
-    headerCard: {
-
-      padding: 20,
-
-      marginBottom: 16,
-
-      borderRadius: 20,
-
-      backgroundColor:
-
-        '#111111',
+      marginBottom: 20,
 
     },
 
-    headerTopRow: {
 
-      flexDirection:
 
-        'row',
+    title: {
 
-      alignItems:
+      fontSize: 26,
 
-        'center',
-
-      gap: 10,
-
-      marginBottom: 10,
-
-    },
-
-    rankPill: {
-
-      paddingVertical: 4,
-
-      paddingHorizontal: 10,
-
-      borderRadius: 12,
-
-      backgroundColor:
-
-        COLORS.primary,
-
-    },
-
-    rankPillText: {
-
-      fontSize: 12,
-
-      fontWeight:
-
-        '800',
+      fontWeight: '900',
 
       color:
 
-        '#FFFFFF',
+        COLORS.text,
+
+      marginBottom: 6,
 
     },
 
-    headerSubText: {
 
-      fontSize: 12,
 
-      color:
-
-        '#9CA3AF',
-
-    },
-
-    titleRow: {
-
-      flexDirection:
-
-        'row',
-
-      alignItems:
-
-        'center',
-
-      justifyContent:
-
-        'space-between',
-
-      gap: 12,
-
-    },
-
-    titleArea: {
-
-      flex: 1,
-
-    },
-
-    headerTitle: {
-
-      marginBottom: 4,
-
-      fontSize: 24,
-
-      fontWeight:
-
-        '900',
-
-      color:
-
-        '#FFFFFF',
-
-    },
-
-    pointSubtitle: {
-
-      marginTop: 2,
-
-      fontSize: 11,
-
-      fontWeight:
-
-        '700',
-
-      color:
-
-        '#A7F3D0',
-
-    },
-
-    favoriteButton: {
-
-      width: 44,
-
-      height: 44,
-
-      alignItems:
-
-        'center',
-
-      justifyContent:
-
-        'center',
-
-      borderWidth: 1,
-
-      borderColor:
-
-        '#E5E7EB',
-
-      borderRadius: 22,
-
-      backgroundColor:
-
-        '#FFFFFF',
-
-    },
-
-    favoriteButtonActive: {
-
-      borderColor:
-
-        '#E54861',
-
-      backgroundColor:
-
-        '#E54861',
-
-    },
-
-    favoriteText: {
-
-      fontSize: 27,
-
-      lineHeight: 31,
-
-      color:
-
-        '#E54861',
-
-    },
-
-    favoriteTextActive: {
-
-      color:
-
-        '#FFFFFF',
-
-    },
-
-    headerBusiness: {
-
-      marginTop: 6,
-
-      marginBottom: 16,
-
-      fontSize: 14,
-
-      color:
-
-        '#D1D5DB',
-
-    },
-
-    scoreRow: {
-
-      flexDirection:
-
-        'row',
-
-      alignItems:
-
-        'flex-end',
-
-      gap: 6,
-
-    },
-
-    scoreLabel: {
-
-      marginBottom: 4,
-
-      fontSize: 12,
-
-      color:
-
-        '#9CA3AF',
-
-    },
-
-    scoreValue: {
-
-      fontSize: 30,
-
-      fontWeight:
-
-        '900',
-
-      color:
-
-        COLORS.neonLime,
-
-    },
-
-    scoreUnit: {
-
-      marginBottom: 4,
+    subTitle: {
 
       fontSize: 13,
 
       color:
 
-        '#9CA3AF',
+        COLORS.textSecondary,
 
     },
 
-    /**
 
-     * 핵심 지표
 
-     */
+    loadingBox: {
 
-    metricGrid: {
+      marginTop: 40,
+
+      padding: 28,
+
+      alignItems:
+
+        'center',
+
+      borderRadius: 20,
+
+      backgroundColor:
+
+        COLORS.surface,
+
+      borderWidth: 1,
+
+      borderColor:
+
+        COLORS.border,
+
+    },
+
+
+
+    loadingText: {
+
+      marginTop: 14,
+
+      fontSize: 15,
+
+      fontWeight: '800',
+
+      color:
+
+        COLORS.text,
+
+    },
+
+
+
+    loadingSubText: {
+
+      marginTop: 6,
+
+      fontSize: 12,
+
+      lineHeight: 18,
+
+      textAlign:
+
+        'center',
+
+      color:
+
+        COLORS.textSecondary,
+
+    },
+
+
+
+    errorBox: {
+
+      padding: 18,
+
+      borderRadius: 18,
+
+      backgroundColor:
+
+        '#FFF3F3',
+
+    },
+
+
+
+    errorTitle: {
+
+      fontSize: 15,
+
+      fontWeight: '800',
+
+      color:
+
+        '#B42318',
+
+      marginBottom: 6,
+
+    },
+
+
+
+    error: {
+
+      fontSize: 13,
+
+      lineHeight: 19,
+
+      color:
+
+        '#D14343',
+
+    },
+
+
+
+    businessSection: {
+
+      marginBottom: 30,
+
+    },
+
+
+
+    tabRow: {
 
       flexDirection:
 
@@ -3574,23 +2876,25 @@ const styles =
 
         'wrap',
 
-      gap: 10,
+      gap: 8,
 
-      marginBottom: 16,
+      marginBottom: 18,
 
     },
 
-    metricBox: {
 
-      flexGrow: 1,
 
-      flexBasis:
+    tabButton: {
 
-        '47%',
+      paddingVertical: 9,
 
-      minWidth: 220,
+      paddingHorizontal: 16,
 
-      padding: 14,
+      borderRadius: 20,
+
+      backgroundColor:
+
+        COLORS.surface,
 
       borderWidth: 1,
 
@@ -3598,111 +2902,29 @@ const styles =
 
         COLORS.border,
 
-      borderRadius: 14,
+    },
+
+
+
+    tabButtonActive: {
 
       backgroundColor:
 
-        COLORS.surface,
-
-    },
-
-    metricLabel: {
-
-      marginBottom: 6,
-
-      fontSize: 11,
-
-      color:
-
-        COLORS.textSecondary,
-
-    },
-
-    metricValue: {
-
-      fontSize: 15,
-
-      fontWeight:
-
-        '800',
-
-      color:
-
-        COLORS.text,
-
-    },
-
-    /**
-
-     * 비교 그래프
-
-     */
-
-    comparisonWrapper: {
-
-      marginBottom: 16,
-
-    },
-
-    noCompareText: {
-
-      marginTop: 8,
-
-      fontSize: 12,
-
-      color:
-
-        COLORS.textSecondary,
-
-    },
-
-    /**
-
-     * 공통 SECTION
-
-     */
-
-    sectionBox: {
-
-      padding: 16,
-
-      marginBottom: 16,
-
-      borderWidth: 1,
+        COLORS.primary,
 
       borderColor:
 
-        COLORS.border,
-
-      borderRadius: 18,
-
-      backgroundColor:
-
-        COLORS.surface,
+        COLORS.primary,
 
     },
 
-    sectionTitle: {
 
-      marginBottom: 4,
 
-      fontSize: 15,
+    tabButtonText: {
 
-      fontWeight:
+      fontSize: 13,
 
-        '800',
-
-      color:
-
-        COLORS.text,
-
-    },
-
-    sectionDescription: {
-
-      marginBottom: 12,
-
-      fontSize: 12,
+      fontWeight: '700',
 
       color:
 
@@ -3710,51 +2932,19 @@ const styles =
 
     },
 
-    estimateNotice: {
 
-      marginTop: 8,
 
-      marginBottom: 14,
-
-      padding: 10,
-
-      borderRadius: 10,
-
-      backgroundColor:
-
-        '#F5FCF6',
-
-      fontSize: 11,
-
-      lineHeight: 17,
+    tabButtonTextActive: {
 
       color:
 
-        COLORS.textSecondary,
+        '#FFFFFF',
 
     },
 
-    /**
 
-     * 실제 점포
 
-     */
-
-    map: {
-
-      width:
-
-        '100%',
-
-      height: 200,
-
-      marginBottom: 12,
-
-      borderRadius: 14,
-
-    },
-
-    smallLoadingBox: {
+    businessChip: {
 
       flexDirection:
 
@@ -3766,13 +2956,29 @@ const styles =
 
       gap: 8,
 
-      paddingVertical: 10,
+      alignSelf:
+
+        'flex-start',
+
+      backgroundColor:
+
+        '#F1FFF5',
+
+      borderRadius: 14,
+
+      paddingVertical: 8,
+
+      paddingHorizontal: 14,
+
+      marginBottom: 14,
 
     },
 
-    smallLoadingText: {
 
-      fontSize: 12,
+
+    businessChipLabel: {
+
+      fontSize: 11,
 
       color:
 
@@ -3780,17 +2986,39 @@ const styles =
 
     },
 
-    storesError: {
 
-      fontSize: 12,
+
+    businessChipName: {
+
+      fontSize: 14,
+
+      fontWeight: '900',
 
       color:
 
-        '#D14343',
+        COLORS.primary,
 
     },
 
-    storesEmpty: {
+
+
+    groupTitle: {
+
+      fontSize: 16,
+
+      fontWeight: '900',
+
+      color:
+
+        COLORS.text,
+
+      marginBottom: 4,
+
+    },
+
+
+
+    groupDescription: {
 
       fontSize: 12,
 
@@ -3798,27 +3026,57 @@ const styles =
 
         COLORS.textSecondary,
 
-    },
+      marginBottom: 16,
 
-    storeRow: {
-
-      paddingVertical: 10,
-
-      borderTopWidth: 1,
-
-      borderTopColor:
-
-        COLORS.border,
+      lineHeight: 18,
 
     },
 
-    storeName: {
+
+
+    aiCallout: {
+
+      marginBottom: 14,
+
+      padding: 16,
+
+      borderRadius: 16,
+
+      backgroundColor:
+
+        '#EFF6FF',
+
+      borderWidth: 1,
+
+      borderColor:
+
+        '#DBEAFE',
+
+    },
+
+
+
+    aiCalloutTitle: {
 
       fontSize: 13,
 
-      fontWeight:
+      fontWeight: '800',
 
-        '700',
+      color:
+
+        '#1D4ED8',
+
+      marginBottom: 6,
+
+    },
+
+
+
+    aiCalloutText: {
+
+      fontSize: 13,
+
+      lineHeight: 19,
 
       color:
 
@@ -3826,9 +3084,25 @@ const styles =
 
     },
 
-    storeAddress: {
 
-      marginTop: 2,
+
+    aiCalloutLoading: {
+
+      flexDirection:
+
+        'row',
+
+      alignItems:
+
+        'center',
+
+      gap: 8,
+
+    },
+
+
+
+    aiCalloutLoadingText: {
 
       fontSize: 12,
 
@@ -3838,13 +3112,167 @@ const styles =
 
     },
 
-    /**
 
-     * 상세 지표
 
-     */
+    card: {
 
-    detailRow: {
+      borderRadius: 18,
+
+      marginBottom: 14,
+
+      backgroundColor:
+
+        COLORS.surface,
+
+      borderWidth: 1,
+
+      borderColor:
+
+        COLORS.border,
+
+      overflow: 'hidden',
+
+    },
+
+
+
+    firstCard: {
+
+      borderColor:
+
+        COLORS.primary,
+
+      borderWidth: 2,
+
+    },
+
+
+
+    cardImageWrap: {
+
+      position:
+
+        'relative',
+
+    },
+
+
+
+    cardMap: {
+
+      width: '100%',
+
+      height: 130,
+
+    },
+
+
+
+    mapFallback: {
+
+      width: '100%',
+
+      height: 130,
+
+      alignItems:
+
+        'center',
+
+      justifyContent:
+
+        'center',
+
+      backgroundColor:
+
+        COLORS.lightGray,
+
+    },
+
+
+
+    mapFallbackText: {
+
+      fontSize: 28,
+
+    },
+
+
+
+    rankBadge: {
+
+      position:
+
+        'absolute',
+
+      top: 10,
+
+      left: 10,
+
+      width: 28,
+
+      height: 28,
+
+      borderRadius: 14,
+
+      backgroundColor:
+
+        'rgba(17,17,17,0.75)',
+
+      alignItems:
+
+        'center',
+
+      justifyContent:
+
+        'center',
+
+    },
+
+
+
+    rankBadgeFirst: {
+
+      backgroundColor:
+
+        COLORS.primary,
+
+    },
+
+
+
+    rankText: {
+
+      fontSize: 13,
+
+      fontWeight: '800',
+
+      color:
+
+        '#FFFFFF',
+
+    },
+
+
+
+    rankTextFirst: {
+
+      color:
+
+        '#FFFFFF',
+
+    },
+
+
+
+    cardBody: {
+
+      padding: 14,
+
+    },
+
+
+
+    cardTopRow: {
 
       flexDirection:
 
@@ -3858,130 +3286,35 @@ const styles =
 
         'center',
 
-      gap: 20,
-
-      paddingVertical: 10,
-
-      borderBottomWidth: 1,
-
-      borderBottomColor:
-
-        COLORS.border,
+      marginBottom: 8,
 
     },
 
-    detailRowLast: {
 
-      borderBottomWidth: 0,
 
-    },
+    areaName: {
 
-    detailLabel: {
+      fontSize: 16,
 
-      fontSize: 13,
+      fontWeight: '800',
 
       color:
 
-        COLORS.textSecondary,
-
-    },
-
-    detailValue: {
+        COLORS.text,
 
       flexShrink: 1,
 
-      textAlign:
-
-        'right',
-
-      fontSize: 13,
-
-      fontWeight:
-
-        '800',
-
-      color:
-
-        COLORS.text,
-
     },
 
-    chatButton: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 16,
-      borderWidth: 1,
-      borderColor: '#CDEED7',
-      borderRadius: 16,
-      backgroundColor: '#F3FBF5',
-    },
 
-    chatIcon: {
-      width: 42,
-      height: 42,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 21,
-      backgroundColor: COLORS.primary,
-    },
 
-    chatIconText: {
-      fontSize: 12,
-      fontWeight: '900',
-      color: '#FFFFFF',
-    },
+    pointInfo: {
 
-    chatButtonContent: {
-      flex: 1,
-    },
+      marginTop: 3,
 
-    chatButtonTitle: {
-      marginBottom: 3,
-      fontSize: 14,
-      fontWeight: '800',
-      color: COLORS.text,
-    },
-
-    chatButtonDescription: {
       fontSize: 11,
-      lineHeight: 16,
-      color: COLORS.textSecondary,
-    },
 
-    chatButtonArrow: {
-      marginLeft: 4,
-      fontSize: 27,
-      fontWeight: '400',
-      color: COLORS.primary,
-    },
-
-    /**
-
-     * AI
-
-     */
-
-    aiReasonText: {
-
-      fontSize: 13,
-
-      lineHeight: 20,
-
-      color:
-
-        COLORS.text,
-
-    },
-
-    aiHighlight: {
-
-      fontWeight:
-
-        '900',
+      fontWeight: '600',
 
       color:
 
@@ -3989,15 +3322,9 @@ const styles =
 
     },
 
-    chunkList: {
 
-      marginTop: 12,
 
-      gap: 8,
-
-    },
-
-    chunkRowGood: {
+    scoreBox: {
 
       flexDirection:
 
@@ -4005,11 +3332,99 @@ const styles =
 
       alignItems:
 
-        'flex-start',
+        'flex-end',
 
-      gap: 8,
+      marginLeft: 8,
 
-      padding: 10,
+    },
+
+
+
+    scoreValue: {
+
+      fontSize: 18,
+
+      fontWeight: '900',
+
+      color:
+
+        COLORS.primary,
+
+    },
+
+
+
+    scoreUnit: {
+
+      fontSize: 12,
+
+      fontWeight: '700',
+
+      color:
+
+        COLORS.text,
+
+      marginLeft: 1,
+
+      marginBottom: 2,
+
+    },
+
+
+
+    tagRow: {
+
+      flexDirection:
+
+        'row',
+
+      flexWrap:
+
+        'wrap',
+
+      gap: 6,
+
+      marginBottom: 8,
+
+    },
+
+
+
+    tag: {
+
+      paddingVertical: 4,
+
+      paddingHorizontal: 10,
+
+      borderRadius: 10,
+
+      backgroundColor:
+
+        COLORS.background,
+
+    },
+
+
+
+    tagText: {
+
+      fontSize: 11,
+
+      fontWeight: '700',
+
+      color:
+
+        COLORS.textSecondary,
+
+    },
+
+
+
+    pointTag: {
+
+      paddingVertical: 4,
+
+      paddingHorizontal: 10,
 
       borderRadius: 10,
 
@@ -4019,89 +3434,31 @@ const styles =
 
     },
 
-    chunkIconGood: {
 
-      fontSize: 13,
 
-      fontWeight:
+    pointTagText: {
 
-        '900',
+      fontSize: 11,
 
-      color:
-
-        '#1B9C4F',
-
-    },
-
-    chunkTextGood: {
-
-      flex: 1,
-
-      fontSize: 12,
-
-      lineHeight: 18,
+      fontWeight: '700',
 
       color:
 
-        '#1B4332',
+        COLORS.primary,
 
     },
 
-    chunkRowWarn: {
+
+
+    cardBottomRow: {
 
       flexDirection:
 
         'row',
 
-      alignItems:
+      justifyContent:
 
-        'flex-start',
-
-      gap: 8,
-
-      padding: 10,
-
-      borderRadius: 10,
-
-      backgroundColor:
-
-        '#FFF8E8',
-
-    },
-
-    chunkIconWarn: {
-
-      fontSize: 13,
-
-      fontWeight:
-
-        '900',
-
-      color:
-
-        '#B45309',
-
-    },
-
-    chunkTextWarn: {
-
-      flex: 1,
-
-      fontSize: 12,
-
-      lineHeight: 18,
-
-      color:
-
-        '#7C4A03',
-
-    },
-
-    detailToggleButton: {
-
-      marginTop: 14,
-
-      paddingVertical: 6,
+        'space-between',
 
       alignItems:
 
@@ -4109,49 +3466,35 @@ const styles =
 
     },
 
-    detailToggleText: {
+
+
+    oneLineSummary: {
+
+      flex: 1,
 
       fontSize: 12,
-
-      fontWeight:
-
-        '700',
 
       color:
 
         COLORS.textSecondary,
 
-    },
-
-    aiDetailSection: {
-
-      marginTop: 10,
-
-      paddingTop: 10,
-
-      borderTopWidth: 1,
-
-      borderTopColor:
-
-        COLORS.border,
+      lineHeight: 17,
 
     },
 
-    aiLabel: {
 
-      marginTop: 8,
 
-      marginBottom: 4,
+    arrow: {
 
-      fontSize: 12,
+      fontSize: 22,
 
-      fontWeight:
-
-        '800',
+      fontWeight: '700',
 
       color:
 
         COLORS.textSecondary,
+
+      marginLeft: 8,
 
     },
 
