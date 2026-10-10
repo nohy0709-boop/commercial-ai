@@ -55,6 +55,8 @@ import {
 
   Alert,
 
+  Image,
+
   Platform,
 
   ScrollView,
@@ -121,32 +123,55 @@ type CompareItem = {
  */
 
 function renderEmphasizedText(
+
   text: string,
+
   textStyle: object,
+
 ) {
+
   const parts = text.split(/(\*\*.*?\*\*)/g);
 
   return (
+
     <Text style={textStyle}>
+
       {parts.map((part, index) => {
+
         if (
+
           part.startsWith('**') &&
+
           part.endsWith('**')
+
         ) {
+
           return (
+
             <Text
+
               key={index}
+
               style={styles.aiHighlight}
+
             >
+
               {part.slice(2, -2)}
+
             </Text>
+
           );
+
         }
 
         return part;
+
       })}
+
     </Text>
+
   );
+
 }
 
 /**
@@ -1502,29 +1527,85 @@ export default function RegionResultDetailScreen() {
     };
 
   const handleOpenChat = () => {
+
     router.push({
+
       pathname: '/chat',
+
       params: {
+
           returnTo: '/market-analysis/region-result-detail',
+
+        businessName,
+
+        areaName,
+
+        rank,
+
+        totalCount,
+
+        suitabilityScore,
+
+        floatingPopulation,
+
+        livingPopulation,
+
+        storeCount,
+
+        competitionDensity,
+
+        salesAmount,
+
+        averageSalesPerStore,
+
+        busStopCount,
+
+        livingPopulationChangeRate,
+
+        floatingPopulationChangeRate,
+
+        analysisType: isPointAnalysis ? 'point' : 'area',
+
+        dongName: actualDongName,
+
+        latitude: latitude ?? '',
+
+        longitude: longitude ?? '',
+
+        radius: radius ?? '',
+
+      },
+
+    });
+
+  };
+
+  const handleOpenMap = () => {
+    router.push({
+      pathname: '/map',
+      params: {
+        mode: 'analysis-result',
+        returnParams:
+          JSON.stringify(params),
         businessName,
         areaName,
         rank,
-        totalCount,
         suitabilityScore,
         floatingPopulation,
-        livingPopulation,
         storeCount,
         competitionDensity,
-        salesAmount,
-        averageSalesPerStore,
-        busStopCount,
-        livingPopulationChangeRate,
-        floatingPopulationChangeRate,
-        analysisType: isPointAnalysis ? 'point' : 'area',
-        dongName: actualDongName,
-        latitude: latitude ?? '',
-        longitude: longitude ?? '',
-        radius: radius ?? '',
+        compareData:
+          compareData ?? '',
+        analysisType:
+          isPointAnalysis
+            ? 'point'
+            : 'area',
+        latitude:
+          latitude ?? '',
+        longitude:
+          longitude ?? '',
+        radius:
+          radius ?? '',
       },
     });
   };
@@ -1864,25 +1945,77 @@ export default function RegionResultDetailScreen() {
       </View>
 
       <TouchableOpacity
+
         style={styles.chatButton}
+
         activeOpacity={0.8}
+
         onPress={handleOpenChat}
+
       >
-        <View style={styles.chatIcon}>
-          <Text style={styles.chatIconText}>AI</Text>
-        </View>
+
+        <Image
+          source={require('../../../assets/images/chatbot-question-map.png')}
+          style={styles.chatImageIcon}
+          resizeMode="contain"
+        />
 
         <View style={styles.chatButtonContent}>
+
           <Text style={styles.chatButtonTitle}>
+
             AI에게 물어보기
+
           </Text>
 
           <Text style={styles.chatButtonDescription}>
+
             현재 분석 결과를 바탕으로 궁금한 점을 질문해보세요
+
           </Text>
+
         </View>
 
         <Text style={styles.chatButtonArrow}>›</Text>
+
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.mapViewButton}
+        activeOpacity={0.8}
+        onPress={handleOpenMap}
+      >
+        <View
+          style={styles.mapViewIcon}
+        >
+          <Text
+            style={styles.mapViewIconText}
+          >
+            🗺️
+          </Text>
+        </View>
+
+        <View
+          style={styles.mapViewContent}
+        >
+          <Text
+            style={styles.mapViewTitle}
+          >
+            지도에서 보기
+          </Text>
+
+          <Text
+            style={styles.mapViewDescription}
+          >
+            분석 지역과 주변 상권 분포를 지도에서 확인해보세요
+          </Text>
+        </View>
+
+        <Text
+          style={styles.mapViewArrow}
+        >
+          ›
+        </Text>
       </TouchableOpacity>
 
       {/* =================================================
@@ -3905,7 +4038,7 @@ const styles =
 
     },
 
-    chatButton: {
+    mapViewButton: {
       width: '100%',
       flexDirection: 'row',
       alignItems: 'center',
@@ -3914,48 +4047,122 @@ const styles =
       paddingVertical: 14,
       marginBottom: 16,
       borderWidth: 1,
-      borderColor: '#CDEED7',
+      borderColor: '#DDE4EA',
       borderRadius: 16,
-      backgroundColor: '#F3FBF5',
+      backgroundColor: '#FFFFFF',
     },
 
-    chatIcon: {
+    mapViewIcon: {
       width: 42,
       height: 42,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 21,
-      backgroundColor: COLORS.primary,
+      backgroundColor: '#F1F5F3',
     },
 
-    chatIconText: {
-      fontSize: 12,
-      fontWeight: '900',
-      color: '#FFFFFF',
+    mapViewIconText: {
+      fontSize: 20,
     },
 
-    chatButtonContent: {
+    mapViewContent: {
       flex: 1,
     },
 
-    chatButtonTitle: {
+    mapViewTitle: {
       marginBottom: 3,
       fontSize: 14,
       fontWeight: '800',
       color: COLORS.text,
     },
 
-    chatButtonDescription: {
+    mapViewDescription: {
       fontSize: 11,
       lineHeight: 16,
       color: COLORS.textSecondary,
     },
 
-    chatButtonArrow: {
+    mapViewArrow: {
       marginLeft: 4,
       fontSize: 27,
       fontWeight: '400',
       color: COLORS.primary,
+    },
+
+    chatButton: {
+
+      width: '100%',
+
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      gap: 12,
+
+      paddingHorizontal: 16,
+
+      paddingVertical: 14,
+
+      marginBottom: 16,
+
+      borderWidth: 1,
+
+      borderColor: '#CDEED7',
+
+      borderRadius: 16,
+
+      backgroundColor: '#F3FBF5',
+
+    },
+
+    chatImageIcon: {
+
+      width: 48,
+
+      height: 48,
+
+      marginRight: 2,
+
+    },
+
+    chatButtonContent: {
+
+      flex: 1,
+
+    },
+
+    chatButtonTitle: {
+
+      marginBottom: 3,
+
+      fontSize: 14,
+
+      fontWeight: '800',
+
+      color: COLORS.text,
+
+    },
+
+    chatButtonDescription: {
+
+      fontSize: 11,
+
+      lineHeight: 16,
+
+      color: COLORS.textSecondary,
+
+    },
+
+    chatButtonArrow: {
+
+      marginLeft: 4,
+
+      fontSize: 27,
+
+      fontWeight: '400',
+
+      color: COLORS.primary,
+
     },
 
     /**

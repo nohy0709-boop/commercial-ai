@@ -4,13 +4,9 @@ import { COLORS } from '@/constants/colors';
 
 import { sejongAreas } from '@/constants/sejongAreas';
 
-
-
 import type {
   ScoredCommercialAnalysisResult,
 } from '@/services/commercialAnalysis';
-
-
 
 import {
   analyzeCommercialArea,
@@ -20,15 +16,11 @@ import {
   calculateSuitabilityScores,
 } from '@/services/commercialAnalysis';
 
-
-
 import { generateAIExplanation } from '@/services/aiExplanation';
 
 import type { Coordinates } from '@/services/geocoding';
 
 import { searchLocation } from '@/services/geocoding';
-
-
 
 import AnalysisHeader from '@/components/analysis-header';
 
@@ -37,8 +29,6 @@ import AnalysisStepper from '@/components/analysis-stepper';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useEffect, useState } from 'react';
-
-
 
 import {
   ActivityIndicator,
@@ -58,8 +48,6 @@ import {
   View,
 } from 'react-native';
 
-
-
 type DetailedLocation = {
 
   label: string;
@@ -77,8 +65,6 @@ type DetailedLocation = {
   radius: number;
 
 };
-
-
 
 type RankedResult =
 
@@ -100,8 +86,6 @@ type RankedResult =
 
   };
 
-
-
 type GroupedResult = {
 
   businessName: string;
@@ -110,8 +94,6 @@ type GroupedResult = {
 
 };
 
-
-
 const delay = (ms: number) =>
 
   new Promise(resolve =>
@@ -119,8 +101,6 @@ const delay = (ms: number) =>
     setTimeout(resolve, ms),
 
   );
-
-
 
 function getLevelLabel(
 
@@ -134,15 +114,11 @@ function getLevelLabel(
 
   }
 
-
-
   if (score >= 50) {
 
     return '높음';
 
   }
-
-
 
   if (score >= 25) {
 
@@ -150,13 +126,9 @@ function getLevelLabel(
 
   }
 
-
-
   return '낮음';
 
 }
-
-
 
 function getCompetitionLabel(
 
@@ -173,8 +145,6 @@ function getCompetitionLabel(
   return '경쟁 치열';
 
 }
-
-
 
 function getOneLineSummary(
 
@@ -236,8 +206,6 @@ function getOneLineSummary(
 
   ];
 
-
-
   const top = [...reasons].sort(
 
     (a, b) =>
@@ -246,13 +214,9 @@ function getOneLineSummary(
 
   )[0];
 
-
-
   return top.text;
 
 }
-
-
 
 function parseDetailedLocations(
 
@@ -266,23 +230,17 @@ function parseDetailedLocations(
 
   }
 
-
-
   try {
 
     const parsed =
 
       JSON.parse(value);
 
-
-
     if (!Array.isArray(parsed)) {
 
       return [];
 
     }
-
-
 
     return parsed.filter(
 
@@ -314,15 +272,11 @@ function parseDetailedLocations(
 
     );
 
-
-
     return [];
 
   }
 
 }
-
-
 
 function CardMapThumbnail({
 
@@ -374,8 +328,6 @@ function CardMapThumbnail({
 
   }
 
-
-
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 
   const MapView =
@@ -385,8 +337,6 @@ function CardMapThumbnail({
       'react-native-maps',
 
     ).default;
-
-
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 
@@ -401,8 +351,6 @@ function CardMapThumbnail({
       'react-native-maps',
 
     );
-
-
 
   return (
 
@@ -484,15 +432,11 @@ function CardMapThumbnail({
 
 }
 
-
-
 export default function RegionResultScreen() {
 
   const router =
 
     useRouter();
-
-
 
   const {
 
@@ -516,8 +460,6 @@ export default function RegionResultScreen() {
 
     }>();
 
-
-
   const [
 
     groupedResults,
@@ -532,8 +474,6 @@ export default function RegionResultScreen() {
 
     >([]);
 
-
-
   const [
 
     loading,
@@ -544,8 +484,6 @@ export default function RegionResultScreen() {
 
     useState(true);
 
-
-
   const [
 
     errorMessage,
@@ -555,8 +493,6 @@ export default function RegionResultScreen() {
   ] =
 
     useState('');
-
-
 
   const [
 
@@ -572,8 +508,6 @@ export default function RegionResultScreen() {
 
     >({});
 
-
-
   const [
 
     topAiLoading,
@@ -588,8 +522,6 @@ export default function RegionResultScreen() {
 
     >({});
 
-
-
   const [
 
     activeTab,
@@ -603,8 +535,6 @@ export default function RegionResultScreen() {
       string | null
 
     >(null);
-
-
 
   const [
 
@@ -626,8 +556,6 @@ export default function RegionResultScreen() {
 
     >({});
 
-
-
   useEffect(() => {
 
     if (!businesses) {
@@ -638,17 +566,11 @@ export default function RegionResultScreen() {
 
       );
 
-
-
       setLoading(false);
-
-
 
       return;
 
     }
-
-
 
     const selectedBusinessNames =
 
@@ -657,8 +579,6 @@ export default function RegionResultScreen() {
         .split(',')
 
         .filter(Boolean);
-
-
 
     const selectedAreaNames =
 
@@ -672,8 +592,6 @@ export default function RegionResultScreen() {
 
         : [];
 
-
-
     const selectedDetailedLocations =
 
       parseDetailedLocations(
@@ -681,8 +599,6 @@ export default function RegionResultScreen() {
         detailedLocationsParam,
 
       );
-
-
 
     if (
 
@@ -698,17 +614,11 @@ export default function RegionResultScreen() {
 
       );
 
-
-
       setLoading(false);
-
-
 
       return;
 
     }
-
-
 
     const allBusinesses =
 
@@ -719,8 +629,6 @@ export default function RegionResultScreen() {
           category.businesses,
 
       );
-
-
 
     const targetBusinesses =
 
@@ -736,8 +644,6 @@ export default function RegionResultScreen() {
 
       );
 
-
-
     const targetAreas =
 
       sejongAreas.filter(
@@ -751,8 +657,6 @@ export default function RegionResultScreen() {
           ),
 
       );
-
-
 
     Promise.all(
 
@@ -769,8 +673,6 @@ export default function RegionResultScreen() {
                 `세종특별자치시 ${area.name}`,
 
               );
-
-
 
             return [
 
@@ -789,8 +691,6 @@ export default function RegionResultScreen() {
               error,
 
             );
-
-
 
             return [
 
@@ -815,8 +715,6 @@ export default function RegionResultScreen() {
         Coordinates
 
       > = {};
-
-
 
       results.forEach(
 
@@ -844,8 +742,6 @@ export default function RegionResultScreen() {
 
       );
 
-
-
       setAreaCoordinates(
 
         map,
@@ -853,8 +749,6 @@ export default function RegionResultScreen() {
       );
 
     });
-
-
 
     const run =
 
@@ -872,13 +766,9 @@ export default function RegionResultScreen() {
 
           setTopAiLoading({});
 
-
-
           const groups: GroupedResult[] =
 
             [];
-
-
 
           for (
 
@@ -889,8 +779,6 @@ export default function RegionResultScreen() {
             const analysisResults: any[] =
 
               [];
-
-
 
             for (
 
@@ -918,15 +806,11 @@ export default function RegionResultScreen() {
 
                   );
 
-
-
                 analysisResults.push(
 
                   result,
 
                 );
-
-
 
                 await delay(600);
 
@@ -939,8 +823,6 @@ export default function RegionResultScreen() {
                   error,
 
                 );
-
-
 
                 if (
 
@@ -962,8 +844,6 @@ export default function RegionResultScreen() {
 
             }
 
-
-
             for (
 
               const location of selectedDetailedLocations
@@ -984,8 +864,6 @@ export default function RegionResultScreen() {
 
                   );
 
-
-
                 if (!areaInfo) {
 
                   console.error(
@@ -994,13 +872,9 @@ export default function RegionResultScreen() {
 
                   );
 
-
-
                   continue;
 
                 }
-
-
 
                 const result =
 
@@ -1028,15 +902,11 @@ export default function RegionResultScreen() {
 
                   );
 
-
-
                 analysisResults.push(
 
                   result,
 
                 );
-
-
 
                 await delay(600);
 
@@ -1049,8 +919,6 @@ export default function RegionResultScreen() {
                   error,
 
                 );
-
-
 
                 if (
 
@@ -1072,8 +940,6 @@ export default function RegionResultScreen() {
 
             }
 
-
-
             if (
 
               analysisResults.length === 0
@@ -1084,8 +950,6 @@ export default function RegionResultScreen() {
 
             }
 
-
-
             const scoredResults =
 
               calculateSuitabilityScores(
@@ -1093,8 +957,6 @@ export default function RegionResultScreen() {
                 analysisResults,
 
               );
-
-
 
             groups.push({
 
@@ -1126,13 +988,9 @@ export default function RegionResultScreen() {
 
             });
 
-
-
             await delay(800);
 
           }
-
-
 
           if (
 
@@ -1146,21 +1004,15 @@ export default function RegionResultScreen() {
 
             );
 
-
-
             return;
 
           }
-
-
 
           setGroupedResults(
 
             groups,
 
           );
-
-
 
           setActiveTab(
 
@@ -1170,8 +1022,6 @@ export default function RegionResultScreen() {
 
           );
 
-
-
           groups.forEach(
 
             group => {
@@ -1180,15 +1030,11 @@ export default function RegionResultScreen() {
 
                 group.items[0];
 
-
-
               if (!top) {
 
                 return;
 
               }
-
-
 
               setTopAiLoading(
 
@@ -1203,8 +1049,6 @@ export default function RegionResultScreen() {
                 }),
 
               );
-
-
 
               generateAIExplanation(
 
@@ -1332,8 +1176,6 @@ export default function RegionResultScreen() {
 
           );
 
-
-
           setErrorMessage(
 
             error instanceof Error
@@ -1352,11 +1194,7 @@ export default function RegionResultScreen() {
 
       };
 
-
-
     run();
-
-
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
 
@@ -1369,8 +1207,6 @@ export default function RegionResultScreen() {
     detailedLocationsParam,
 
   ]);
-
-
 
   const handleCardPress = (
 
@@ -1391,16 +1227,13 @@ export default function RegionResultScreen() {
       params: {
 
         originBusinesses:
-          businesses ??
-          businessName,
+          businesses ?? '',
 
         originAreas:
-          areas ??
-          '',
+          areas ?? '',
 
         originDetailedLocations:
-          detailedLocationsParam ??
-          '',
+          detailedLocationsParam ?? '',
 
         businessName,
 
@@ -1638,6 +1471,10 @@ export default function RegionResultScreen() {
 
                   item.rank,
 
+                suitabilityScore:
+
+                  item.suitabilityScore,
+
                 floatingPopulationScore:
 
                   item.floatingPopulationScore,
@@ -1682,8 +1519,6 @@ export default function RegionResultScreen() {
 
   };
 
-
-
   const visibleGroups =
 
     groupedResults.length > 1
@@ -1700,15 +1535,11 @@ export default function RegionResultScreen() {
 
       : groupedResults;
 
-
-
   return (
 
     <View style={styles.screen}>
 
       <Stack.Screen options={{ headerShown: false }} />
-
-
 
       <AnalysisHeader
 
@@ -1728,8 +1559,6 @@ export default function RegionResultScreen() {
 
       />
 
-
-
       <AnalysisStepper
 
         steps={['업종 선택', '지역 선택', '분석 결과']}
@@ -1737,8 +1566,6 @@ export default function RegionResultScreen() {
         currentStep={3}
 
       />
-
-
 
       <ScrollView
 
@@ -1774,8 +1601,6 @@ export default function RegionResultScreen() {
 
         </Text>
 
-
-
         <Text
 
           style={
@@ -1791,8 +1616,6 @@ export default function RegionResultScreen() {
         </Text>
 
       </View>
-
-
 
       {loading && (
 
@@ -1818,8 +1641,6 @@ export default function RegionResultScreen() {
 
           />
 
-
-
           <Text
 
             style={
@@ -1833,8 +1654,6 @@ export default function RegionResultScreen() {
             상권 데이터를 분석하는 중...
 
           </Text>
-
-
 
           <Text
 
@@ -1853,8 +1672,6 @@ export default function RegionResultScreen() {
         </View>
 
       )}
-
-
 
       {!loading &&
 
@@ -1884,8 +1701,6 @@ export default function RegionResultScreen() {
 
             </Text>
 
-
-
             <Text
 
               style={
@@ -1907,8 +1722,6 @@ export default function RegionResultScreen() {
           </View>
 
         )}
-
-
 
       {!loading &&
 
@@ -1935,8 +1748,6 @@ export default function RegionResultScreen() {
                   activeTab ===
 
                   group.businessName;
-
-
 
                 return (
 
@@ -2010,8 +1821,6 @@ export default function RegionResultScreen() {
 
         )}
 
-
-
       {!loading &&
 
         errorMessage === '' &&
@@ -2060,8 +1869,6 @@ export default function RegionResultScreen() {
 
                 </Text>
 
-
-
                 <Text
 
                   style={
@@ -2082,8 +1889,6 @@ export default function RegionResultScreen() {
 
               </View>
 
-
-
               <Text
 
                 style={
@@ -2098,8 +1903,6 @@ export default function RegionResultScreen() {
 
               </Text>
 
-
-
               <Text
 
                 style={
@@ -2113,8 +1916,6 @@ export default function RegionResultScreen() {
                 유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.
 
               </Text>
-
-
 
               {(topAiLoading[
 
@@ -2152,8 +1953,6 @@ export default function RegionResultScreen() {
 
                   </Text>
 
-
-
                   {topAiLoading[
 
                     group.businessName
@@ -2181,8 +1980,6 @@ export default function RegionResultScreen() {
                         }
 
                       />
-
-
 
                       <Text
 
@@ -2230,8 +2027,6 @@ export default function RegionResultScreen() {
 
               )}
 
-
-
               {group.items.map(
 
                 result => {
@@ -2240,15 +2035,11 @@ export default function RegionResultScreen() {
 
                     result.rank === 1;
 
-
-
                   const isPoint =
 
                     result.analysisType ===
 
                     'point';
-
-
 
                   return (
 
@@ -2332,8 +2123,6 @@ export default function RegionResultScreen() {
 
                         )}
 
-
-
                         <View
 
                           style={[
@@ -2373,8 +2162,6 @@ export default function RegionResultScreen() {
                         </View>
 
                       </View>
-
-
 
                       <View
 
@@ -2424,8 +2211,6 @@ export default function RegionResultScreen() {
 
                             </Text>
 
-
-
                             {isPoint &&
 
                               result.radius && (
@@ -2456,8 +2241,6 @@ export default function RegionResultScreen() {
 
                           </View>
 
-
-
                           <View
 
                             style={
@@ -2486,8 +2269,6 @@ export default function RegionResultScreen() {
 
                             </Text>
 
-
-
                             <Text
 
                               style={
@@ -2505,8 +2286,6 @@ export default function RegionResultScreen() {
                           </View>
 
                         </View>
-
-
 
                         <View
 
@@ -2550,8 +2329,6 @@ export default function RegionResultScreen() {
 
                           </View>
 
-
-
                           <View
 
                             style={
@@ -2581,8 +2358,6 @@ export default function RegionResultScreen() {
                             </Text>
 
                           </View>
-
-
 
                           {isPoint && (
 
@@ -2616,8 +2391,6 @@ export default function RegionResultScreen() {
 
                         </View>
 
-
-
                         <View
 
                           style={
@@ -2645,8 +2418,6 @@ export default function RegionResultScreen() {
                             )}
 
                           </Text>
-
-
 
                           <Text
 
@@ -2688,8 +2459,6 @@ export default function RegionResultScreen() {
 
 }
 
-
-
 const styles =
 
   StyleSheet.create({
@@ -2704,8 +2473,6 @@ const styles =
 
     },
 
-
-
     container: {
 
       padding: 20,
@@ -2714,15 +2481,11 @@ const styles =
 
     },
 
-
-
     headerBackground: {
 
       marginBottom: 20,
 
     },
-
-
 
     title: {
 
@@ -2738,8 +2501,6 @@ const styles =
 
     },
 
-
-
     subTitle: {
 
       fontSize: 13,
@@ -2749,8 +2510,6 @@ const styles =
         COLORS.textSecondary,
 
     },
-
-
 
     loadingBox: {
 
@@ -2776,8 +2535,6 @@ const styles =
 
     },
 
-
-
     loadingText: {
 
       marginTop: 14,
@@ -2791,8 +2548,6 @@ const styles =
         COLORS.text,
 
     },
-
-
 
     loadingSubText: {
 
@@ -2812,8 +2567,6 @@ const styles =
 
     },
 
-
-
     errorBox: {
 
       padding: 18,
@@ -2825,8 +2578,6 @@ const styles =
         '#FFF3F3',
 
     },
-
-
 
     errorTitle: {
 
@@ -2842,8 +2593,6 @@ const styles =
 
     },
 
-
-
     error: {
 
       fontSize: 13,
@@ -2856,15 +2605,11 @@ const styles =
 
     },
 
-
-
     businessSection: {
 
       marginBottom: 30,
 
     },
-
-
 
     tabRow: {
 
@@ -2881,8 +2626,6 @@ const styles =
       marginBottom: 18,
 
     },
-
-
 
     tabButton: {
 
@@ -2904,8 +2647,6 @@ const styles =
 
     },
 
-
-
     tabButtonActive: {
 
       backgroundColor:
@@ -2917,8 +2658,6 @@ const styles =
         COLORS.primary,
 
     },
-
-
 
     tabButtonText: {
 
@@ -2932,8 +2671,6 @@ const styles =
 
     },
 
-
-
     tabButtonTextActive: {
 
       color:
@@ -2941,8 +2678,6 @@ const styles =
         '#FFFFFF',
 
     },
-
-
 
     businessChip: {
 
@@ -2974,8 +2709,6 @@ const styles =
 
     },
 
-
-
     businessChipLabel: {
 
       fontSize: 11,
@@ -2985,8 +2718,6 @@ const styles =
         COLORS.textSecondary,
 
     },
-
-
 
     businessChipName: {
 
@@ -2999,8 +2730,6 @@ const styles =
         COLORS.primary,
 
     },
-
-
 
     groupTitle: {
 
@@ -3016,8 +2745,6 @@ const styles =
 
     },
 
-
-
     groupDescription: {
 
       fontSize: 12,
@@ -3031,8 +2758,6 @@ const styles =
       lineHeight: 18,
 
     },
-
-
 
     aiCallout: {
 
@@ -3054,8 +2779,6 @@ const styles =
 
     },
 
-
-
     aiCalloutTitle: {
 
       fontSize: 13,
@@ -3070,8 +2793,6 @@ const styles =
 
     },
 
-
-
     aiCalloutText: {
 
       fontSize: 13,
@@ -3083,8 +2804,6 @@ const styles =
         COLORS.text,
 
     },
-
-
 
     aiCalloutLoading: {
 
@@ -3100,8 +2819,6 @@ const styles =
 
     },
 
-
-
     aiCalloutLoadingText: {
 
       fontSize: 12,
@@ -3111,8 +2828,6 @@ const styles =
         COLORS.textSecondary,
 
     },
-
-
 
     card: {
 
@@ -3134,8 +2849,6 @@ const styles =
 
     },
 
-
-
     firstCard: {
 
       borderColor:
@@ -3146,8 +2859,6 @@ const styles =
 
     },
 
-
-
     cardImageWrap: {
 
       position:
@@ -3156,8 +2867,6 @@ const styles =
 
     },
 
-
-
     cardMap: {
 
       width: '100%',
@@ -3165,8 +2874,6 @@ const styles =
       height: 130,
 
     },
-
-
 
     mapFallback: {
 
@@ -3188,15 +2895,11 @@ const styles =
 
     },
 
-
-
     mapFallbackText: {
 
       fontSize: 28,
 
     },
-
-
 
     rankBadge: {
 
@@ -3228,8 +2931,6 @@ const styles =
 
     },
 
-
-
     rankBadgeFirst: {
 
       backgroundColor:
@@ -3237,8 +2938,6 @@ const styles =
         COLORS.primary,
 
     },
-
-
 
     rankText: {
 
@@ -3252,8 +2951,6 @@ const styles =
 
     },
 
-
-
     rankTextFirst: {
 
       color:
@@ -3262,15 +2959,11 @@ const styles =
 
     },
 
-
-
     cardBody: {
 
       padding: 14,
 
     },
-
-
 
     cardTopRow: {
 
@@ -3290,8 +2983,6 @@ const styles =
 
     },
 
-
-
     areaName: {
 
       fontSize: 16,
@@ -3305,8 +2996,6 @@ const styles =
       flexShrink: 1,
 
     },
-
-
 
     pointInfo: {
 
@@ -3322,8 +3011,6 @@ const styles =
 
     },
 
-
-
     scoreBox: {
 
       flexDirection:
@@ -3338,8 +3025,6 @@ const styles =
 
     },
 
-
-
     scoreValue: {
 
       fontSize: 18,
@@ -3351,8 +3036,6 @@ const styles =
         COLORS.primary,
 
     },
-
-
 
     scoreUnit: {
 
@@ -3370,8 +3053,6 @@ const styles =
 
     },
 
-
-
     tagRow: {
 
       flexDirection:
@@ -3388,8 +3069,6 @@ const styles =
 
     },
 
-
-
     tag: {
 
       paddingVertical: 4,
@@ -3404,8 +3083,6 @@ const styles =
 
     },
 
-
-
     tagText: {
 
       fontSize: 11,
@@ -3417,8 +3094,6 @@ const styles =
         COLORS.textSecondary,
 
     },
-
-
 
     pointTag: {
 
@@ -3434,8 +3109,6 @@ const styles =
 
     },
 
-
-
     pointTagText: {
 
       fontSize: 11,
@@ -3447,8 +3120,6 @@ const styles =
         COLORS.primary,
 
     },
-
-
 
     cardBottomRow: {
 
@@ -3466,8 +3137,6 @@ const styles =
 
     },
 
-
-
     oneLineSummary: {
 
       flex: 1,
@@ -3481,8 +3150,6 @@ const styles =
       lineHeight: 17,
 
     },
-
-
 
     arrow: {
 
