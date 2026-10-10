@@ -52,9 +52,8 @@ import {
 
 import {
   ActivityIndicator,
-
   Alert,
-
+  Image,
   Platform,
 
   ScrollView,
@@ -1506,6 +1505,7 @@ export default function RegionResultDetailScreen() {
       pathname: '/chat',
       params: {
           returnTo: '/market-analysis/region-result-detail',
+        returnParams: JSON.stringify(params),
         businessName,
         areaName,
         rank,
@@ -1868,9 +1868,11 @@ export default function RegionResultDetailScreen() {
         activeOpacity={0.8}
         onPress={handleOpenChat}
       >
-        <View style={styles.chatIcon}>
-          <Text style={styles.chatIconText}>AI</Text>
-        </View>
+        <Image
+          source={require('../../../assets/images/chatbot-question-map.png')}
+          style={styles.chatImageIcon}
+          resizeMode="contain"
+        />
 
         <View style={styles.chatButtonContent}>
           <Text style={styles.chatButtonTitle}>
@@ -3919,19 +3921,10 @@ const styles =
       backgroundColor: '#F3FBF5',
     },
 
-    chatIcon: {
+    chatImageIcon: {
       width: 42,
       height: 42,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 21,
-      backgroundColor: COLORS.primary,
-    },
-
-    chatIconText: {
-      fontSize: 12,
-      fontWeight: '900',
-      color: '#FFFFFF',
+      marginRight: 2,
     },
 
     chatButtonContent: {
