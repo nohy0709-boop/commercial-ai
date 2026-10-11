@@ -1,25 +1,25 @@
 import { GlossaryProvider, Term } from '@/components/Term';
 import { COLORS } from '@/constants/colors';
 import {
-    addMonths,
-    aggregateTrend,
-    fetchMonthlyRows,
-    getCadence,
-    getMonthRange,
-    monthText,
-    type Granularity,
-    type MonthlyRow,
-    type TrendPoint,
+  addMonths,
+  aggregateTrend,
+  fetchMonthlyRows,
+  getCadence,
+  getMonthRange,
+  monthText,
+  type Granularity,
+  type MonthlyRow,
+  type TrendPoint,
 } from '@/services/trendData';
 
 import { useEffect, useMemo, useState } from 'react';
 
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
@@ -53,8 +53,10 @@ const METRICS: { key: Metric; label: string }[] = [
   { key: 'flow', label: '개업·폐업 수' },
 ];
 
-const OPEN_COLOR = COLORS.primary;
-const CLOSE_COLOR = COLORS.danger;
+
+const OPEN_COLOR = '#1D2545';
+const CLOSE_COLOR = '#EF302B';
+
 
 /* ---------------- 그래프 ---------------- */
 
@@ -355,268 +357,268 @@ export default function TrendSection({ areaName, businessName }: Props) {
 
   return (
     <GlossaryProvider>
-    <View style={styles.box}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>상권 변화 추이</Text>
-        {isSample ? (
-          <View style={styles.sampleBadge}>
-            <Text style={styles.sampleBadgeText}>샘플 데이터</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <Text style={styles.description}>
-        {areaName} · {businessName}의 점포 수와 개업·폐업 흐름을 기간별로 볼 수 있어요.
-      </Text>
-
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={COLORS.primary} />
-        </View>
-      ) : failed ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>추이 데이터를 불러오지 못했어요.</Text>
-        </View>
-      ) : !range ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>
-            이 지역·업종의 추이 데이터가 아직 준비되지 않았어요.
-          </Text>
-        </View>
-      ) : (
-        <>
-          {/* 단위 */}
-          <Text style={styles.label}>보기 단위</Text>
-          <View style={styles.row}>
-            {GRANULARITIES.map(g => {
-              const active = granularity === g.key;
-              const disabled = isGranularityDisabled(g.key);
-
-              return (
-                <TouchableOpacity
-                  key={g.key}
-                  disabled={disabled}
-                  style={[
-                    styles.chip,
-                    active && styles.chipActive,
-                    disabled && styles.chipDisabled,
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => setGranularity(g.key)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      active && styles.chipTextActive,
-                      disabled && styles.chipTextDisabled,
-                    ]}
-                  >
-                    {g.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {cadence > 1 ? (
-            <Text style={styles.hint}>
-              현재 데이터는 {cadence}개월 간격이라 더 촘촘한 단위는 선택할 수 없어요.
-            </Text>
+      <View style={styles.box}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>상권 변화 추이</Text>
+          {isSample ? (
+            <View style={styles.sampleBadge}>
+              <Text style={styles.sampleBadgeText}>샘플 데이터</Text>
+            </View>
           ) : null}
+        </View>
 
-          {/* 기간 */}
-          <Text style={styles.label}>기간</Text>
-          <View style={styles.rowWrap}>
-            {PRESETS.map(p => {
-              const active = preset === p.key;
+        <Text style={styles.description}>
+          {areaName} · {businessName}의 점포 수와 개업·폐업 흐름을 기간별로 볼 수 있어요.
+        </Text>
 
-              return (
-                <TouchableOpacity
-                  key={p.key}
-                  style={[styles.chip, active && styles.chipActive]}
-                  activeOpacity={0.7}
-                  onPress={() => setPreset(p.key)}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                    {p.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={COLORS.primary} />
           </View>
-
-          {preset === 'custom' ? (
-            <View style={styles.customBox}>
-              {(['from', 'to'] as const).map(target => {
-                const value =
-                  target === 'from' ? fromMonth : toMonth;
+        ) : failed ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>추이 데이터를 불러오지 못했어요.</Text>
+          </View>
+        ) : !range ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>
+              이 지역·업종의 추이 데이터가 아직 준비되지 않았어요.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* 단위 */}
+            <Text style={styles.label}>보기 단위</Text>
+            <View style={styles.row}>
+              {GRANULARITIES.map(g => {
+                const active = granularity === g.key;
+                const disabled = isGranularityDisabled(g.key);
 
                 return (
-                  <View key={target} style={styles.stepperRow}>
-                    <Text style={styles.stepperLabel}>
-                      {target === 'from' ? '시작' : '끝'}
+                  <TouchableOpacity
+                    key={g.key}
+                    disabled={disabled}
+                    style={[
+                      styles.chip,
+                      active && styles.chipActive,
+                      disabled && styles.chipDisabled,
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => setGranularity(g.key)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextActive,
+                        disabled && styles.chipTextDisabled,
+                      ]}
+                    >
+                      {g.label}
                     </Text>
-
-                    <TouchableOpacity
-                      style={styles.stepperButton}
-                      onPress={() => shiftCustom(target, -1)}
-                    >
-                      <Text style={styles.stepperButtonText}>‹</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.stepperValue}>{monthText(value)}</Text>
-
-                    <TouchableOpacity
-                      style={styles.stepperButton}
-                      onPress={() => shiftCustom(target, 1)}
-                    >
-                      <Text style={styles.stepperButtonText}>›</Text>
-                    </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
-          ) : (
-            <Text style={styles.rangeText}>
-              {monthText(fromMonth)} ~ {monthText(toMonth)}
-            </Text>
-          )}
 
-          {/* 지표 */}
-          <View style={styles.metricRow}>
-            {METRICS.map(m => {
-              const active = metric === m.key;
+            {cadence > 1 ? (
+              <Text style={styles.hint}>
+                현재 데이터는 {cadence}개월 간격이라 더 촘촘한 단위는 선택할 수 없어요.
+              </Text>
+            ) : null}
 
-              return (
-                <TouchableOpacity
-                  key={m.key}
-                  style={[styles.metricTab, active && styles.metricTabActive]}
-                  activeOpacity={0.7}
-                  onPress={() => setMetric(m.key)}
-                >
-                  <Text
-                    style={[styles.metricTabText, active && styles.metricTabTextActive]}
+            {/* 기간 */}
+            <Text style={styles.label}>기간</Text>
+            <View style={styles.rowWrap}>
+              {PRESETS.map(p => {
+                const active = preset === p.key;
+
+                return (
+                  <TouchableOpacity
+                    key={p.key}
+                    style={[styles.chip, active && styles.chipActive]}
+                    activeOpacity={0.7}
+                    onPress={() => setPreset(p.key)}
                   >
-                    {m.label}
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {preset === 'custom' ? (
+              <View style={styles.customBox}>
+                {(['from', 'to'] as const).map(target => {
+                  const value =
+                    target === 'from' ? fromMonth : toMonth;
+
+                  return (
+                    <View key={target} style={styles.stepperRow}>
+                      <Text style={styles.stepperLabel}>
+                        {target === 'from' ? '시작' : '끝'}
+                      </Text>
+
+                      <TouchableOpacity
+                        style={styles.stepperButton}
+                        onPress={() => shiftCustom(target, -1)}
+                      >
+                        <Text style={styles.stepperButtonText}>‹</Text>
+                      </TouchableOpacity>
+
+                      <Text style={styles.stepperValue}>{monthText(value)}</Text>
+
+                      <TouchableOpacity
+                        style={styles.stepperButton}
+                        onPress={() => shiftCustom(target, 1)}
+                      >
+                        <Text style={styles.stepperButtonText}>›</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text style={styles.rangeText}>
+                {monthText(fromMonth)} ~ {monthText(toMonth)}
+              </Text>
+            )}
+
+            {/* 지표 */}
+            <View style={styles.metricRow}>
+              {METRICS.map(m => {
+                const active = metric === m.key;
+
+                return (
+                  <TouchableOpacity
+                    key={m.key}
+                    style={[styles.metricTab, active && styles.metricTabActive]}
+                    activeOpacity={0.7}
+                    onPress={() => setMetric(m.key)}
+                  >
+                    <Text
+                      style={[styles.metricTabText, active && styles.metricTabTextActive]}
+                    >
+                      {m.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {points.length === 0 ? (
+              <View style={styles.center}>
+                <Text style={styles.emptyText}>선택한 기간에 데이터가 없어요.</Text>
+              </View>
+            ) : (
+              <>
+                {series.length > 1 ? (
+                  <View style={styles.legendRow}>
+                    {series.map(s => (
+                      <View key={s.name} style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                        <Text style={styles.legendText}>{s.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                <Text style={styles.unitText}>단위: {chartUnit}</Text>
+
+                <TrendChart points={points} series={series} unit={chartUnit} />
+
+                {summary ? (
+                  <>
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>점포 수 변화</Text>
+                        <Text style={styles.summaryValue}>
+                          {summary.firstCount} → {summary.lastCount}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.summarySub,
+                            { color: summary.diff >= 0 ? OPEN_COLOR : CLOSE_COLOR },
+                          ]}
+                        >
+                          {summary.diff > 0 ? '+' : ''}
+                          {summary.diff}곳
+                        </Text>
+                      </View>
+
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>
+                          평균 <Term k="openRate">개업률</Term>
+                        </Text>
+                        <Text style={[styles.summaryValue, { color: OPEN_COLOR }]}>
+                          {summary.avgOpen.toFixed(1)}%
+                        </Text>
+                        <Text style={styles.summarySub}>{granularityUnit}당</Text>
+                      </View>
+
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>
+                          평균 <Term k="closeRate">폐업률</Term>
+                        </Text>
+                        <Text style={[styles.summaryValue, { color: CLOSE_COLOR }]}>
+                          {summary.avgClose.toFixed(1)}%
+                        </Text>
+                        <Text style={styles.summarySub}>{granularityUnit}당</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.insightBox}>
+                      <Text style={styles.insightText}>{insight}</Text>
+                    </View>
+                  </>
+                ) : null}
+
+                <TouchableOpacity
+                  style={styles.toggleButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowTable(prev => !prev)}
+                >
+                  <Text style={styles.toggleText}>
+                    {showTable ? '숫자 표 접기 ▲' : '숫자 표로 보기 ▼'}
                   </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
 
-          {points.length === 0 ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>선택한 기간에 데이터가 없어요.</Text>
-            </View>
-          ) : (
-            <>
-              {series.length > 1 ? (
-                <View style={styles.legendRow}>
-                  {series.map(s => (
-                    <View key={s.name} style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: s.color }]} />
-                      <Text style={styles.legendText}>{s.name}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              <Text style={styles.unitText}>단위: {chartUnit}</Text>
-
-              <TrendChart points={points} series={series} unit={chartUnit} />
-
-              {summary ? (
-                <>
-                  <View style={styles.summaryRow}>
-                    <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>점포 수 변화</Text>
-                      <Text style={styles.summaryValue}>
-                        {summary.firstCount} → {summary.lastCount}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.summarySub,
-                          { color: summary.diff >= 0 ? OPEN_COLOR : CLOSE_COLOR },
-                        ]}
-                      >
-                        {summary.diff > 0 ? '+' : ''}
-                        {summary.diff}곳
-                      </Text>
+                {showTable ? (
+                  <View style={styles.table}>
+                    <View style={[styles.tableRow, styles.tableHead]}>
+                      <Text style={[styles.cell, styles.cellFirst, styles.headText]}>기간</Text>
+                      <Text style={[styles.cell, styles.headText]}>점포</Text>
+                      <Text style={[styles.cell, styles.headText]}>개업</Text>
+                      <Text style={[styles.cell, styles.headText]}>폐업</Text>
                     </View>
 
-                    <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>
-                        평균 <Term k="openRate">개업률</Term>
-                      </Text>
-                      <Text style={[styles.summaryValue, { color: OPEN_COLOR }]}>
-                        {summary.avgOpen.toFixed(1)}%
-                      </Text>
-                      <Text style={styles.summarySub}>{granularityUnit}당</Text>
-                    </View>
-
-                    <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>
-                        평균 <Term k="closeRate">폐업률</Term>
-                      </Text>
-                      <Text style={[styles.summaryValue, { color: CLOSE_COLOR }]}>
-                        {summary.avgClose.toFixed(1)}%
-                      </Text>
-                      <Text style={styles.summarySub}>{granularityUnit}당</Text>
-                    </View>
+                    {points.map(p => (
+                      <View key={p.key} style={styles.tableRow}>
+                        <Text style={[styles.cell, styles.cellFirst]}>{p.label}</Text>
+                        <Text style={styles.cell}>{p.storeCount}</Text>
+                        <Text style={[styles.cell, { color: OPEN_COLOR }]}>
+                          {p.openCount} ({p.openRate}%)
+                        </Text>
+                        <Text style={[styles.cell, { color: CLOSE_COLOR }]}>
+                          {p.closeCount} ({p.closeRate}%)
+                        </Text>
+                      </View>
+                    ))}
                   </View>
+                ) : null}
 
-                  <View style={styles.insightBox}>
-                    <Text style={styles.insightText}>{insight}</Text>
-                  </View>
-                </>
-              ) : null}
-
-              <TouchableOpacity
-                style={styles.toggleButton}
-                activeOpacity={0.7}
-                onPress={() => setShowTable(prev => !prev)}
-              >
-                <Text style={styles.toggleText}>
-                  {showTable ? '숫자 표 접기 ▲' : '숫자 표로 보기 ▼'}
+                <Text style={styles.footnote}>
+                  개업·폐업은 상가 데이터에서 점포가 새로 생기거나 사라진 것을 비교한{' '}
+                  <Term k="estimate">추정치</Term>예요.
+                  양도·이전·업종 변경은 개업과 폐업으로 함께 잡힐 수 있어요.{' '}
+                  <Term k="openRate">개업률</Term>·<Term k="closeRate">폐업률</Term>은 기간
+                  시작 시점의 점포 수(<Term k="baseStoreCount">기초 점포 수</Term>) 대비 비율이에요.
                 </Text>
-              </TouchableOpacity>
-
-              {showTable ? (
-                <View style={styles.table}>
-                  <View style={[styles.tableRow, styles.tableHead]}>
-                    <Text style={[styles.cell, styles.cellFirst, styles.headText]}>기간</Text>
-                    <Text style={[styles.cell, styles.headText]}>점포</Text>
-                    <Text style={[styles.cell, styles.headText]}>개업</Text>
-                    <Text style={[styles.cell, styles.headText]}>폐업</Text>
-                  </View>
-
-                  {points.map(p => (
-                    <View key={p.key} style={styles.tableRow}>
-                      <Text style={[styles.cell, styles.cellFirst]}>{p.label}</Text>
-                      <Text style={styles.cell}>{p.storeCount}</Text>
-                      <Text style={[styles.cell, { color: OPEN_COLOR }]}>
-                        {p.openCount} ({p.openRate}%)
-                      </Text>
-                      <Text style={[styles.cell, { color: CLOSE_COLOR }]}>
-                        {p.closeCount} ({p.closeRate}%)
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              <Text style={styles.footnote}>
-                개업·폐업은 상가 데이터에서 점포가 새로 생기거나 사라진 것을 비교한{' '}
-                <Term k="estimate">추정치</Term>예요.
-                양도·이전·업종 변경은 개업과 폐업으로 함께 잡힐 수 있어요.{' '}
-                <Term k="openRate">개업률</Term>·<Term k="closeRate">폐업률</Term>은 기간
-                시작 시점의 점포 수(<Term k="baseStoreCount">기초 점포 수</Term>) 대비 비율이에요.
-              </Text>
-            </>
-          )}
-        </>
-      )}
-    </View>
+              </>
+            )}
+          </>
+        )}
+      </View>
     </GlossaryProvider>
   );
 }
@@ -697,8 +699,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: '#FFF4C2',
+    borderColor: '#F0DEA0',
   },
   chipDisabled: {
     opacity: 0.45,
@@ -709,7 +711,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: '#1D2545',
   },
   chipTextDisabled: {
     color: COLORS.textSecondary,
@@ -774,7 +776,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metricTabActive: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#FFF4C2',
   },
   metricTabText: {
     fontSize: 12,
@@ -782,7 +784,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   metricTabTextActive: {
-    color: COLORS.text,
+    color: '#1D2545',
     fontWeight: '800',
   },
   legendRow: {

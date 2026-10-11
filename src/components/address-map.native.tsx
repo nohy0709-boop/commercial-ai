@@ -117,19 +117,18 @@ export default function AddressMap({
             }}
           />
 
+
           <Circle
             center={{
-              latitude:
-                selectedPoint.latitude,
-
-              longitude:
-                selectedPoint.longitude,
+              latitude: selectedPoint.latitude,
+              longitude: selectedPoint.longitude,
             }}
             radius={radius}
             strokeWidth={2}
-            strokeColor="rgba(34,164,71,0.8)"
-            fillColor="rgba(34,164,71,0.18)"
+            strokeColor="rgba(29,37,69,0.8)"
+            fillColor="rgba(29,37,69,0.18)"
           />
+
         </>
       )}
     </MapView>

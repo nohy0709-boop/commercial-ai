@@ -320,7 +320,7 @@ export default function LocationRecommendResultScreen() {
 
               error instanceof
 
-                Error &&
+              Error &&
 
               error.message.includes(
 
@@ -414,15 +414,13 @@ export default function LocationRecommendResultScreen() {
 
   ) => {
 
-    return `${
+    return `${value > 0 ? "+" : ""
 
-      value > 0 ? "+" : ""
+      }${value.toFixed(
 
-    }${value.toFixed(
+        2
 
-      2
-
-    )}%`;
+      )}%`;
 
   };
 
@@ -516,9 +514,9 @@ export default function LocationRecommendResultScreen() {
 
     }
 
-    setAiLoadingKeys(prev => ({...prev, [key]: true}));
+    setAiLoadingKeys(prev => ({ ...prev, [key]: true }));
 
-    setAiErrorKeys(prev => ({...prev, [key]: ''}));
+    setAiErrorKeys(prev => ({ ...prev, [key]: '' }));
 
     try {
 
@@ -548,7 +546,7 @@ export default function LocationRecommendResultScreen() {
 
       });
 
-      setAiExplanations(prev => ({...prev, [key]: explanation}));
+      setAiExplanations(prev => ({ ...prev, [key]: explanation }));
 
     } catch (error) {
 
@@ -570,7 +568,7 @@ export default function LocationRecommendResultScreen() {
 
     } finally {
 
-      setAiLoadingKeys(prev => ({...prev, [key]: false}));
+      setAiLoadingKeys(prev => ({ ...prev, [key]: false }));
 
     }
 
@@ -578,7 +576,7 @@ export default function LocationRecommendResultScreen() {
 
   const toggleAiDetail = (key: string) => {
 
-    setAiDetailExpandedKeys(prev => ({...prev, [key]: !prev[key]}));
+    setAiDetailExpandedKeys(prev => ({ ...prev, [key]: !prev[key] }));
 
   };
 
@@ -746,71 +744,27 @@ export default function LocationRecommendResultScreen() {
 
       >
 
-      <Text
-
-        style={
-
-          styles.smallTitle
-
-        }
-
-      >
-
-        보유 입지 분석
-
-      </Text>
-
-      <Text
-
-        style={styles.title}
-
-      >
-
-        {region}
-
-      </Text>
-
-      <Text
-
-        style={
-
-          styles.description
-
-        }
-
-      >
-
-        해당 지역에서
-
-        창업하기 좋은 업종을
-
-        데이터 기반으로
-
-        비교했습니다.
-
-      </Text>
-
-      <View
-
-        style={
-
-          styles.summaryBox
-
-        }
-
-      >
-
         <Text
 
           style={
 
-            styles.summaryLabel
+            styles.smallTitle
 
           }
 
         >
 
-          가장 추천하는 업종
+          보유 입지 분석
+
+        </Text>
+
+        <Text
+
+          style={styles.title}
+
+        >
+
+          {region}
 
         </Text>
 
@@ -818,15 +772,115 @@ export default function LocationRecommendResultScreen() {
 
           style={
 
-            styles.summaryBusiness
+            styles.description
 
           }
 
         >
 
-          {results[0]
+          해당 지역에서
 
-            ?.businessName}
+          창업하기 좋은 업종을
+
+          데이터 기반으로
+
+          비교했습니다.
+
+        </Text>
+
+        <View
+
+          style={
+
+            styles.summaryBox
+
+          }
+
+        >
+
+          <Text
+
+            style={
+
+              styles.summaryLabel
+
+            }
+
+          >
+
+            가장 추천하는 업종
+
+          </Text>
+
+          <Text
+
+            style={
+
+              styles.summaryBusiness
+
+            }
+
+          >
+
+            {results[0]
+
+              ?.businessName}
+
+          </Text>
+
+          <Text
+
+            style={
+
+              styles.summaryScore
+
+            }
+
+          >
+
+            추천점수{" "}
+
+            {results[0]
+
+              ?.recommendationScore}
+
+            점
+
+          </Text>
+
+          <Text
+
+            style={
+
+              styles.summaryReason
+
+            }
+
+          >
+
+            {results[0] &&
+
+              getRecommendationReason(
+
+                results[0]
+
+              )}
+
+          </Text>
+
+        </View>
+
+        <Text
+
+          style={
+
+            styles.sectionTitle
+
+          }
+
+        >
+
+          업종 추천 순위
 
         </Text>
 
@@ -834,133 +888,67 @@ export default function LocationRecommendResultScreen() {
 
           style={
 
-            styles.summaryScore
+            styles.sectionDescription
 
           }
 
         >
 
-          추천점수{" "}
+          업종을 누르면 상세
 
-          {results[0]
+          분석 결과를 확인할 수
 
-            ?.recommendationScore}
-
-          점
+          있습니다.
 
         </Text>
 
-        <Text
+        {results.map(
 
-          style={
+          (item) => {
 
-            styles.summaryReason
+            const expanded =
 
-          }
+              expandedBusiness ===
 
-        >
+              item.businessName;
 
-          {results[0] &&
+            const aiKey = item.businessName;
 
-            getRecommendationReason(
+            const explanation = aiExplanations[aiKey];
 
-              results[0]
+            const aiLoading = aiLoadingKeys[aiKey];
 
-            )}
+            const aiError = aiErrorKeys[aiKey];
 
-        </Text>
+            const aiDetailExpanded = aiDetailExpandedKeys[aiKey];
 
-      </View>
+            return (
 
-      <Text
+              <Pressable
 
-        style={
+                key={
 
-          styles.sectionTitle
+                  item.businessName
 
-        }
-
-      >
-
-        업종 추천 순위
-
-      </Text>
-
-      <Text
-
-        style={
-
-          styles.sectionDescription
-
-        }
-
-      >
-
-        업종을 누르면 상세
-
-        분석 결과를 확인할 수
-
-        있습니다.
-
-      </Text>
-
-      {results.map(
-
-        (item) => {
-
-          const expanded =
-
-            expandedBusiness ===
-
-            item.businessName;
-
-          const aiKey = item.businessName;
-
-          const explanation = aiExplanations[aiKey];
-
-          const aiLoading = aiLoadingKeys[aiKey];
-
-          const aiError = aiErrorKeys[aiKey];
-
-          const aiDetailExpanded = aiDetailExpandedKeys[aiKey];
-
-          return (
-
-            <Pressable
-
-              key={
-
-                item.businessName
-
-              }
-
-              style={
-
-                styles.card
-
-              }
-
-              onPress={() =>
-
-                setExpandedBusiness(
-
-                  expanded
-
-                    ? null
-
-                    : item.businessName
-
-                )
-
-              }
-
-            >
-
-              <View
+                }
 
                 style={
 
-                  styles.cardHeader
+                  styles.card
+
+                }
+
+                onPress={() =>
+
+                  setExpandedBusiness(
+
+                    expanded
+
+                      ? null
+
+                      : item.businessName
+
+                  )
 
                 }
 
@@ -970,333 +958,17 @@ export default function LocationRecommendResultScreen() {
 
                   style={
 
-                    styles.rankBox
+                    styles.cardHeader
 
                   }
 
                 >
-
-                  <Text
-
-                    style={
-
-                      styles.rank
-
-                    }
-
-                  >
-
-                    {item.rank}위
-
-                  </Text>
-
-                </View>
-
-                <View
-
-                  style={
-
-                    styles.nameContainer
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.name
-
-                    }
-
-                  >
-
-                    {
-
-                      item.businessName
-
-                    }
-
-                  </Text>
-
-                  <Text
-
-                    style={
-
-                      styles.reason
-
-                    }
-
-                  >
-
-                    {getRecommendationReason(
-
-                      item
-
-                    )}
-
-                  </Text>
-
-                </View>
-
-                <Text
-
-                  style={
-
-                    styles.score
-
-                  }
-
-                >
-
-                  {
-
-                    item.recommendationScore
-
-                  }
-
-                  점
-
-                </Text>
-
-              </View>
-
-              <View
-
-                style={
-
-                  styles.previewContainer
-
-                }
-
-              >
-
-                <View
-
-                  style={
-
-                    styles.previewItem
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.previewLabel
-
-                    }
-
-                  >
-
-                    점포 수
-
-                  </Text>
-
-                  <Text
-
-                    style={
-
-                      styles.previewValue
-
-                    }
-
-                  >
-
-                    {
-
-                      item.storeCount
-
-                    }
-
-                    개
-
-                  </Text>
-
-                </View>
-
-                <View
-
-                  style={
-
-                    styles.previewItem
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.previewLabel
-
-                    }
-
-                  >
-
-                    경쟁밀도
-
-                  </Text>
-
-                  <Text
-
-                    style={
-
-                      styles.previewValue
-
-                    }
-
-                  >
-
-                    {item.competitionDensity.toFixed(
-
-                      3
-
-                    )}
-
-                  </Text>
-
-                </View>
-
-                <View
-
-                  style={
-
-                    styles.previewItem
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.previewLabel
-
-                    }
-
-                  >
-
-                    점포당 소비
-
-                  </Text>
-
-                  <Text
-
-                    style={
-
-                      styles.previewValue
-
-                    }
-
-                  >
-
-                    {Math.round(
-
-                      item.averageSalesPerStore
-
-                    ).toLocaleString()}
-
-                    원
-
-                  </Text>
-
-                </View>
-
-              </View>
-
-              <TouchableOpacity
-                style={styles.chatButton}
-                activeOpacity={0.8}
-                onPress={(event) => {
-                  event.stopPropagation();
-                  handleOpenChat(item);
-                }}
-              >
-                <View style={styles.chatIcon}>
-                  <Text style={styles.chatIconText}>AI</Text>
-                </View>
-
-                <View style={styles.chatButtonContent}>
-                  <Text style={styles.chatButtonTitle}>
-                    AI에게 물어보기
-                  </Text>
-                  <Text style={styles.chatButtonDescription}>
-                    이 업종의 추천 결과를 바탕으로 질문해보세요
-                  </Text>
-                </View>
-
-                <Text style={styles.chatButtonArrow}>›</Text>
-              </TouchableOpacity>
-
-              <View
-
-                style={
-
-                  styles.expandButton
-
-                }
-
-              >
-
-                <Text
-
-                  style={
-
-                    styles.expandText
-
-                  }
-
-                >
-
-                  {expanded
-
-                    ? "상세 정보 접기 ▲"
-
-                    : "상세 정보 보기 ▼"}
-
-                </Text>
-
-              </View>
-
-              {expanded && (
-
-                <View
-
-                  style={
-
-                    styles.detailContainer
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.detailTitle
-
-                    }
-
-                  >
-
-                    {item.businessName}{" "}
-
-                    상세 분석
-
-                  </Text>
 
                   <View
 
                     style={
 
-                      styles.detailRow
+                      styles.rankBox
 
                     }
 
@@ -1306,7 +978,113 @@ export default function LocationRecommendResultScreen() {
 
                       style={
 
-                        styles.detailLabel
+                        styles.rank
+
+                      }
+
+                    >
+
+                      {item.rank}위
+
+                    </Text>
+
+                  </View>
+
+                  <View
+
+                    style={
+
+                      styles.nameContainer
+
+                    }
+
+                  >
+
+                    <Text
+
+                      style={
+
+                        styles.name
+
+                      }
+
+                    >
+
+                      {
+
+                        item.businessName
+
+                      }
+
+                    </Text>
+
+                    <Text
+
+                      style={
+
+                        styles.reason
+
+                      }
+
+                    >
+
+                      {getRecommendationReason(
+
+                        item
+
+                      )}
+
+                    </Text>
+
+                  </View>
+
+                  <Text
+
+                    style={
+
+                      styles.score
+
+                    }
+
+                  >
+
+                    {
+
+                      item.recommendationScore
+
+                    }
+
+                    점
+
+                  </Text>
+
+                </View>
+
+                <View
+
+                  style={
+
+                    styles.previewContainer
+
+                  }
+
+                >
+
+                  <View
+
+                    style={
+
+                      styles.previewItem
+
+                    }
+
+                  >
+
+                    <Text
+
+                      style={
+
+                        styles.previewLabel
 
                       }
 
@@ -1320,7 +1098,7 @@ export default function LocationRecommendResultScreen() {
 
                       style={
 
-                        styles.detailValue
+                        styles.previewValue
 
                       }
 
@@ -1342,7 +1120,7 @@ export default function LocationRecommendResultScreen() {
 
                     style={
 
-                      styles.detailRow
+                      styles.previewItem
 
                     }
 
@@ -1352,95 +1130,7 @@ export default function LocationRecommendResultScreen() {
 
                       style={
 
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      전체 카드소비
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {item.salesAmount.toLocaleString()}
-
-                      원
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      점포당 카드소비
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {Math.round(
-
-                        item.averageSalesPerStore
-
-                      ).toLocaleString()}
-
-                      원
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
+                        styles.previewLabel
 
                       }
 
@@ -1454,7 +1144,7 @@ export default function LocationRecommendResultScreen() {
 
                       style={
 
-                        styles.detailValue
+                        styles.previewValue
 
                       }
 
@@ -1474,31 +1164,7 @@ export default function LocationRecommendResultScreen() {
 
                     style={
 
-                      styles.divider
-
-                    }
-
-                  />
-
-                  <Text
-
-                    style={
-
-                      styles.detailTitle
-
-                    }
-
-                  >
-
-                    지역 환경
-
-                  </Text>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
+                      styles.previewItem
 
                     }
 
@@ -1508,13 +1174,13 @@ export default function LocationRecommendResultScreen() {
 
                       style={
 
-                        styles.detailLabel
+                        styles.previewLabel
 
                       }
 
                     >
 
-                      생활인구
+                      점포당 소비
 
                     </Text>
 
@@ -1522,399 +1188,19 @@ export default function LocationRecommendResultScreen() {
 
                       style={
 
-                        styles.detailValue
+                        styles.previewValue
 
                       }
 
                     >
 
-                      {item.livingPopulation.toLocaleString()}
+                      {Math.round(
 
-                      명
+                        item.averageSalesPerStore
 
-                    </Text>
+                      ).toLocaleString()}
 
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      생활인구 증감
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {formatChangeRate(
-
-                        item.livingPopulationChangeRate
-
-                      )}
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      유동인구
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {item.floatingPopulation.toLocaleString()}
-
-                      명
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      유동인구 증감
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {formatChangeRate(
-
-                        item.floatingPopulationChangeRate
-
-                      )}
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      버스정류장
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {
-
-                        item.busStopCount
-
-                      }
-
-                      개
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.divider
-
-                    }
-
-                  />
-
-                  <Text
-
-                    style={
-
-                      styles.detailTitle
-
-                    }
-
-                  >
-
-                    업종 추천 점수
-
-                  </Text>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      점포당 카드소비
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {
-
-                        item.averageSalesScore
-
-                      }
-
-                      점
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      경쟁도
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {
-
-                        item.competitionScore
-
-                      }
-
-                      점
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.detailRow
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.detailLabel
-
-                      }
-
-                    >
-
-                      전체 카드소비
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.detailValue
-
-                      }
-
-                    >
-
-                      {
-
-                        item.salesScore
-
-                      }
-
-                      점
-
-                    </Text>
-
-                  </View>
-
-                  <View
-
-                    style={
-
-                      styles.finalScoreBox
-
-                    }
-
-                  >
-
-                    <Text
-
-                      style={
-
-                        styles.finalScoreLabel
-
-                      }
-
-                    >
-
-                      최종 추천점수
-
-                    </Text>
-
-                    <Text
-
-                      style={
-
-                        styles.finalScoreValue
-
-                      }
-
-                    >
-
-                      {
-
-                        item.recommendationScore
-
-                      }
-
-                      점
+                      원
 
                     </Text>
 
@@ -1922,137 +1208,849 @@ export default function LocationRecommendResultScreen() {
 
                 </View>
 
-              )}
-
-              {/* AI 상세 분석 (버튼 눌렀을 때만 요청) */}
-
-              {!explanation && (
-
                 <TouchableOpacity
+                  style={styles.chatButton}
+                  activeOpacity={0.8}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    handleOpenChat(item);
+                  }}
+                >
+                  <View style={styles.chatIcon}>
+                    <Text style={styles.chatIconText}>AI</Text>
+                  </View>
 
-                  style={styles.aiButton}
+                  <View style={styles.chatButtonContent}>
+                    <Text style={styles.chatButtonTitle}>
+                      AI에게 물어보기
+                    </Text>
+                    <Text style={styles.chatButtonDescription}>
+                      이 업종의 추천 결과를 바탕으로 질문해보세요
+                    </Text>
+                  </View>
 
-                  activeOpacity={0.7}
-
-                  disabled={aiLoading}
-
-                  onPress={() => handleGenerateAI(item)}>
-
-                  {aiLoading ? (
-
-                    <ActivityIndicator size="small" color={COLORS.primary} />
-
-                  ) : (
-
-                    <Text style={styles.aiButtonText}>AI 설명 보기</Text>
-
-                  )}
-
+                  <Text style={styles.chatButtonArrow}>›</Text>
                 </TouchableOpacity>
 
-              )}
+                <View
 
-              {aiError && !aiLoading && (
+                  style={
 
-                <Text style={styles.aiError}>{aiError}</Text>
+                    styles.expandButton
 
-              )}
+                  }
 
-              {explanation && (
+                >
 
-                <View style={styles.aiBox}>
+                  <Text
 
-                  <Text style={styles.aiLabel}>AI 추천 이유</Text>
+                    style={
 
-                  {renderEmphasizedText(
+                      styles.expandText
 
-                    explanation.recommendationReason,
+                    }
 
-                    styles.aiText,
+                  >
 
-                  )}
+                    {expanded
 
-                  <TouchableOpacity
+                      ? "상세 정보 접기 ▲"
 
-                    style={styles.detailToggleButton}
+                      : "상세 정보 보기 ▼"}
 
-                    activeOpacity={0.7}
+                  </Text>
 
-                    onPress={() => toggleAiDetail(aiKey)}>
+                </View>
 
-                    <Text style={styles.detailToggleText}>
+                {expanded && (
 
-                      {aiDetailExpanded
+                  <View
 
-                        ? 'AI 상세 설명 접기 ▲'
+                    style={
 
-                        : 'AI 상세 설명 보기 ▼'}
+                      styles.detailContainer
+
+                    }
+
+                  >
+
+                    <Text
+
+                      style={
+
+                        styles.detailTitle
+
+                      }
+
+                    >
+
+                      {item.businessName}{" "}
+
+                      상세 분석
 
                     </Text>
 
-                  </TouchableOpacity>
+                    <View
 
-                  {aiDetailExpanded && (
+                      style={
 
-                    <View style={styles.aiDetailSection}>
+                        styles.detailRow
 
-                      <Text style={styles.aiLabel}>주요 특징</Text>
+                      }
 
-                      {renderEmphasizedText(
+                    >
 
-                        explanation.keyFeatures,
+                      <Text
 
-                        styles.aiText,
+                        style={
 
-                      )}
+                          styles.detailLabel
 
-                      <Text style={styles.aiLabel}>장점</Text>
+                        }
 
-                      {explanation.advantages.map((advantage, index) => (
+                      >
 
-                        <Text key={index} style={styles.aiListItem}>
+                        점포 수
 
-                          {`· ${advantage}`}
+                      </Text>
 
-                        </Text>
+                      <Text
 
-                      ))}
+                        style={
 
-                      <Text style={styles.aiLabel}>위험요소</Text>
+                          styles.detailValue
 
-                      {explanation.risks.map((risk, index) => (
+                        }
 
-                        <Text key={index} style={styles.aiListItem}>
+                      >
 
-                          {`· ${risk}`}
+                        {
 
-                        </Text>
+                          item.storeCount
 
-                      ))}
+                        }
 
-                      <Text style={styles.aiLabel}>고려사항</Text>
-
-                      <Text style={styles.aiText}>
-
-                        {explanation.considerations}
+                        개
 
                       </Text>
 
                     </View>
 
-                  )}
+                    <View
 
-                </View>
+                      style={
 
-              )}
+                        styles.detailRow
 
-            </Pressable>
+                      }
 
-          );
+                    >
 
-        }
+                      <Text
 
-      )}
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        전체 카드소비
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {item.salesAmount.toLocaleString()}
+
+                        원
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        점포당 카드소비
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {Math.round(
+
+                          item.averageSalesPerStore
+
+                        ).toLocaleString()}
+
+                        원
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        경쟁밀도
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {item.competitionDensity.toFixed(
+
+                          3
+
+                        )}
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.divider
+
+                      }
+
+                    />
+
+                    <Text
+
+                      style={
+
+                        styles.detailTitle
+
+                      }
+
+                    >
+
+                      지역 환경
+
+                    </Text>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        생활인구
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {item.livingPopulation.toLocaleString()}
+
+                        명
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        생활인구 증감
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {formatChangeRate(
+
+                          item.livingPopulationChangeRate
+
+                        )}
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        유동인구
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {item.floatingPopulation.toLocaleString()}
+
+                        명
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        유동인구 증감
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {formatChangeRate(
+
+                          item.floatingPopulationChangeRate
+
+                        )}
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        버스정류장
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {
+
+                          item.busStopCount
+
+                        }
+
+                        개
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.divider
+
+                      }
+
+                    />
+
+                    <Text
+
+                      style={
+
+                        styles.detailTitle
+
+                      }
+
+                    >
+
+                      업종 추천 점수
+
+                    </Text>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        점포당 카드소비
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {
+
+                          item.averageSalesScore
+
+                        }
+
+                        점
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        경쟁도
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {
+
+                          item.competitionScore
+
+                        }
+
+                        점
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.detailRow
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.detailLabel
+
+                        }
+
+                      >
+
+                        전체 카드소비
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.detailValue
+
+                        }
+
+                      >
+
+                        {
+
+                          item.salesScore
+
+                        }
+
+                        점
+
+                      </Text>
+
+                    </View>
+
+                    <View
+
+                      style={
+
+                        styles.finalScoreBox
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.finalScoreLabel
+
+                        }
+
+                      >
+
+                        최종 추천점수
+
+                      </Text>
+
+                      <Text
+
+                        style={
+
+                          styles.finalScoreValue
+
+                        }
+
+                      >
+
+                        {
+
+                          item.recommendationScore
+
+                        }
+
+                        점
+
+                      </Text>
+
+                    </View>
+
+                  </View>
+
+                )}
+
+                {/* AI 상세 분석 (버튼 눌렀을 때만 요청) */}
+
+                {!explanation && (
+
+                  <TouchableOpacity
+
+                    style={styles.aiButton}
+
+                    activeOpacity={0.7}
+
+                    disabled={aiLoading}
+
+                    onPress={() => handleGenerateAI(item)}>
+
+                    {aiLoading ? (
+
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+
+                    ) : (
+
+                      <Text style={styles.aiButtonText}>AI 설명 보기</Text>
+
+                    )}
+
+                  </TouchableOpacity>
+
+                )}
+
+                {aiError && !aiLoading && (
+
+                  <Text style={styles.aiError}>{aiError}</Text>
+
+                )}
+
+                {explanation && (
+
+                  <View style={styles.aiBox}>
+
+                    <Text style={styles.aiLabel}>AI 추천 이유</Text>
+
+                    {renderEmphasizedText(
+
+                      explanation.recommendationReason,
+
+                      styles.aiText,
+
+                    )}
+
+                    <TouchableOpacity
+
+                      style={styles.detailToggleButton}
+
+                      activeOpacity={0.7}
+
+                      onPress={() => toggleAiDetail(aiKey)}>
+
+                      <Text style={styles.detailToggleText}>
+
+                        {aiDetailExpanded
+
+                          ? 'AI 상세 설명 접기 ▲'
+
+                          : 'AI 상세 설명 보기 ▼'}
+
+                      </Text>
+
+                    </TouchableOpacity>
+
+                    {aiDetailExpanded && (
+
+                      <View style={styles.aiDetailSection}>
+
+                        <Text style={styles.aiLabel}>주요 특징</Text>
+
+                        {renderEmphasizedText(
+
+                          explanation.keyFeatures,
+
+                          styles.aiText,
+
+                        )}
+
+                        <Text style={styles.aiLabel}>장점</Text>
+
+                        {explanation.advantages.map((advantage, index) => (
+
+                          <Text key={index} style={styles.aiListItem}>
+
+                            {`· ${advantage}`}
+
+                          </Text>
+
+                        ))}
+
+                        <Text style={styles.aiLabel}>위험요소</Text>
+
+                        {explanation.risks.map((risk, index) => (
+
+                          <Text key={index} style={styles.aiListItem}>
+
+                            {`· ${risk}`}
+
+                          </Text>
+
+                        ))}
+
+                        <Text style={styles.aiLabel}>고려사항</Text>
+
+                        <Text style={styles.aiText}>
+
+                          {explanation.considerations}
+
+                        </Text>
+
+                      </View>
+
+                    )}
+
+                  </View>
+
+                )}
+
+              </Pressable>
+
+            );
+
+          }
+
+        )}
 
       </ScrollView>
 
@@ -2188,9 +2186,7 @@ const styles =
 
     summaryBox: {
 
-      backgroundColor:
-
-        "#111111",
+      backgroundColor: '#1D2545',
 
       borderRadius: 18,
 
@@ -2236,10 +2232,7 @@ const styles =
 
       fontWeight: "800",
 
-      color:
-
-        COLORS.neonLime,
-
+      color: '#FFD52A',
       marginTop: 6,
 
     },
@@ -2469,20 +2462,21 @@ const styles =
       paddingHorizontal: 14,
       paddingVertical: 12,
       borderWidth: 1,
-      borderColor: '#CDEED7',
+      borderColor: '#F0DEA0',
       borderRadius: 14,
-      backgroundColor: '#F3FBF5',
+      backgroundColor: '#FFF4C2',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
     },
+
     chatIcon: {
       width: 36,
       height: 36,
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.primary,
+      backgroundColor: '#1D2545',
     },
     chatIconText: {
       fontSize: 10,
@@ -2505,30 +2499,23 @@ const styles =
     },
     chatButtonArrow: {
       fontSize: 24,
-      color: COLORS.primary,
+      color: '#1D2545',
     },
+
 
     expandButton: {
-
       marginTop: 14,
-
       paddingVertical: 10,
-
       borderRadius: 12,
-
-      backgroundColor:
-
-        COLORS.neonLime,
-
+      backgroundColor: '#1D2545',
     },
+
 
     expandText: {
 
       textAlign: "center",
 
-      color:
-
-        COLORS.text,
+      color: '#FFFFFF',
 
       fontSize: 12,
 
@@ -2684,9 +2671,9 @@ const styles =
 
     },
 
-    aiButtonText: {fontSize: 13, fontWeight: '800', color: COLORS.primary},
+    aiButtonText: { fontSize: 13, fontWeight: '800', color: COLORS.primary },
 
-    aiError: {fontSize: 12, color: '#D64545', marginTop: 10},
+    aiError: { fontSize: 12, color: '#D64545', marginTop: 10 },
 
     aiBox: {
 
@@ -2714,15 +2701,15 @@ const styles =
 
     },
 
-    aiText: {fontSize: 13, color: COLORS.text, lineHeight: 19},
+    aiText: { fontSize: 13, color: COLORS.text, lineHeight: 19 },
 
-    aiHighlight: {fontWeight: '900', color: COLORS.primary},
+    aiHighlight: { fontWeight: '900', color: COLORS.primary },
 
-    aiListItem: {fontSize: 13, color: COLORS.text, lineHeight: 19, marginLeft: 4},
+    aiListItem: { fontSize: 13, color: COLORS.text, lineHeight: 19, marginLeft: 4 },
 
-    detailToggleButton: {marginTop: 12, alignItems: 'center'},
+    detailToggleButton: { marginTop: 12, alignItems: 'center' },
 
-    detailToggleText: {fontSize: 12, fontWeight: '700', color: COLORS.textSecondary},
+    detailToggleText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
 
     aiDetailSection: {
 

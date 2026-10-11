@@ -103,11 +103,11 @@ type CompareItem = {
 
   [key: string]:
 
-    | number
+  | number
 
-    | string
+  | string
 
-    | undefined;
+  | undefined;
 
 };
 
@@ -203,19 +203,17 @@ function formatChangeRate(
 
   }
 
-  return `${
+  return `${value > 0
 
-    value > 0
+    ? '+'
 
-      ? '+'
+    : ''
 
-      : ''
+    }${value.toFixed(
 
-  }${value.toFixed(
+      2,
 
-    2,
-
-  )}%`;
+    )}%`;
 
 }
 
@@ -387,31 +385,31 @@ export default function RegionResultDetailScreen() {
 
       : isPointAnalysis &&
 
-          latitude &&
+        latitude &&
 
-          longitude
+        longitude
 
         ? JSON.stringify([
 
-            {
+          {
 
-              label: areaName,
+            label: areaName,
 
-              dongName: actualDongName,
+            dongName: actualDongName,
 
-              coordinates: {
+            coordinates: {
 
-                lat: Number(latitude),
+              lat: Number(latitude),
 
-                lng: Number(longitude),
-
-              },
-
-              radius: Number(radius || 500),
+              lng: Number(longitude),
 
             },
 
-          ])
+            radius: Number(radius || 500),
+
+          },
+
+        ])
 
         : '';
 
@@ -491,7 +489,7 @@ export default function RegionResultDetailScreen() {
 
         compareData ||
 
-          '[]',
+        '[]',
 
       );
 
@@ -513,7 +511,7 @@ export default function RegionResultDetailScreen() {
 
   } catch (
 
-    error
+  error
 
   ) {
 
@@ -837,7 +835,7 @@ export default function RegionResultDetailScreen() {
 
         } catch (
 
-          error
+        error
 
         ) {
 
@@ -977,7 +975,7 @@ export default function RegionResultDetailScreen() {
 
         } catch (
 
-          error
+        error
 
         ) {
 
@@ -1093,55 +1091,55 @@ export default function RegionResultDetailScreen() {
 
                     data?.analysisType ===
 
-                      'point' &&
+                    'point' &&
 
                     String(
 
                       data?.latitude ??
 
-                        '',
+                      '',
 
                     ) ===
 
-                      String(
+                    String(
 
-                        latitude ??
+                      latitude ??
 
-                          '',
+                      '',
 
-                      ) &&
+                    ) &&
 
                     String(
 
                       data?.longitude ??
 
-                        '',
+                      '',
 
                     ) ===
 
-                      String(
+                    String(
 
-                        longitude ??
+                      longitude ??
 
-                          '',
+                      '',
 
-                      ) &&
+                    ) &&
 
                     String(
 
                       data?.radius ??
 
-                        '',
+                      '',
 
                     ) ===
 
-                      String(
+                    String(
 
-                        radius ??
+                      radius ??
 
-                          '',
+                      '',
 
-                      )
+                    )
 
                   );
 
@@ -1179,13 +1177,13 @@ export default function RegionResultDetailScreen() {
 
             existing.isFavorite ??
 
-              false,
+            false,
 
           );
 
         } catch (
 
-          error
+        error
 
         ) {
 
@@ -1281,7 +1279,7 @@ export default function RegionResultDetailScreen() {
 
               updated.isFavorite ??
 
-                false,
+              false,
 
             );
 
@@ -1443,9 +1441,9 @@ export default function RegionResultDetailScreen() {
 
                     ? Number(
 
-                        latitude,
+                      latitude,
 
-                      )
+                    )
 
                     : null,
 
@@ -1455,9 +1453,9 @@ export default function RegionResultDetailScreen() {
 
                     ? Number(
 
-                        longitude,
+                      longitude,
 
-                      )
+                    )
 
                     : null,
 
@@ -1467,9 +1465,9 @@ export default function RegionResultDetailScreen() {
 
                     ? Number(
 
-                        radius,
+                      radius,
 
-                      )
+                    )
 
                     : null,
 
@@ -1493,7 +1491,7 @@ export default function RegionResultDetailScreen() {
 
       } catch (
 
-        error
+      error
 
       ) {
 
@@ -1533,7 +1531,7 @@ export default function RegionResultDetailScreen() {
 
       params: {
 
-          returnTo: '/market-analysis/region-result-detail',
+        returnTo: '/market-analysis/region-result-detail',
         returnParams: JSON.stringify(params),
         businessName,
         areaName,
@@ -1619,43 +1617,33 @@ export default function RegionResultDetailScreen() {
 
       <ScrollView
 
-      style={{ flex: 1 }}
+        style={{ flex: 1 }}
 
-      contentContainerStyle={
+        contentContainerStyle={
 
-        styles.container
+          styles.container
 
-      }
+        }
 
-      showsVerticalScrollIndicator={
+        showsVerticalScrollIndicator={
 
-        false
+          false
 
-      }
+        }
 
-    >
+      >
 
-      {/* =================================================
+        {/* =================================================
 
           HEADER
 
       ================================================= */}
 
-      <View
-
-        style={
-
-          styles.headerCard
-
-        }
-
-      >
-
         <View
 
           style={
 
-            styles.headerTopRow
+            styles.headerCard
 
           }
 
@@ -1665,231 +1653,199 @@ export default function RegionResultDetailScreen() {
 
             style={
 
-              styles.rankPill
+              styles.headerTopRow
 
             }
 
           >
 
-            <Text
+            <View
 
               style={
 
-                styles.rankPillText
+                styles.rankPill
 
               }
 
             >
 
-              {rank}위
+              <Text
+
+                style={
+
+                  styles.rankPillText
+
+                }
+
+              >
+
+                {rank}위
+
+              </Text>
+
+            </View>
+
+            <Text
+
+              style={
+
+                styles.headerSubText
+
+              }
+
+            >
+
+              {`${businessName} 후보 ${totalCount}곳 중`}
 
             </Text>
 
           </View>
 
-          <Text
-
-            style={
-
-              styles.headerSubText
-
-            }
-
-          >
-
-            {`${businessName} 후보 ${totalCount}곳 중`}
-
-          </Text>
-
-        </View>
-
-        {/* 지역명 + 찜 */}
-
-        <View
-
-          style={
-
-            styles.titleRow
-
-          }
-
-        >
+          {/* 지역명 + 찜 */}
 
           <View
 
             style={
 
-              styles.titleArea
+              styles.titleRow
 
             }
 
           >
 
-            <Text
+            <View
 
               style={
 
-                styles.headerTitle
+                styles.titleArea
 
               }
 
             >
 
-              {`${areaName} 일대`}
+              <Text
 
-            </Text>
+                style={
 
-            {isPointAnalysis &&
+                  styles.headerTitle
 
-              radius && (
+                }
 
-                <Text
+              >
 
-                  style={
+                {`${areaName} 일대`}
 
-                    styles.pointSubtitle
+              </Text>
+
+              {isPointAnalysis &&
+
+                radius && (
+
+                  <Text
+
+                    style={
+
+                      styles.pointSubtitle
+
+                    }
+
+                  >
+
+                    {actualDongName} · 반경{' '}
+
+                    {radius}m 위치 기반 분석
+
+                  </Text>
+
+                )}
+
+            </View>
+
+            <TouchableOpacity
+
+              style={[
+
+                styles.favoriteButton,
+
+                favorite &&
+
+                styles.favoriteButtonActive,
+
+              ]}
+
+              activeOpacity={
+
+                0.8
+
+              }
+
+              disabled={
+
+                favoriteLoading
+
+              }
+
+              onPress={
+
+                handleFavorite
+
+              }
+
+            >
+
+              {favoriteLoading ? (
+
+                <ActivityIndicator
+
+                  size="small"
+
+                  color={
+
+                    favorite
+
+                      ? '#FFFFFF'
+
+                      : '#E54861'
 
                   }
 
+                />
+
+              ) : (
+
+                <Text
+
+                  style={[
+
+                    styles.favoriteText,
+
+                    favorite &&
+
+                    styles.favoriteTextActive,
+
+                  ]}
+
                 >
 
-                  {actualDongName} · 반경{' '}
+                  {favorite
 
-                  {radius}m 위치 기반 분석
+                    ? '♥'
+
+                    : '♡'}
 
                 </Text>
 
               )}
 
+            </TouchableOpacity>
+
           </View>
 
-          <TouchableOpacity
-
-            style={[
-
-              styles.favoriteButton,
-
-              favorite &&
-
-                styles.favoriteButtonActive,
-
-            ]}
-
-            activeOpacity={
-
-              0.8
-
-            }
-
-            disabled={
-
-              favoriteLoading
-
-            }
-
-            onPress={
-
-              handleFavorite
-
-            }
-
-          >
-
-            {favoriteLoading ? (
-
-              <ActivityIndicator
-
-                size="small"
-
-                color={
-
-                  favorite
-
-                    ? '#FFFFFF'
-
-                    : '#E54861'
-
-                }
-
-              />
-
-            ) : (
-
-              <Text
-
-                style={[
-
-                  styles.favoriteText,
-
-                  favorite &&
-
-                    styles.favoriteTextActive,
-
-                ]}
-
-              >
-
-                {favorite
-
-                  ? '♥'
-
-                  : '♡'}
-
-              </Text>
-
-            )}
-
-          </TouchableOpacity>
-
-        </View>
-
-        <Text
-
-          style={
-
-            styles.headerBusiness
-
-          }
-
-        >
-
-          {
-
-            businessName
-
-          }
-
-        </Text>
-
-        <View
-
-          style={
-
-            styles.scoreRow
-
-          }
-
-        >
-
           <Text
 
             style={
 
-              styles.scoreLabel
-
-            }
-
-          >
-
-            종합 적합도
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.scoreValue
+              styles.headerBusiness
 
             }
 
@@ -1897,372 +1853,462 @@ export default function RegionResultDetailScreen() {
 
             {
 
-              suitabilityScore
+              businessName
 
             }
 
           </Text>
 
-          <Text
+          <View
 
             style={
 
-              styles.scoreUnit
+              styles.scoreRow
 
             }
 
           >
 
-            / 100
+            <Text
 
-          </Text>
+              style={
+
+                styles.scoreLabel
+
+              }
+
+            >
+
+              종합 적합도
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.scoreValue
+
+              }
+
+            >
+
+              {
+
+                suitabilityScore
+
+              }
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.scoreUnit
+
+              }
+
+            >
+
+              / 100
+
+            </Text>
+
+          </View>
 
         </View>
 
-      </View>
+        <TouchableOpacity
 
-      <TouchableOpacity
+          style={styles.chatButton}
 
-        style={styles.chatButton}
+          activeOpacity={0.8}
 
-        activeOpacity={0.8}
+          onPress={handleOpenChat}
 
-        onPress={handleOpenChat}
-
-      >
-        <Image
-          source={require('../../../assets/images/chatbot-question-map.png')}
-          style={styles.chatImageIcon}
-          resizeMode="contain"
-        />
-
-        <View style={styles.chatButtonContent}>
-
-          <Text style={styles.chatButtonTitle}>
-
-            AI에게 물어보기
-
-          </Text>
-
-          <Text style={styles.chatButtonDescription}>
-
-            현재 분석 결과를 바탕으로 궁금한 점을 질문해보세요
-
-          </Text>
-
-        </View>
-
-        <Text style={styles.chatButtonArrow}>›</Text>
-
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.mapViewButton}
-        activeOpacity={0.8}
-        onPress={handleOpenMap}
-      >
-        <View
-          style={styles.mapViewIcon}
         >
-          <Text
-            style={styles.mapViewIconText}
-          >
-            🗺️
-          </Text>
-        </View>
+          <Image
+            source={require('../../../assets/images/chatbot-question-map.png')}
+            style={styles.chatImageIcon}
+            resizeMode="contain"
+          />
 
-        <View
-          style={styles.mapViewContent}
+          <View style={styles.chatButtonContent}>
+
+            <Text style={styles.chatButtonTitle}>
+
+              AI에게 물어보기
+
+            </Text>
+
+            <Text style={styles.chatButtonDescription}>
+
+              현재 분석 결과를 바탕으로 궁금한 점을 질문해보세요
+
+            </Text>
+
+          </View>
+
+          <Text style={styles.chatButtonArrow}>›</Text>
+
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.mapViewButton}
+          activeOpacity={0.8}
+          onPress={handleOpenMap}
         >
-          <Text
-            style={styles.mapViewTitle}
+          <View
+            style={styles.mapViewIcon}
           >
-            지도에서 보기
-          </Text>
+            <Text
+              style={styles.mapViewIconText}
+            >
+              🗺️
+            </Text>
+          </View>
+
+          <View
+            style={styles.mapViewContent}
+          >
+            <Text
+              style={styles.mapViewTitle}
+            >
+              지도에서 보기
+            </Text>
+
+            <Text
+              style={styles.mapViewDescription}
+            >
+              분석 지역과 주변 상권 분포를 지도에서 확인해보세요
+            </Text>
+          </View>
 
           <Text
-            style={styles.mapViewDescription}
+            style={styles.mapViewArrow}
           >
-            분석 지역과 주변 상권 분포를 지도에서 확인해보세요
+            ›
           </Text>
-        </View>
+        </TouchableOpacity>
 
-        <Text
-          style={styles.mapViewArrow}
-        >
-          ›
-        </Text>
-      </TouchableOpacity>
-
-      {/* =================================================
+        {/* =================================================
 
           핵심 지표
 
       ================================================= */}
 
-      <View
-
-        style={
-
-          styles.metricGrid
-
-        }
-
-      >
-
         <View
 
           style={
 
-            styles.metricBox
+            styles.metricGrid
 
           }
 
         >
 
-          <Text
+          <View
 
             style={
 
-              styles.metricLabel
+              styles.metricBox
 
             }
 
           >
 
-            {isPointAnalysis
+            <Text
 
-              ? '추정 유동인구'
+              style={
 
-              : '유동인구'}
+                styles.metricLabel
 
-          </Text>
+              }
 
-          <Text
+            >
+
+              {isPointAnalysis
+
+                ? '추정 유동인구'
+
+                : '유동인구'}
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.metricValue
+
+              }
+
+            >
+
+              {Number(
+
+                floatingPopulation,
+
+              ).toLocaleString()}
+
+              명
+
+            </Text>
+
+          </View>
+
+          <View
 
             style={
 
-              styles.metricValue
+              styles.metricBox
 
             }
 
           >
 
-            {Number(
+            <Text
 
-              floatingPopulation,
+              style={
 
-            ).toLocaleString()}
+                styles.metricLabel
 
-            명
+              }
 
-          </Text>
+            >
+
+              {isPointAnalysis
+
+                ? `반경 내 ${businessName} 수`
+
+                : `${businessName} 수`}
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.metricValue
+
+              }
+
+            >
+
+              {
+
+                storeCount
+
+              }
+
+              개
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.metricBox
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.metricLabel
+
+              }
+
+            >
+
+              경쟁밀도
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.metricValue
+
+              }
+
+            >
+
+              {Number(
+
+                competitionDensity,
+
+              ).toFixed(
+
+                3,
+
+              )}
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.metricBox
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.metricLabel
+
+              }
+
+            >
+
+              점포당 카드소비
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.metricValue
+
+              }
+
+            >
+
+              {Math.round(
+
+                Number(
+
+                  averageSalesPerStore,
+
+                ),
+
+              ).toLocaleString()}
+
+              원
+
+            </Text>
+
+          </View>
 
         </View>
 
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? `반경 내 ${businessName} 수`
-
-              : `${businessName} 수`}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {
-
-              storeCount
-
-            }
-
-            개
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            경쟁밀도
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {Number(
-
-              competitionDensity,
-
-            ).toFixed(
-
-              3,
-
-            )}
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.metricBox
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.metricLabel
-
-            }
-
-          >
-
-            점포당 카드소비
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.metricValue
-
-            }
-
-          >
-
-            {Math.round(
-
-              Number(
-
-                averageSalesPerStore,
-
-              ),
-
-            ).toLocaleString()}
-
-            원
-
-          </Text>
-
-        </View>
-
-      </View>
-
-      {/* =================================================
+        {/* =================================================
 
           상권 변화 추이 (기간 선택 + 개업·폐업률)
 
       ================================================= */}
 
-      <TrendSection
+        <TrendSection
 
-        areaName={actualDongName}
+          areaName={actualDongName}
 
-        businessName={businessName}
+          businessName={businessName}
 
-      />
+        />
 
-      {/* =================================================
+        {/* =================================================
 
           ★ 실제 월별 후보 비교
 
       ================================================= */}
 
-      {compareItems.length >
+        {compareItems.length >
 
-        0 ? (
+          0 ? (
 
-        <View
+          <View
 
-          style={
+            style={
 
-            styles.comparisonWrapper
-
-          }
-
-        >
-
-          <MonthlyCandidateComparison
-
-            compareItems={
-
-              compareItems
+              styles.comparisonWrapper
 
             }
 
-            currentAreaName={
+          >
 
-              actualDongName
+            <MonthlyCandidateComparison
+
+              compareItems={
+
+                compareItems
+
+              }
+
+              currentAreaName={
+
+                actualDongName
+
+              }
+
+            />
+
+          </View>
+
+        ) : (
+
+          <View
+
+            style={
+
+              styles.sectionBox
 
             }
 
-          />
+          >
 
-        </View>
+            <Text
 
-      ) : (
+              style={
+
+                styles.sectionTitle
+
+              }
+
+            >
+
+              다른 후보와 비교
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.noCompareText
+
+              }
+
+            >
+
+              함께 분석한 다른 후보 지역이 없어요.
+
+            </Text>
+
+          </View>
+
+        )}
+
+        {/* =================================================
+
+          주변 실제 점포
+
+      ================================================= */}
 
         <View
 
@@ -2284,893 +2330,165 @@ export default function RegionResultDetailScreen() {
 
           >
 
-            다른 후보와 비교
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.noCompareText
-
-            }
-
-          >
-
-            함께 분석한 다른 후보 지역이 없어요.
-
-          </Text>
-
-        </View>
-
-      )}
-
-      {/* =================================================
-
-          주변 실제 점포
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.sectionBox
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.sectionTitle
-
-          }
-
-        >
-
-          주변 실제{' '}
-
-          {
-
-            businessName
-
-          }{' '}
-
-          매장
-
-        </Text>
-
-        <Text
-
-          style={
-
-            styles.sectionDescription
-
-          }
-
-        >
-
-          공공데이터에 등록된 이 지역의 실제 매장 정보예요.
-
-        </Text>
-
-        {Platform.OS !==
-
-          'web' &&
-
-          nearbyStores.length >
-
-            0 && (
-
-            <NativeStoreMap
-
-              stores={
-
-                nearbyStores
-
-              }
-
-            />
-
-          )}
-
-        {storesLoading && (
-
-          <View
-
-            style={
-
-              styles.smallLoadingBox
-
-            }
-
-          >
-
-            <ActivityIndicator
-
-              size="small"
-
-              color={
-
-                COLORS.primary
-
-              }
-
-            />
-
-            <Text
-
-              style={
-
-                styles.smallLoadingText
-
-              }
-
-            >
-
-              주변 매장 정보를 불러오는 중...
-
-            </Text>
-
-          </View>
-
-        )}
-
-        {!storesLoading &&
-
-          storesError !==
-
-            '' && (
-
-            <Text
-
-              style={
-
-                styles.storesError
-
-              }
-
-            >
-
-              {
-
-                storesError
-
-              }
-
-            </Text>
-
-          )}
-
-        {!storesLoading &&
-
-          storesError ===
-
-            '' &&
-
-          nearbyStores.length ===
-
-            0 && (
-
-            <Text
-
-              style={
-
-                styles.storesEmpty
-
-              }
-
-            >
-
-              등록된 매장 정보를 찾지 못했어요.
-
-            </Text>
-
-          )}
-
-        {!storesLoading &&
-
-          nearbyStores.map(
-
-            (
-
-              store,
-
-              index,
-
-            ) => (
-
-              <View
-
-                key={`${store.name}-${index}`}
-
-                style={
-
-                  styles.storeRow
-
-                }
-
-              >
-
-                <Text
-
-                  style={
-
-                    styles.storeName
-
-                  }
-
-                >
-
-                  {
-
-                    store.name
-
-                  }
-
-                </Text>
-
-                <Text
-
-                  style={
-
-                    styles.storeAddress
-
-                  }
-
-                >
-
-                  {
-
-                    store.address
-
-                  }
-
-                </Text>
-
-              </View>
-
-            ),
-
-          )}
-
-      </View>
-
-      {/* =================================================
-
-          지역 환경 상세
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.sectionBox
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.sectionTitle
-
-          }
-
-        >
-
-          지역 환경 상세
-
-        </Text>
-
-        {isPointAnalysis && (
-
-          <Text
-
-            style={
-
-              styles.estimateNotice
-
-            }
-
-          >
-
-            위치 기반 분석의 인구·카드소비·접근성 지표는
-
-            행정동 데이터를 반경 내 점포 집중도에 따라
-
-            세분화한 추정값입니다.
-
-          </Text>
-
-        )}
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 생활인구'
-
-              : '생활인구'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {Number(
-
-              livingPopulation,
-
-            ).toLocaleString()}
-
-            명
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            생활인구 증감률
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {formatChangeRate(
-
-              Number(
-
-                livingPopulationChangeRate,
-
-              ),
-
-            )}
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            유동인구 증감률
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {formatChangeRate(
-
-              Number(
-
-                floatingPopulationChangeRate,
-
-              ),
-
-            )}
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 카드소비'
-
-              : '전체 카드소비'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {Number(
-
-              salesAmount,
-
-            ).toLocaleString()}
-
-            원
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={
-
-            styles.detailRow
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            점포당 카드소비
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
-
-            {Math.round(
-
-              Number(
-
-                averageSalesPerStore,
-
-              ),
-
-            ).toLocaleString()}
-
-            원
-
-          </Text>
-
-        </View>
-
-        <View
-
-          style={[
-
-            styles.detailRow,
-
-            styles.detailRowLast,
-
-          ]}
-
-        >
-
-          <Text
-
-            style={
-
-              styles.detailLabel
-
-            }
-
-          >
-
-            {isPointAnalysis
-
-              ? '추정 버스정류장'
-
-              : '버스정류장'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.detailValue
-
-            }
-
-          >
+            주변 실제{' '}
 
             {
 
-              busStopCount
+              businessName
 
-            }
+            }{' '}
 
-            개
+            매장
 
           </Text>
 
-        </View>
-
-      </View>
-
-      {/* =================================================
-
-          AI 분석
-
-      ================================================= */}
-
-      <View
-
-        style={
-
-          styles.sectionBox
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.sectionTitle
-
-          }
-
-        >
-
-          AI 분석 요약
-
-        </Text>
-
-        {aiLoading && (
-
-          <View
+          <Text
 
             style={
 
-              styles.smallLoadingBox
+              styles.sectionDescription
 
             }
 
           >
 
-            <ActivityIndicator
+            공공데이터에 등록된 이 지역의 실제 매장 정보예요.
 
-              size="small"
+          </Text>
 
-              color={
+          {Platform.OS !==
 
-                COLORS.primary
+            'web' &&
 
-              }
+            nearbyStores.length >
 
-            />
+            0 && (
 
-            <Text
+              <NativeStoreMap
+
+                stores={
+
+                  nearbyStores
+
+                }
+
+              />
+
+            )}
+
+          {storesLoading && (
+
+            <View
 
               style={
 
-                styles.smallLoadingText
+                styles.smallLoadingBox
 
               }
 
             >
 
-              AI가 분석하는 중...
+              <ActivityIndicator
 
-            </Text>
+                size="small"
 
-          </View>
+                color={
 
-        )}
+                  COLORS.primary
 
-        {!aiLoading &&
+                }
 
-          aiError !==
+              />
 
-            '' && (
+              <Text
 
-            <Text
+                style={
 
-              style={
+                  styles.smallLoadingText
 
-                styles.storesError
+                }
 
-              }
+              >
 
-            >
+                주변 매장 정보를 불러오는 중...
 
-              {
+              </Text>
 
-                aiError
-
-              }
-
-            </Text>
+            </View>
 
           )}
 
-        {!aiLoading &&
+          {!storesLoading &&
 
-          explanation && (
+            storesError !==
 
-            <>
+            '' && (
 
-              {renderEmphasizedText(
-
-                explanation.recommendationReason,
-
-                styles.aiReasonText,
-
-              )}
-
-              <View
+              <Text
 
                 style={
 
-                  styles.chunkList
+                  styles.storesError
 
                 }
 
               >
 
-                {explanation.advantages.map(
+                {
 
-                  (
+                  storesError
 
-                    advantage,
+                }
 
-                    index,
+              </Text>
 
-                  ) => (
+            )}
 
-                    <View
+          {!storesLoading &&
 
-                      key={`adv-${index}`}
+            storesError ===
 
-                      style={
+            '' &&
 
-                        styles.chunkRowGood
+            nearbyStores.length ===
 
-                      }
+            0 && (
 
-                    >
-
-                      <Text
-
-                        style={
-
-                          styles.chunkIconGood
-
-                        }
-
-                      >
-
-                        ✓
-
-                      </Text>
-
-                      {renderEmphasizedText(
-
-                        advantage,
-
-                        styles.chunkTextGood,
-
-                      )}
-
-                    </View>
-
-                  ),
-
-                )}
-
-                {explanation.risks.map(
-
-                  (
-
-                    risk,
-
-                    index,
-
-                  ) => (
-
-                    <View
-
-                      key={`risk-${index}`}
-
-                      style={
-
-                        styles.chunkRowWarn
-
-                      }
-
-                    >
-
-                      <Text
-
-                        style={
-
-                          styles.chunkIconWarn
-
-                        }
-
-                      >
-
-                        !
-
-                      </Text>
-
-                      {renderEmphasizedText(
-
-                        risk,
-
-                        styles.chunkTextWarn,
-
-                      )}
-
-                    </View>
-
-                  ),
-
-                )}
-
-              </View>
-
-              <TouchableOpacity
+              <Text
 
                 style={
 
-                  styles.detailToggleButton
-
-                }
-
-                activeOpacity={
-
-                  0.7
-
-                }
-
-                onPress={() =>
-
-                  setDetailExpanded(
-
-                    prev =>
-
-                      !prev,
-
-                  )
+                  styles.storesEmpty
 
                 }
 
               >
 
-                <Text
+                등록된 매장 정보를 찾지 못했어요.
 
-                  style={
+              </Text>
 
-                    styles.detailToggleText
+            )}
 
-                  }
+          {!storesLoading &&
 
-                >
+            nearbyStores.map(
 
-                  {detailExpanded
+              (
 
-                    ? 'AI 상세 분석 접기 ▲'
+                store,
 
-                    : 'AI 상세 분석 더보기 ▼'}
+                index,
 
-                </Text>
-
-              </TouchableOpacity>
-
-              {detailExpanded && (
+              ) => (
 
                 <View
 
+                  key={`${store.name}-${index}`}
+
                   style={
 
-                    styles.aiDetailSection
+                    styles.storeRow
 
                   }
 
@@ -3180,43 +2498,7 @@ export default function RegionResultDetailScreen() {
 
                     style={
 
-                      styles.aiLabel
-
-                    }
-
-                  >
-
-                    주요 특징
-
-                  </Text>
-
-                  {renderEmphasizedText(
-
-                    explanation.keyFeatures,
-
-                    styles.aiReasonText,
-
-                  )}
-
-                  <Text
-
-                    style={
-
-                      styles.aiLabel
-
-                    }
-
-                  >
-
-                    고려사항
-
-                  </Text>
-
-                  <Text
-
-                    style={
-
-                      styles.aiReasonText
+                      styles.storeName
 
                     }
 
@@ -3224,7 +2506,25 @@ export default function RegionResultDetailScreen() {
 
                     {
 
-                      explanation.considerations
+                      store.name
+
+                    }
+
+                  </Text>
+
+                  <Text
+
+                    style={
+
+                      styles.storeAddress
+
+                    }
+
+                  >
+
+                    {
+
+                      store.address
 
                     }
 
@@ -3232,15 +2532,713 @@ export default function RegionResultDetailScreen() {
 
                 </View>
 
-              )}
+              ),
 
-            </>
+            )}
+
+        </View>
+
+        {/* =================================================
+
+          지역 환경 상세
+
+      ================================================= */}
+
+        <View
+
+          style={
+
+            styles.sectionBox
+
+          }
+
+        >
+
+          <Text
+
+            style={
+
+              styles.sectionTitle
+
+            }
+
+          >
+
+            지역 환경 상세
+
+          </Text>
+
+          {isPointAnalysis && (
+
+            <Text
+
+              style={
+
+                styles.estimateNotice
+
+              }
+
+            >
+
+              위치 기반 분석의 인구·카드소비·접근성 지표는
+
+              행정동 데이터를 반경 내 점포 집중도에 따라
+
+              세분화한 추정값입니다.
+
+            </Text>
 
           )}
 
-      </View>
+          <View
 
-    </ScrollView>
+            style={
+
+              styles.detailRow
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.detailLabel
+
+              }
+
+            >
+
+              {isPointAnalysis
+
+                ? '추정 생활인구'
+
+                : '생활인구'}
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.detailValue
+
+              }
+
+            >
+
+              {Number(
+
+                livingPopulation,
+
+              ).toLocaleString()}
+
+              명
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.detailRow
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.detailLabel
+
+              }
+
+            >
+
+              생활인구 증감률
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.detailValue
+
+              }
+
+            >
+
+              {formatChangeRate(
+
+                Number(
+
+                  livingPopulationChangeRate,
+
+                ),
+
+              )}
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.detailRow
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.detailLabel
+
+              }
+
+            >
+
+              유동인구 증감률
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.detailValue
+
+              }
+
+            >
+
+              {formatChangeRate(
+
+                Number(
+
+                  floatingPopulationChangeRate,
+
+                ),
+
+              )}
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.detailRow
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.detailLabel
+
+              }
+
+            >
+
+              {isPointAnalysis
+
+                ? '추정 카드소비'
+
+                : '전체 카드소비'}
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.detailValue
+
+              }
+
+            >
+
+              {Number(
+
+                salesAmount,
+
+              ).toLocaleString()}
+
+              원
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.detailRow
+
+            }
+
+          >
+
+            <Text
+
+              style={
+
+                styles.detailLabel
+
+              }
+
+            >
+
+              점포당 카드소비
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.detailValue
+
+              }
+
+            >
+
+              {Math.round(
+
+                Number(
+
+                  averageSalesPerStore,
+
+                ),
+
+              ).toLocaleString()}
+
+              원
+
+            </Text>
+
+          </View>
+
+          <View
+
+            style={[
+
+              styles.detailRow,
+
+              styles.detailRowLast,
+
+            ]}
+
+          >
+
+            <Text
+
+              style={
+
+                styles.detailLabel
+
+              }
+
+            >
+
+              {isPointAnalysis
+
+                ? '추정 버스정류장'
+
+                : '버스정류장'}
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.detailValue
+
+              }
+
+            >
+
+              {
+
+                busStopCount
+
+              }
+
+              개
+
+            </Text>
+
+          </View>
+
+        </View>
+
+        {/* =================================================
+
+          AI 분석
+
+      ================================================= */}
+
+        <View
+
+          style={
+
+            styles.sectionBox
+
+          }
+
+        >
+
+          <Text
+
+            style={
+
+              styles.sectionTitle
+
+            }
+
+          >
+
+            AI 분석 요약
+
+          </Text>
+
+          {aiLoading && (
+
+            <View
+
+              style={
+
+                styles.smallLoadingBox
+
+              }
+
+            >
+
+              <ActivityIndicator
+
+                size="small"
+
+                color={
+
+                  COLORS.primary
+
+                }
+
+              />
+
+              <Text
+
+                style={
+
+                  styles.smallLoadingText
+
+                }
+
+              >
+
+                AI가 분석하는 중...
+
+              </Text>
+
+            </View>
+
+          )}
+
+          {!aiLoading &&
+
+            aiError !==
+
+            '' && (
+
+              <Text
+
+                style={
+
+                  styles.storesError
+
+                }
+
+              >
+
+                {
+
+                  aiError
+
+                }
+
+              </Text>
+
+            )}
+
+          {!aiLoading &&
+
+            explanation && (
+
+              <>
+
+                {renderEmphasizedText(
+
+                  explanation.recommendationReason,
+
+                  styles.aiReasonText,
+
+                )}
+
+                <View
+
+                  style={
+
+                    styles.chunkList
+
+                  }
+
+                >
+
+                  {explanation.advantages.map(
+
+                    (
+
+                      advantage,
+
+                      index,
+
+                    ) => (
+
+                      <View
+
+                        key={`adv-${index}`}
+
+                        style={
+
+                          styles.chunkRowGood
+
+                        }
+
+                      >
+
+                        <Text
+
+                          style={
+
+                            styles.chunkIconGood
+
+                          }
+
+                        >
+
+                          ✓
+
+                        </Text>
+
+                        {renderEmphasizedText(
+
+                          advantage,
+
+                          styles.chunkTextGood,
+
+                        )}
+
+                      </View>
+
+                    ),
+
+                  )}
+
+                  {explanation.risks.map(
+
+                    (
+
+                      risk,
+
+                      index,
+
+                    ) => (
+
+                      <View
+
+                        key={`risk-${index}`}
+
+                        style={
+
+                          styles.chunkRowWarn
+
+                        }
+
+                      >
+
+                        <Text
+
+                          style={
+
+                            styles.chunkIconWarn
+
+                          }
+
+                        >
+
+                          !
+
+                        </Text>
+
+                        {renderEmphasizedText(
+
+                          risk,
+
+                          styles.chunkTextWarn,
+
+                        )}
+
+                      </View>
+
+                    ),
+
+                  )}
+
+                </View>
+
+                <TouchableOpacity
+
+                  style={
+
+                    styles.detailToggleButton
+
+                  }
+
+                  activeOpacity={
+
+                    0.7
+
+                  }
+
+                  onPress={() =>
+
+                    setDetailExpanded(
+
+                      prev =>
+
+                        !prev,
+
+                    )
+
+                  }
+
+                >
+
+                  <Text
+
+                    style={
+
+                      styles.detailToggleText
+
+                    }
+
+                  >
+
+                    {detailExpanded
+
+                      ? 'AI 상세 분석 접기 ▲'
+
+                      : 'AI 상세 분석 더보기 ▼'}
+
+                  </Text>
+
+                </TouchableOpacity>
+
+                {detailExpanded && (
+
+                  <View
+
+                    style={
+
+                      styles.aiDetailSection
+
+                    }
+
+                  >
+
+                    <Text
+
+                      style={
+
+                        styles.aiLabel
+
+                      }
+
+                    >
+
+                      주요 특징
+
+                    </Text>
+
+                    {renderEmphasizedText(
+
+                      explanation.keyFeatures,
+
+                      styles.aiReasonText,
+
+                    )}
+
+                    <Text
+
+                      style={
+
+                        styles.aiLabel
+
+                      }
+
+                    >
+
+                      고려사항
+
+                    </Text>
+
+                    <Text
+
+                      style={
+
+                        styles.aiReasonText
+
+                      }
+
+                    >
+
+                      {
+
+                        explanation.considerations
+
+                      }
+
+                    </Text>
+
+                  </View>
+
+                )}
+
+              </>
+
+            )}
+
+        </View>
+
+      </ScrollView>
 
     </View>
 
@@ -3431,19 +3429,11 @@ const styles =
      */
 
     headerCard: {
-
       padding: 20,
-
       marginBottom: 16,
-
       borderRadius: 20,
-
-      backgroundColor:
-
-        '#111111',
-
+      backgroundColor: '#1D2545',
     },
-
     headerTopRow: {
 
       flexDirection:
@@ -3654,19 +3644,13 @@ const styles =
 
     },
 
+
     scoreValue: {
-
       fontSize: 30,
-
-      fontWeight:
-
-        '900',
-
-      color:
-
-        COLORS.neonLime,
-
+      fontWeight: '900',
+      color: '#FFD52A',
     },
+
 
     scoreUnit: {
 
@@ -4079,31 +4063,22 @@ const styles =
       color: COLORS.primary,
     },
 
+
     chatButton: {
-
       width: '100%',
-
       flexDirection: 'row',
-
       alignItems: 'center',
-
       gap: 12,
-
       paddingHorizontal: 16,
-
       paddingVertical: 14,
-
       marginBottom: 16,
-
       borderWidth: 1,
-
-      borderColor: '#CDEED7',
-
+      borderColor: '#F0DEA0',
+      backgroundColor: '#FFF4C2',
       borderRadius: 16,
 
-      backgroundColor: '#F3FBF5',
-
     },
+
 
     chatImageIcon: {
 
@@ -4143,17 +4118,14 @@ const styles =
 
     },
 
+
     chatButtonArrow: {
-
       marginLeft: 4,
-
       fontSize: 27,
-
       fontWeight: '400',
-
-      color: COLORS.primary,
-
+      color: '#1D2545',
     },
+
 
     /**
 
@@ -4193,55 +4165,29 @@ const styles =
 
     },
 
+
     chunkRowGood: {
-
-      flexDirection:
-
-        'row',
-
-      alignItems:
-
-        'flex-start',
-
+      flexDirection: 'row',
+      alignItems: 'flex-start',
       gap: 8,
-
       padding: 10,
-
       borderRadius: 10,
-
-      backgroundColor:
-
-        '#F1FFF5',
-
+      backgroundColor: '#FFF8D9',
     },
 
     chunkIconGood: {
-
       fontSize: 13,
-
-      fontWeight:
-
-        '900',
-
-      color:
-
-        '#1B9C4F',
-
+      fontWeight: '900',
+      color: '#1D2545',
     },
 
     chunkTextGood: {
-
       flex: 1,
-
       fontSize: 12,
-
       lineHeight: 18,
-
-      color:
-
-        '#1B4332',
-
+      color: '#1D2545',
     },
+
 
     chunkRowWarn: {
 

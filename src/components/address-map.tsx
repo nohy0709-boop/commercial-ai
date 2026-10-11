@@ -988,14 +988,11 @@ export default function AddressMap({
         strokeWeight:
           2,
 
-        strokeColor:
-          '#22A447',
 
-        strokeOpacity:
-          0.75,
+        strokeColor: '#1D2545',
+        strokeOpacity: 0.8,
+        fillColor: '#1D2545',
 
-        fillColor:
-          '#A7F3B5',
 
         fillOpacity:
           0.12,
@@ -1029,7 +1026,7 @@ export default function AddressMap({
     if (
       !mapContainerRef.current ||
       typeof ResizeObserver ===
-        'undefined'
+      'undefined'
     ) {
       return;
     }

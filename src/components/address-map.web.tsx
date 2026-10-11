@@ -553,7 +553,7 @@ export default function AddressMap({
       overlay: any;
 
       element:
-        HTMLDivElement;
+      HTMLDivElement;
     }[] = [];
 
     markers.forEach(
@@ -615,14 +615,11 @@ export default function AddressMap({
         label.style.borderRadius =
           '999px';
 
-        label.style.background =
-          '#FFFFFF';
 
-        label.style.border =
-          '2px solid #43A652';
+        label.style.background = '#FFFFFF';
+        label.style.border = '2px solid #1D2545';
+        label.style.color = '#1D2545';
 
-        label.style.color =
-          '#26833A';
 
         label.style.fontSize =
           '12px';
@@ -1065,8 +1062,9 @@ export default function AddressMap({
     pin.style.transform =
       'rotate(-45deg)';
 
-    pin.style.background =
-      '#4285F4';
+
+    pin.style.background = '#1D2545';
+
 
     pin.style.border =
       '4px solid #FFFFFF';
@@ -1117,13 +1115,13 @@ export default function AddressMap({
           2,
 
         strokeColor:
-          '#22A447',
+          '#1D2545',
 
         strokeOpacity:
           0.75,
 
         fillColor:
-          '#A7F3B5',
+          '#1D2545',
 
         fillOpacity:
           0.12,
@@ -1158,7 +1156,7 @@ export default function AddressMap({
     if (
       !mapContainerRef.current ||
       typeof ResizeObserver ===
-        'undefined'
+      'undefined'
     ) {
       return;
     }

@@ -111,10 +111,10 @@ interface StoreCluster {
   id: string;
 
   category:
-    StoreCategory;
+  StoreCategory;
 
   stores:
-    NearbyStore[];
+  NearbyStore[];
 
   latitude: number;
 
@@ -123,60 +123,60 @@ interface StoreCluster {
 
 const STORE_CATEGORIES:
   StoreCategory[] = [
-  {
-    key: 'food',
-    label: '음식점',
-    icon: '🍚',
-  },
+    {
+      key: 'food',
+      label: '음식점',
+      icon: '🍚',
+    },
 
-  {
-    key: 'cafe',
-    label: '카페',
-    icon: '☕',
-  },
+    {
+      key: 'cafe',
+      label: '카페',
+      icon: '☕',
+    },
 
-  {
-    key: 'convenience',
-    label: '편의점',
-    icon: '🏪',
-  },
+    {
+      key: 'convenience',
+      label: '편의점',
+      icon: '🏪',
+    },
 
-  {
-    key: 'beauty',
-    label: '미용',
-    icon: '✂️',
-  },
+    {
+      key: 'beauty',
+      label: '미용',
+      icon: '✂️',
+    },
 
-  {
-    key: 'medical',
-    label: '의료',
-    icon: '🏥',
-  },
+    {
+      key: 'medical',
+      label: '의료',
+      icon: '🏥',
+    },
 
-  {
-    key: 'education',
-    label: '교육',
-    icon: '🎓',
-  },
+    {
+      key: 'education',
+      label: '교육',
+      icon: '🎓',
+    },
 
-  {
-    key: 'retail',
-    label: '소매',
-    icon: '🛍️',
-  },
+    {
+      key: 'retail',
+      label: '소매',
+      icon: '🛍️',
+    },
 
-  {
-    key: 'sports',
-    label: '운동',
-    icon: '🏋️',
-  },
+    {
+      key: 'sports',
+      label: '운동',
+      icon: '🏋️',
+    },
 
-  {
-    key: 'etc',
-    label: '기타',
-    icon: '📍',
-  },
-];
+    {
+      key: 'etc',
+      label: '기타',
+      icon: '📍',
+    },
+  ];
 
 function getStoreCategory(
   store: NearbyStore,
@@ -393,7 +393,7 @@ function createStoreClusters(
           referenceLat *
           Math.PI
         ) /
-          180,
+        180,
       )
     );
 
@@ -402,10 +402,10 @@ function createStoreClusters(
       string,
       {
         category:
-          StoreCategory;
+        StoreCategory;
 
         stores:
-          NearbyStore[];
+        NearbyStore[];
       }
     >();
 
@@ -419,13 +419,13 @@ function createStoreClusters(
       const latCell =
         Math.floor(
           store.lat /
-            latStep,
+          latStep,
         );
 
       const lngCell =
         Math.floor(
           store.lng /
-            lngStep,
+          lngStep,
         );
 
       const key =
@@ -805,21 +805,21 @@ export default function MapScreen() {
 
     label: string;
   }[] = [
-    {
-      value: 300,
-      label: '300m',
-    },
+      {
+        value: 300,
+        label: '300m',
+      },
 
-    {
-      value: 500,
-      label: '500m',
-    },
+      {
+        value: 500,
+        label: '500m',
+      },
 
-    {
-      value: 1000,
-      label: '1km',
-    },
-  ];
+      {
+        value: 1000,
+        label: '1km',
+      },
+    ];
 
   useEffect(() => {
     if (
@@ -843,7 +843,7 @@ export default function MapScreen() {
     const parsedRadius =
       Number(
         params.radius ??
-          500,
+        500,
       );
 
     if (
@@ -916,7 +916,7 @@ export default function MapScreen() {
 
     if (
       analysisType ===
-        'point' &&
+      'point' &&
       Number.isFinite(
         latitude,
       ) &&
@@ -928,7 +928,7 @@ export default function MapScreen() {
         latitude,
         longitude,
         areaName ||
-          '분석 위치',
+        '분석 위치',
       );
 
       return;
@@ -964,7 +964,7 @@ export default function MapScreen() {
             `${areaName} 일대`,
           );
         } catch (
-          error
+        error
         ) {
           console.error(
             '분석 지역 지도 이동 실패:',
@@ -1042,7 +1042,7 @@ export default function MapScreen() {
           visibleStores,
 
           viewport?.level ??
-            4,
+          4,
         ),
       [
         visibleStores,
@@ -1103,7 +1103,7 @@ export default function MapScreen() {
           const value =
             JSON.parse(
               params.compareData ||
-                '[]',
+              '[]',
             );
 
           if (
@@ -1112,7 +1112,7 @@ export default function MapScreen() {
             parsed = value;
           }
         } catch (
-          error
+        error
         ) {
           console.error(
             '분석 후보 데이터 파싱 실패:',
@@ -1127,7 +1127,7 @@ export default function MapScreen() {
         const currentScore =
           Number(
             params.suitabilityScore ||
-              0,
+            0,
           );
 
         const normalized =
@@ -1150,7 +1150,7 @@ export default function MapScreen() {
                 rank:
                   Number(
                     item.rank ??
-                      index + 1,
+                    index + 1,
                   ),
                 suitabilityScore:
                   getCandidateScore(
@@ -1173,8 +1173,8 @@ export default function MapScreen() {
             rank:
               Number(
                 params.rank ||
-                  normalized.length +
-                    1,
+                normalized.length +
+                1,
               ),
             suitabilityScore:
               Number.isFinite(
@@ -1187,7 +1187,7 @@ export default function MapScreen() {
 
         if (
           normalized.length ===
-            0 &&
+          0 &&
           currentArea
         ) {
           normalized.push({
@@ -1209,7 +1209,7 @@ export default function MapScreen() {
               async item => {
                 if (
                   item.areaName ===
-                    currentArea &&
+                  currentArea &&
                   params.latitude &&
                   params.longitude
                 ) {
@@ -1272,7 +1272,7 @@ export default function MapScreen() {
                       result.lng,
                   };
                 } catch (
-                  error
+                error
                 ) {
                   console.error(
                     '후보 지역 위치 조회 실패:',
@@ -1821,7 +1821,7 @@ export default function MapScreen() {
           false,
         );
       } catch (
-        error
+      error
       ) {
         console.error(
           '지도 검색 실패:',
@@ -1932,7 +1932,7 @@ export default function MapScreen() {
           buildings[0],
         );
       } catch (
-        error
+      error
       ) {
         setBuildingError(
           error instanceof
@@ -2084,8 +2084,8 @@ export default function MapScreen() {
         const returnParams =
           params.returnParams
             ? JSON.parse(
-                params.returnParams,
-              )
+              params.returnParams,
+            )
             : {};
 
         router.replace({
@@ -2095,7 +2095,7 @@ export default function MapScreen() {
             returnParams,
         });
       } catch (
-        error
+      error
       ) {
         console.error(
           '상세 분석 복귀 파라미터 오류:',
@@ -2116,8 +2116,8 @@ export default function MapScreen() {
       value === null
         ? '-'
         : `${formatBuildingNumber(
-            value,
-          )}㎡`;
+          value,
+        )}㎡`;
 
   return (
     <View
@@ -2149,7 +2149,7 @@ export default function MapScreen() {
 
           clusterMarkers={
             !isAnalysisResultMode &&
-            mapLayer ===
+              mapLayer ===
               'commercial'
               ? clusterMarkers
               : []
@@ -2158,7 +2158,7 @@ export default function MapScreen() {
           selectable={
             !isAnalysisResultMode &&
             mapLayer !==
-              'rental'
+            'rental'
           }
 
           onMapPress={
@@ -2184,12 +2184,12 @@ export default function MapScreen() {
               ? null
               : selectedPoint
                 ? {
-                    latitude:
-                      selectedPoint.lat,
+                  latitude:
+                    selectedPoint.lat,
 
-                    longitude:
-                      selectedPoint.lng,
-                  }
+                  longitude:
+                    selectedPoint.lng,
+                }
                 : null
           }
 
@@ -2197,7 +2197,7 @@ export default function MapScreen() {
             isAnalysisResultMode
               ? undefined
               : selectedLabel ||
-                undefined
+              undefined
           }
 
           radius={
@@ -2210,217 +2210,181 @@ export default function MapScreen() {
 
       {!isAnalysisResultMode && (
         <>
-      {/* SEARCH */}
+          {/* SEARCH */}
 
-      <View
-        style={[
-          styles.searchArea,
+          <View
+            style={[
+              styles.searchArea,
 
-          isSmall &&
-            styles.searchAreaSmall,
+              isSmall &&
+              styles.searchAreaSmall,
 
-          {
-            top: overlayTop,
-          },
-        ]}
-      >
-        <View
-          style={
-            styles.searchBar
-          }
-        >
-          <Text>
-            🔍
-          </Text>
-
-          <TextInput
-            value={
-              searchQuery
-            }
-
-            onChangeText={
-              setSearchQuery
-            }
-
-            onSubmitEditing={
-              handleSearch
-            }
-
-            placeholder="지역, 건물명, 상권 검색"
-
-            placeholderTextColor="#9CA3AF"
-
-            style={
-              styles.searchInput
-            }
-          />
-
-          {searchLoading ? (
-            <ActivityIndicator
-              size="small"
-
-              color={
-                COLORS.primary
-              }
-            />
-          ) : (
-            <TouchableOpacity
-              onPress={
-                handleSearch
+              {
+                top: overlayTop,
+              },
+            ]}
+          >
+            <View
+              style={
+                styles.searchBar
               }
             >
-              <Text
-                style={
-                  styles.searchButtonText
-                }
-              >
-                검색
+              <Text>
+                🔍
               </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+
+              <TextInput
+                value={
+                  searchQuery
+                }
+
+                onChangeText={
+                  setSearchQuery
+                }
+
+                onSubmitEditing={
+                  handleSearch
+                }
+
+                placeholder="지역, 건물명, 상권 검색"
+
+                placeholderTextColor="#9CA3AF"
+
+                style={
+                  styles.searchInput
+                }
+              />
+
+              {searchLoading ? (
+                <ActivityIndicator
+                  size="small"
+
+                  color={
+                    COLORS.primary
+                  }
+                />
+              ) : (
+                <TouchableOpacity
+                  onPress={
+                    handleSearch
+                  }
+                >
+                  <Text
+                    style={
+                      styles.searchButtonText
+                    }
+                  >
+                    검색
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
         </>
       )}
 
       {!isAnalysisResultMode && (
         <>
-      {/* LAYER */}
+          {/* LAYER */}
 
-      <View
-        style={[
-          styles.layerTabs,
+          <View
+            style={[
+              styles.layerTabs,
 
-          {
-            top: overlayTop + 70,
-          },
-        ]}
-      >
-        <LayerButton
-          active={
-            mapLayer ===
-            'commercial'
-          }
-
-          icon="📊"
-
-          label="상권"
-
-          onPress={() =>
-            handleLayerChange(
-              'commercial',
-            )
-          }
-        />
-
-        <LayerButton
-          active={
-            mapLayer ===
-            'rental'
-          }
-
-          icon="🏪"
-
-          label="임대 상가"
-
-          onPress={() =>
-            handleLayerChange(
-              'rental',
-            )
-          }
-        />
-
-        <LayerButton
-          active={
-            mapLayer ===
-            'building'
-          }
-
-          icon="🏢"
-
-          label="건물"
-
-          onPress={() =>
-            handleLayerChange(
-              'building',
-            )
-          }
-        />
-      </View>
-
-      {/* CATEGORY */}
-
-      {mapLayer ===
-        'commercial' && (
-        <View
-          style={[
-            styles.categoryArea,
-
-            {
-              top: overlayTop + 132,
-            },
-          ]}
-        >
-          <ScrollView
-            horizontal
-
-            showsHorizontalScrollIndicator={
-              false
-            }
-
-            contentContainerStyle={
-              styles.categoryContent
-            }
+              {
+                top: overlayTop + 70,
+              },
+            ]}
           >
-            <TouchableOpacity
-              style={[
-                styles.categoryChip,
+            <LayerButton
+              active={
+                mapLayer ===
+                'commercial'
+              }
 
-                mapCategoryFilter ===
-                  null &&
-                  styles.categoryChipActive,
-              ]}
+              icon="📊"
+
+              label="상권"
 
               onPress={() =>
-                setMapCategoryFilter(
-                  null,
+                handleLayerChange(
+                  'commercial',
                 )
               }
-            >
-              <Text
-                style={
-                  styles.categoryText
-                }
+            />
+
+            <LayerButton
+              active={
+                mapLayer ===
+                'rental'
+              }
+
+              icon="🏪"
+
+              label="임대 상가"
+
+              onPress={() =>
+                handleLayerChange(
+                  'rental',
+                )
+              }
+            />
+
+            <LayerButton
+              active={
+                mapLayer ===
+                'building'
+              }
+
+              icon="🏢"
+
+              label="건물"
+
+              onPress={() =>
+                handleLayerChange(
+                  'building',
+                )
+              }
+            />
+          </View>
+
+          {/* CATEGORY */}
+
+          {mapLayer ===
+            'commercial' && (
+              <View
+                style={[
+                  styles.categoryArea,
+
+                  {
+                    top: overlayTop + 132,
+                  },
+                ]}
               >
-                전체
-              </Text>
-            </TouchableOpacity>
+                <ScrollView
+                  horizontal
 
-            {STORE_CATEGORIES
-              .filter(
-                item =>
-                  item.key !==
-                  'etc',
-              )
-              .map(
-                item => (
+                  showsHorizontalScrollIndicator={
+                    false
+                  }
+
+                  contentContainerStyle={
+                    styles.categoryContent
+                  }
+                >
                   <TouchableOpacity
-                    key={
-                      item.key
-                    }
-
                     style={[
                       styles.categoryChip,
 
                       mapCategoryFilter ===
-                        item.key &&
-                        styles.categoryChipActive,
+                      null &&
+                      styles.categoryChipActive,
                     ]}
 
                     onPress={() =>
                       setMapCategoryFilter(
-                        item.key,
+                        null,
                       )
                     }
                   >
@@ -2429,244 +2393,280 @@ export default function MapScreen() {
                         styles.categoryText
                       }
                     >
-                      {item.icon}{' '}
-                      {item.label}
+                      전체
                     </Text>
                   </TouchableOpacity>
-                ),
-              )}
-          </ScrollView>
-        </View>
-      )}
 
-      {/* STATUS */}
+                  {STORE_CATEGORIES
+                    .filter(
+                      item =>
+                        item.key !==
+                        'etc',
+                    )
+                    .map(
+                      item => (
+                        <TouchableOpacity
+                          key={
+                            item.key
+                          }
 
-      {mapLayer ===
-        'commercial' && (
-        <View
-          style={[
-            styles.mapStatus,
+                          style={[
+                            styles.categoryChip,
 
-            {
-              top: overlayTop + 190,
-            },
-          ]}
-        >
-          {mapStoresLoading ? (
-            <ActivityIndicator
-              size="small"
+                            mapCategoryFilter ===
+                            item.key &&
+                            styles.categoryChipActive,
+                          ]}
 
-              color={
-                COLORS.primary
-              }
-            />
-          ) : (
-            <Text
-              style={
-                styles.mapStatusText
-              }
-            >
-              현재 화면{' '}
-              <Text
-                style={
-                  styles.mapStatusStrong
-                }
+                          onPress={() =>
+                            setMapCategoryFilter(
+                              item.key,
+                            )
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.categoryText
+                            }
+                          >
+                            {item.icon}{' '}
+                            {item.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ),
+                    )}
+                </ScrollView>
+              </View>
+            )}
+
+          {/* STATUS */}
+
+          {mapLayer ===
+            'commercial' && (
+              <View
+                style={[
+                  styles.mapStatus,
+
+                  {
+                    top: overlayTop + 190,
+                  },
+                ]}
               >
-                {
-                  visibleStores.length
-                }
-              </Text>
-              개 점포
-            </Text>
-          )}
-        </View>
-      )}
+                {mapStoresLoading ? (
+                  <ActivityIndicator
+                    size="small"
 
-      {mapLayer ===
-        'commercial' &&
-        !!mapStoresError && (
+                    color={
+                      COLORS.primary
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={
+                      styles.mapStatusText
+                    }
+                  >
+                    현재 화면{' '}
+                    <Text
+                      style={
+                        styles.mapStatusStrong
+                      }
+                    >
+                      {
+                        visibleStores.length
+                      }
+                    </Text>
+                    개 점포
+                  </Text>
+                )}
+              </View>
+            )}
+
+          {mapLayer ===
+            'commercial' &&
+            !!mapStoresError && (
+              <View
+                style={[
+                  styles.mapError,
+
+                  {
+                    top: overlayTop + 238,
+                  },
+                ]}
+              >
+                <Text
+                  style={
+                    styles.mapErrorText
+                  }
+                >
+                  {
+                    mapStoresError
+                  }
+                </Text>
+              </View>
+            )}
+
+          {/* RENTAL */}
+
+          {mapLayer ===
+            'rental' && (
+              <View
+                style={[
+                  styles.rentalNotice,
+
+                  isSmall &&
+                  styles.rentalNoticeSmall,
+                ]}
+              >
+                <Text
+                  style={
+                    styles.rentalIcon
+                  }
+                >
+                  🏪
+                </Text>
+
+                <View
+                  style={{
+                    flex: 1,
+                  }}
+                >
+                  <Text
+                    style={
+                      styles.rentalTitle
+                    }
+                  >
+                    임대 상가
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.rentalText
+                    }
+                  >
+                    실제 임대 매물 데이터 연동을 준비하고 있습니다.
+                  </Text>
+                </View>
+              </View>
+            )}
+
+          {/* BUILDING GUIDE */}
+
+          {mapLayer ===
+            'building' && (
+              <View
+                style={[
+                  styles.buildingGuide,
+
+                  {
+                    top: overlayTop + 132,
+                  },
+                ]}
+              >
+                <Text>
+                  🏢
+                </Text>
+
+                <Text
+                  style={
+                    styles.buildingGuideText
+                  }
+                >
+                  건물을 선택하면 건축물 정보와 거리뷰를 확인할 수 있어요
+                </Text>
+              </View>
+            )}
+
+          {/* FLOAT */}
+
           <View
             style={[
-              styles.mapError,
+              styles.floatingButtons,
 
               {
-                top: overlayTop + 238,
+                top:
+                  mapLayer === 'commercial'
+                    ? overlayTop + 238
+                    : overlayTop + 132,
               },
             ]}
           >
-            <Text
+            <TouchableOpacity
               style={
-                styles.mapErrorText
+                styles.floatButton
+              }
+
+              onPress={
+                handleReset
               }
             >
-              {
-                mapStoresError
+              <Text
+                style={
+                  styles.floatText
+                }
+              >
+                ↻
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.floatButton,
+
+                styles.currentButton,
+              ]}
+
+              onPress={
+                handleCurrentLocation
               }
-            </Text>
+            >
+              {currentLocationLoading ? (
+                <ActivityIndicator
+                  size="small"
+
+                  color="#FFFFFF"
+                />
+              ) : (
+                <Text
+                  style={
+                    styles.currentText
+                  }
+                >
+                  ◎
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
-        )}
 
-      {/* RENTAL */}
+          {/* LOCATION LOADING */}
 
-      {mapLayer ===
-        'rental' && (
-        <View
-          style={[
-            styles.rentalNotice,
+          {pointLoading && (
+            <View
+              style={[
+                styles.pointLoading,
 
-            isSmall &&
-              styles.rentalNoticeSmall,
-          ]}
-        >
-          <Text
-            style={
-              styles.rentalIcon
-            }
-          >
-            🏪
-          </Text>
-
-          <View
-            style={{
-              flex: 1,
-            }}
-          >
-            <Text
-              style={
-                styles.rentalTitle
-              }
+                {
+                  top: overlayTop + 286,
+                },
+              ]}
             >
-              임대 상가
-            </Text>
+              <ActivityIndicator
+                size="small"
 
-            <Text
-              style={
-                styles.rentalText
-              }
-            >
-              실제 임대 매물 데이터 연동을 준비하고 있습니다.
-            </Text>
-          </View>
-        </View>
-      )}
+                color={
+                  COLORS.primary
+                }
+              />
 
-      {/* BUILDING GUIDE */}
-
-      {mapLayer ===
-        'building' && (
-        <View
-          style={[
-            styles.buildingGuide,
-
-            {
-              top: overlayTop + 132,
-            },
-          ]}
-        >
-          <Text>
-            🏢
-          </Text>
-
-          <Text
-            style={
-              styles.buildingGuideText
-            }
-          >
-            건물을 선택하면 건축물 정보와 거리뷰를 확인할 수 있어요
-          </Text>
-        </View>
-      )}
-
-      {/* FLOAT */}
-
-      <View
-        style={[
-          styles.floatingButtons,
-
-          {
-            top:
-              mapLayer === 'commercial'
-                ? overlayTop + 238
-                : overlayTop + 132,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={
-            styles.floatButton
-          }
-
-          onPress={
-            handleReset
-          }
-        >
-          <Text
-            style={
-              styles.floatText
-            }
-          >
-            ↻
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.floatButton,
-
-            styles.currentButton,
-          ]}
-
-          onPress={
-            handleCurrentLocation
-          }
-        >
-          {currentLocationLoading ? (
-            <ActivityIndicator
-              size="small"
-
-              color="#FFFFFF"
-            />
-          ) : (
-            <Text
-              style={
-                styles.currentText
-              }
-            >
-              ◎
-            </Text>
+              <Text
+                style={
+                  styles.pointLoadingText
+                }
+              >
+                위치 확인 중
+              </Text>
+            </View>
           )}
-        </TouchableOpacity>
-      </View>
-
-      {/* LOCATION LOADING */}
-
-      {pointLoading && (
-        <View
-          style={[
-            styles.pointLoading,
-
-            {
-              top: overlayTop + 286,
-            },
-          ]}
-        >
-          <ActivityIndicator
-            size="small"
-
-            color={
-              COLORS.primary
-            }
-          />
-
-          <Text
-            style={
-              styles.pointLoadingText
-            }
-          >
-            위치 확인 중
-          </Text>
-        </View>
-      )}
 
         </>
       )}
@@ -2676,7 +2676,7 @@ export default function MapScreen() {
           style={[
             styles.analysisResultCard,
             isSmall &&
-              styles.analysisResultCardSmall,
+            styles.analysisResultCardSmall,
           ]}
         >
           <View
@@ -2741,8 +2741,8 @@ export default function MapScreen() {
                     style={[
                       styles.analysisCandidateRow,
                       candidate.id ===
-                        selectedAnalysisCandidateId &&
-                        styles.analysisCandidateRowActive,
+                      selectedAnalysisCandidateId &&
+                      styles.analysisCandidateRowActive,
                     ]}
                     activeOpacity={
                       0.8
@@ -2819,7 +2819,7 @@ export default function MapScreen() {
             styles.sheet,
 
             isSmall &&
-              styles.sheetSmall,
+            styles.sheetSmall,
           ]}
         >
           <View
@@ -3034,8 +3034,8 @@ export default function MapScreen() {
                           styles.radiusButton,
 
                           selectedRadius ===
-                            item.value &&
-                            styles.radiusButtonActive,
+                          item.value &&
+                          styles.radiusButtonActive,
                         ]}
 
                         onPress={() =>
@@ -3088,8 +3088,8 @@ export default function MapScreen() {
                           styles.businessChip,
 
                           selectedBusiness ===
-                            business.name &&
-                            styles.businessChipActive,
+                          business.name &&
+                          styles.businessChipActive,
                         ]}
 
                         onPress={() =>
@@ -3103,8 +3103,8 @@ export default function MapScreen() {
                             styles.businessText,
 
                             selectedBusiness ===
-                              business.name &&
-                              styles.businessTextActive,
+                            business.name &&
+                            styles.businessTextActive,
                           ]}
                         >
                           {
@@ -3242,7 +3242,7 @@ export default function MapScreen() {
                     {(buildingInfo
                       .commercialFloorCount ??
                       0) >
-                    0 ? (
+                      0 ? (
                       <View
                         style={
                           styles.commercialBox
@@ -3294,7 +3294,7 @@ export default function MapScreen() {
                                 >
                                   {floor.floorName ||
                                     (floor.floorNumber !==
-                                    null
+                                      null
                                       ? `${floor.floorNumber}층`
                                       : '층 정보 없음')}
                                 </Text>
@@ -3361,10 +3361,9 @@ export default function MapScreen() {
                       <InfoBox
                         label="층수"
 
-                        value={`지상 ${
-                          buildingInfo.groundFloorCount ??
+                        value={`지상 ${buildingInfo.groundFloorCount ??
                           '-'
-                        }층`}
+                          }층`}
                       />
 
                       <InfoBox
@@ -3520,7 +3519,7 @@ function LayerButton({
         styles.layerTab,
 
         active &&
-          styles.layerTabActive,
+        styles.layerTabActive,
       ]}
 
       onPress={
@@ -3540,7 +3539,7 @@ function LayerButton({
           styles.layerText,
 
           active &&
-            styles.layerTextActive,
+          styles.layerTextActive,
         ]}
       >
         {label}
@@ -3707,8 +3706,7 @@ const styles =
     },
 
     layerTabActive: {
-      backgroundColor:
-        '#E7F8EB',
+      backgroundColor: '#FFF4C2',
     },
 
     layerIcon: {
@@ -3726,8 +3724,7 @@ const styles =
     },
 
     layerTextActive: {
-      color:
-        '#16863B',
+      color: '#1D2545',
     },
 
     categoryArea: {
@@ -3766,12 +3763,10 @@ const styles =
         '#FFFFFF',
     },
 
-    categoryChipActive: {
-      borderColor:
-        '#93D3A3',
 
-      backgroundColor:
-        '#EAF8ED',
+    categoryChipActive: {
+      borderColor: '#F0DEA0',
+      backgroundColor: '#FFF4C2',
     },
 
     categoryText: {
@@ -4272,13 +4267,12 @@ const styles =
       borderRadius: 10,
     },
 
-    radiusButtonActive: {
-      borderColor:
-        COLORS.primary,
 
-      backgroundColor:
-        '#EFFBF2',
+    radiusButtonActive: {
+      borderColor: '#E5AF00',
+      backgroundColor: '#FFF4C2',
     },
+
 
     radiusText: {
       fontSize: 14,
@@ -4304,13 +4298,12 @@ const styles =
       borderRadius: 16,
     },
 
-    businessChipActive: {
-      borderColor:
-        COLORS.primary,
 
-      backgroundColor:
-        COLORS.primary,
+    businessChipActive: {
+      borderColor: '#EF302B',
+      backgroundColor: '#EF302B',
     },
+
 
     businessText: {
       fontSize: 13,
@@ -4359,29 +4352,22 @@ const styles =
         '800',
     },
 
+
     primaryButton: {
       flex: 1.2,
-
       minHeight: 50,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
+      alignItems: 'center',
+      justifyContent: 'center',
       borderRadius: 11,
-
-      backgroundColor:
-        COLORS.neonLime,
+      backgroundColor: '#1D2545',
     },
 
     primaryText: {
       fontSize: 14,
-
-      fontWeight:
-        '900',
+      fontWeight: '900',
+      color: '#FFFFFF',
     },
+
 
     buildingScroll: {
       maxHeight: 440,
