@@ -52,11 +52,8 @@ import {
 
 import {
   ActivityIndicator,
-
   Alert,
-
   Image,
-
   Platform,
 
   ScrollView,
@@ -1535,49 +1532,28 @@ export default function RegionResultDetailScreen() {
       params: {
 
           returnTo: '/market-analysis/region-result-detail',
-
+        returnParams: JSON.stringify(params),
         businessName,
-
         areaName,
-
         rank,
-
-        totalCount,
-
         suitabilityScore,
-
         floatingPopulation,
-
-        livingPopulation,
-
         storeCount,
-
         competitionDensity,
-
-        salesAmount,
-
-        averageSalesPerStore,
-
-        busStopCount,
-
-        livingPopulationChangeRate,
-
-        floatingPopulationChangeRate,
-
-        analysisType: isPointAnalysis ? 'point' : 'area',
-
-        dongName: actualDongName,
-
-        latitude: latitude ?? '',
-
-        longitude: longitude ?? '',
-
-        radius: radius ?? '',
-
+        compareData:
+          compareData ?? '',
+        analysisType:
+          isPointAnalysis
+            ? 'point'
+            : 'area',
+        latitude:
+          latitude ?? '',
+        longitude:
+          longitude ?? '',
+        radius:
+          radius ?? '',
       },
-
     });
-
   };
 
   const handleOpenMap = () => {
@@ -1585,8 +1561,7 @@ export default function RegionResultDetailScreen() {
       pathname: '/map',
       params: {
         mode: 'analysis-result',
-        returnParams:
-          JSON.stringify(params),
+        returnParams: JSON.stringify(params),
         businessName,
         areaName,
         rank,
@@ -1953,7 +1928,6 @@ export default function RegionResultDetailScreen() {
         onPress={handleOpenChat}
 
       >
-
         <Image
           source={require('../../../assets/images/chatbot-question-map.png')}
           style={styles.chatImageIcon}
