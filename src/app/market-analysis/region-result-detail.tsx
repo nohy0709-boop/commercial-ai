@@ -2,6 +2,8 @@ import AnalysisHeader from '@/components/analysis-header';
 
 import MonthlyCandidateComparison from '@/components/MonthlyCandidateComparison';
 
+import TrendSection from '@/components/TrendSection';
+
 import {
   businessCategories,
 } from '@/constants/businessTypes';
@@ -2207,6 +2209,20 @@ export default function RegionResultDetailScreen() {
         </View>
 
       </View>
+
+      {/* =================================================
+
+          상권 변화 추이 (기간 선택 + 개업·폐업률)
+
+      ================================================= */}
+
+      <TrendSection
+
+        areaName={actualDongName}
+
+        businessName={businessName}
+
+      />
 
       {/* =================================================
 
