@@ -41,6 +41,16 @@ import {
 } from '@/services/storeApi';
 
 import {
+  exportAnalysisReportPdf,
+  shareAnalysisReportPdf,
+} from '@/services/pdfExport';
+
+import {
+  createSharedAnalysis,
+  sharePublicAnalysisLink,
+} from '@/services/shareAnalysis';
+
+import {
   useLocalSearchParams,
 
   useRouter,
@@ -54,8 +64,11 @@ import {
 
 import {
   ActivityIndicator,
+
   Alert,
+
   Image,
+
   Platform,
 
   ScrollView,
@@ -709,7 +722,10 @@ export default function RegionResultDetailScreen() {
 
     );
 
-  /**
+    const [pdfAction, setPdfAction] =
+    useState<'save' | 'share' | null>(null);
+
+/**
 
    * =====================================================
 
@@ -1525,6 +1541,113 @@ export default function RegionResultDetailScreen() {
 
     };
 
+  const getPdfReportData = () => ({
+    businessName,
+    areaName,
+    rank: Number(rank),
+    totalCount: Number(totalCount),
+    suitabilityScore: Number(suitabilityScore),
+    floatingPopulation: Number(floatingPopulation),
+    livingPopulation: Number(livingPopulation),
+    storeCount: Number(storeCount),
+    competitionDensity: Number(competitionDensity),
+    salesAmount: Number(salesAmount),
+    averageSalesPerStore: Number(averageSalesPerStore),
+    busStopCount: Number(busStopCount),
+    livingPopulationChangeRate: Number(livingPopulationChangeRate),
+    floatingPopulationChangeRate: Number(floatingPopulationChangeRate),
+    isPointAnalysis,
+    actualDongName,
+    radius: radius ? Number(radius) : undefined,
+    latitude: latitude ? Number(latitude) : undefined,
+    longitude: longitude ? Number(longitude) : undefined,
+    explanation: explanation
+      ? {
+          recommendationReason: explanation.recommendationReason,
+          advantages: explanation.advantages,
+          risks: explanation.risks,
+          keyFeatures: explanation.keyFeatures,
+          considerations: explanation.considerations,
+        }
+      : undefined,
+    nearbyStores: nearbyStores.slice(0, 5).map(store => ({
+      name: store.name,
+      address: store.address,
+    })),
+    compareItems: compareItems.slice(0, 8).map(item => ({
+      areaName: item.areaName,
+      rank: item.rank,
+      floatingPopulationScore: item.floatingPopulationScore,
+      livingPopulationScore: item.livingPopulationScore,
+      floatingPopulationChangeScore: item.floatingPopulationChangeScore,
+      livingPopulationChangeScore: item.livingPopulationChangeScore,
+      salesScore: item.salesScore,
+      averageSalesScore: item.averageSalesScore,
+      competitionScore: item.competitionScore,
+      accessibilityScore: item.accessibilityScore,
+    })),
+  });
+
+  const handleSavePdf = async () => {
+    if (pdfAction) return;
+
+    try {
+      setPdfAction('save');
+      await exportAnalysisReportPdf(getPdfReportData());
+    } catch (error) {
+      console.error('PDF 저장 실패:', error);
+      Alert.alert(
+        'PDF 저장 실패',
+        error instanceof Error ? error.message : 'PDF를 생성하지 못했습니다.',
+      );
+    } finally {
+      setPdfAction(null);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    if (pdfAction) {
+      return;
+    }
+
+    try {
+      setPdfAction('share');
+
+      if (Platform.OS === 'web') {
+        const { url } = await createSharedAnalysis(
+          getPdfReportData(),
+        );
+
+        const result = await sharePublicAnalysisLink(
+          url,
+          `${areaName} ${businessName} 상권 분석`,
+          `${areaName} ${businessName} 분석 결과를 확인해보세요.`,
+        );
+
+        if (result === 'copied') {
+          Alert.alert(
+            '링크 복사 완료',
+            '공유 링크를 복사했어요. 카카오톡이나 메신저에 붙여넣으면 바로 열 수 있는 링크로 전송됩니다.',
+          );
+        }
+
+        return;
+      }
+
+      await shareAnalysisReportPdf(getPdfReportData());
+    } catch (error) {
+      console.error('공유 실패:', error);
+      Alert.alert(
+        '공유 실패',
+        error instanceof Error
+          ? error.message
+          : '분석 결과를 공유하지 못했습니다.',
+      );
+    } finally {
+      setPdfAction(null);
+    }
+  };
+
   const handleOpenChat = () => {
 
     router.push({
@@ -1534,57 +1657,107 @@ export default function RegionResultDetailScreen() {
       params: {
 
           returnTo: '/market-analysis/region-result-detail',
+
         returnParams: JSON.stringify(params),
+
         businessName,
+
         areaName,
+
         rank,
+
         suitabilityScore,
+
         floatingPopulation,
+
         storeCount,
+
         competitionDensity,
+
         compareData:
+
           compareData ?? '',
+
         analysisType:
+
           isPointAnalysis
+
             ? 'point'
+
             : 'area',
+
         latitude:
+
           latitude ?? '',
+
         longitude:
+
           longitude ?? '',
+
         radius:
+
           radius ?? '',
+
       },
+
     });
+
   };
 
   const handleOpenMap = () => {
+
     router.push({
+
       pathname: '/map',
+
       params: {
+
         mode: 'analysis-result',
+
         returnParams: JSON.stringify(params),
+
         businessName,
+
         areaName,
+
         rank,
+
         suitabilityScore,
+
         floatingPopulation,
+
         storeCount,
+
         competitionDensity,
+
         compareData:
+
           compareData ?? '',
+
         analysisType:
+
           isPointAnalysis
+
             ? 'point'
+
             : 'area',
+
         latitude:
+
           latitude ?? '',
+
         longitude:
+
           longitude ?? '',
+
         radius:
+
           radius ?? '',
+
       },
+
     });
+
   };
 
   return (
@@ -1930,10 +2103,15 @@ export default function RegionResultDetailScreen() {
         onPress={handleOpenChat}
 
       >
+
         <Image
+
           source={require('../../../assets/images/chatbot-question-map.png')}
+
           style={styles.chatImageIcon}
+
           resizeMode="contain"
+
         />
 
         <View style={styles.chatButtonContent}>
@@ -1957,42 +2135,116 @@ export default function RegionResultDetailScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
+
         style={styles.mapViewButton}
+
         activeOpacity={0.8}
+
         onPress={handleOpenMap}
+
       >
+
         <View
+
           style={styles.mapViewIcon}
+
         >
+
           <Text
+
             style={styles.mapViewIconText}
+
           >
+
             🗺️
+
           </Text>
+
         </View>
 
         <View
+
           style={styles.mapViewContent}
+
         >
+
           <Text
+
             style={styles.mapViewTitle}
+
           >
+
             지도에서 보기
+
           </Text>
 
           <Text
+
             style={styles.mapViewDescription}
+
           >
+
             분석 지역과 주변 상권 분포를 지도에서 확인해보세요
+
           </Text>
+
         </View>
 
         <Text
+
           style={styles.mapViewArrow}
+
         >
+
           ›
+
         </Text>
+
       </TouchableOpacity>
+
+      <View style={styles.reportActionRow}>
+        <TouchableOpacity
+          style={styles.reportActionButton}
+          activeOpacity={0.8}
+          disabled={pdfAction !== null}
+          onPress={handleSavePdf}
+        >
+          {pdfAction === 'save' ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Text style={styles.reportActionIcon}>↓</Text>
+          )}
+
+          <View style={styles.reportActionContent}>
+            <Text style={styles.reportActionTitle}>PDF로 저장</Text>
+            <Text style={styles.reportActionDescription}>
+              분석 결과를 보고서로 저장해요
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.reportActionButton}
+          activeOpacity={0.8}
+          disabled={pdfAction !== null}
+          onPress={handleSharePdf}
+        >
+          {pdfAction === 'share' ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Text style={styles.reportActionIcon}>↗</Text>
+          )}
+
+          <View style={styles.reportActionContent}>
+            <Text style={styles.reportActionTitle}>공유하기</Text>
+            <Text style={styles.reportActionDescription}>
+              {Platform.OS === 'web'
+                ? '클릭 가능한 공유 링크를 만들어요'
+                : 'PDF 파일을 다른 앱으로 보내요'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
 
       {/* =================================================
 
@@ -4028,55 +4280,138 @@ const styles =
 
     },
 
-    mapViewButton: {
+    reportActionRow: {
       width: '100%',
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
+      gap: 10,
       marginBottom: 16,
+    },
+
+    reportActionButton: {
+      flex: 1,
+      minHeight: 72,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       borderWidth: 1,
       borderColor: '#DDE4EA',
       borderRadius: 16,
       backgroundColor: '#FFFFFF',
     },
 
-    mapViewIcon: {
-      width: 42,
-      height: 42,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 21,
-      backgroundColor: '#F1F5F3',
+    reportActionIcon: {
+      width: 28,
+      textAlign: 'center',
+      fontSize: 22,
+      fontWeight: '800',
+      color: COLORS.primary,
     },
 
-    mapViewIconText: {
-      fontSize: 20,
-    },
-
-    mapViewContent: {
+    reportActionContent: {
       flex: 1,
     },
 
-    mapViewTitle: {
+    reportActionTitle: {
       marginBottom: 3,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '800',
       color: COLORS.text,
     },
 
-    mapViewDescription: {
-      fontSize: 11,
-      lineHeight: 16,
+    reportActionDescription: {
+      fontSize: 10,
+      lineHeight: 15,
       color: COLORS.textSecondary,
     },
 
+    mapViewButton: {
+
+      width: '100%',
+
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      gap: 12,
+
+      paddingHorizontal: 16,
+
+      paddingVertical: 14,
+
+      marginBottom: 16,
+
+      borderWidth: 1,
+
+      borderColor: '#DDE4EA',
+
+      borderRadius: 16,
+
+      backgroundColor: '#FFFFFF',
+
+    },
+
+    mapViewIcon: {
+
+      width: 42,
+
+      height: 42,
+
+      alignItems: 'center',
+
+      justifyContent: 'center',
+
+      borderRadius: 21,
+
+      backgroundColor: '#F1F5F3',
+
+    },
+
+    mapViewIconText: {
+
+      fontSize: 20,
+
+    },
+
+    mapViewContent: {
+
+      flex: 1,
+
+    },
+
+    mapViewTitle: {
+
+      marginBottom: 3,
+
+      fontSize: 14,
+
+      fontWeight: '800',
+
+      color: COLORS.text,
+
+    },
+
+    mapViewDescription: {
+
+      fontSize: 11,
+
+      lineHeight: 16,
+
+      color: COLORS.textSecondary,
+
+    },
+
     mapViewArrow: {
+
       marginLeft: 4,
+
       fontSize: 27,
+
       fontWeight: '400',
+
       color: COLORS.primary,
+
     },
 
     chatButton: {
