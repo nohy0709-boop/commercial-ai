@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/constants/colors';
 import { useRequireLogin } from '@/hooks/use-require-login';
+import { PostActions } from '@/components/PostActions';
 import { getCurrentUser, isLoggedIn } from '@/services/auth';
 import {
   addComment,
@@ -160,6 +161,8 @@ export default function CommunityDetailScreen() {
               {post.author_nickname} · {formatRelativeDate(post.created_at)}
             </Text>
             <Text style={styles.content}>{post.content}</Text>
+
+            <PostActions postId={post.id} analysis={post.attached_analysis} />
 
             {a ? (
               <View style={styles.analysisCard}>
