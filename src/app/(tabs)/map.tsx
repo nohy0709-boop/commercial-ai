@@ -1,5 +1,6 @@
 import AddressMap, {
   ClusterMarkerData,
+  MapMarkerData,
   MapViewport,
 } from '@/components/address-map';
 
@@ -44,6 +45,7 @@ import {
 } from '@/services/storeApi';
 
 import {
+  useLocalSearchParams,
   useRouter,
 } from 'expo-router';
 
@@ -503,9 +505,56 @@ function createStoreClusters(
   );
 }
 
+
+type AnalysisCandidate = {
+  id: string;
+  areaName: string;
+  rank: number;
+  suitabilityScore: number;
+  latitude: number;
+  longitude: number;
+};
+
+function getCandidateScore(item: any) {
+  const raw =
+    item?.suitabilityScore ??
+    item?.score ??
+    item?.totalScore ??
+    0;
+
+  const value =
+    Number(raw);
+
+  return Number.isFinite(value)
+    ? value
+    : 0;
+}
+
 export default function MapScreen() {
   const router =
     useRouter();
+
+  const params =
+    useLocalSearchParams<{
+      mode?: string;
+      returnParams?: string;
+      businessName?: string;
+      areaName?: string;
+      rank?: string;
+      suitabilityScore?: string;
+      floatingPopulation?: string;
+      storeCount?: string;
+      competitionDensity?: string;
+      compareData?: string;
+      analysisType?: string;
+      latitude?: string;
+      longitude?: string;
+      radius?: string;
+    }>();
+
+  const isAnalysisResultMode =
+    params.mode ===
+    'analysis-result';
 
   const insets =
     useSafeAreaInsets();
@@ -597,6 +646,22 @@ export default function MapScreen() {
     setMapStoresError,
   ] =
     useState('');
+
+  const [
+    analysisCandidates,
+    setAnalysisCandidates,
+  ] =
+    useState<
+      AnalysisCandidate[]
+    >([]);
+
+  const [
+    selectedAnalysisCandidateId,
+    setSelectedAnalysisCandidateId,
+  ] =
+    useState<
+      string | null
+    >(null);
 
   const [
     mapCategoryFilter,
@@ -756,6 +821,174 @@ export default function MapScreen() {
     },
   ];
 
+  useEffect(() => {
+    if (
+      !isAnalysisResultMode
+    ) {
+      return;
+    }
+
+    const businessName =
+      params.businessName ??
+      '';
+
+    const areaName =
+      params.areaName ??
+      '';
+
+    const analysisType =
+      params.analysisType ??
+      'area';
+
+    const parsedRadius =
+      Number(
+        params.radius ??
+          500,
+      );
+
+    if (
+      businessName
+    ) {
+      setSelectedBusiness(
+        businessName,
+      );
+    }
+
+    if (
+      parsedRadius === 300 ||
+      parsedRadius === 500 ||
+      parsedRadius === 1000
+    ) {
+      setSelectedRadius(
+        parsedRadius,
+      );
+    }
+
+    setMapLayer(
+      'commercial',
+    );
+
+    setSheetOpen(
+      false,
+    );
+
+    setSelectedCluster(
+      null,
+    );
+
+    setRoadviewOpen(
+      false,
+    );
+
+    const applyPoint = (
+      latitude: number,
+      longitude: number,
+      label: string,
+    ) => {
+      setMapCenter({
+        latitude,
+        longitude,
+      });
+
+      setSelectedPoint({
+        lat: latitude,
+        lng: longitude,
+      });
+
+      setSelectedLabel(
+        label,
+      );
+
+      setSelectedDong(
+        areaName,
+      );
+    };
+
+    const latitude =
+      Number(
+        params.latitude,
+      );
+
+    const longitude =
+      Number(
+        params.longitude,
+      );
+
+    if (
+      analysisType ===
+        'point' &&
+      Number.isFinite(
+        latitude,
+      ) &&
+      Number.isFinite(
+        longitude,
+      )
+    ) {
+      applyPoint(
+        latitude,
+        longitude,
+        areaName ||
+          '분석 위치',
+      );
+
+      return;
+    }
+
+    if (
+      !areaName
+    ) {
+      return;
+    }
+
+    let cancelled =
+      false;
+
+    const moveToArea =
+      async () => {
+        try {
+          const result =
+            await searchLocation(
+              `${areaName} 세종특별자치시`,
+            );
+
+          if (
+            cancelled ||
+            !result
+          ) {
+            return;
+          }
+
+          applyPoint(
+            result.lat,
+            result.lng,
+            `${areaName} 일대`,
+          );
+        } catch (
+          error
+        ) {
+          console.error(
+            '분석 지역 지도 이동 실패:',
+            error,
+          );
+        }
+      };
+
+    moveToArea();
+
+    return () => {
+      cancelled =
+        true;
+    };
+  }, [
+    isAnalysisResultMode,
+    params.analysisType,
+    params.areaName,
+    params.businessName,
+    params.latitude,
+    params.longitude,
+    params.radius,
+  ]);
+
   const visibleStores =
     useMemo(
       () => {
@@ -776,6 +1009,29 @@ export default function MapScreen() {
       [
         mapStores,
         mapCategoryFilter,
+      ],
+    );
+
+  const analysisCandidateMarkers =
+    useMemo<
+      MapMarkerData[]
+    >(
+      () =>
+        analysisCandidates.map(
+          candidate => ({
+            id: candidate.id,
+            name:
+              `${candidate.areaName} · ${candidate.suitabilityScore.toFixed(1)}점`,
+            category:
+              'analysis-candidate',
+            latitude:
+              candidate.latitude,
+            longitude:
+              candidate.longitude,
+          }),
+        ),
+      [
+        analysisCandidates,
       ],
     );
 
@@ -829,6 +1085,285 @@ export default function MapScreen() {
     );
 
   useEffect(() => {
+    if (
+      !isAnalysisResultMode
+    ) {
+      setAnalysisCandidates([]);
+      return;
+    }
+
+    let cancelled =
+      false;
+
+    const run =
+      async () => {
+        let parsed: any[] = [];
+
+        try {
+          const value =
+            JSON.parse(
+              params.compareData ||
+                '[]',
+            );
+
+          if (
+            Array.isArray(value)
+          ) {
+            parsed = value;
+          }
+        } catch (
+          error
+        ) {
+          console.error(
+            '분석 후보 데이터 파싱 실패:',
+            error,
+          );
+        }
+
+        const currentArea =
+          params.areaName?.trim() ||
+          '';
+
+        const currentScore =
+          Number(
+            params.suitabilityScore ||
+              0,
+          );
+
+        const normalized =
+          parsed
+            .filter(
+              item =>
+                item &&
+                item.areaName,
+            )
+            .map(
+              (
+                item,
+                index,
+              ) => ({
+                ...item,
+                areaName:
+                  String(
+                    item.areaName,
+                  ),
+                rank:
+                  Number(
+                    item.rank ??
+                      index + 1,
+                  ),
+                suitabilityScore:
+                  getCandidateScore(
+                    item,
+                  ),
+              }),
+            );
+
+        if (
+          currentArea &&
+          !normalized.some(
+            item =>
+              item.areaName ===
+              currentArea,
+          )
+        ) {
+          normalized.push({
+            areaName:
+              currentArea,
+            rank:
+              Number(
+                params.rank ||
+                  normalized.length +
+                    1,
+              ),
+            suitabilityScore:
+              Number.isFinite(
+                currentScore,
+              )
+                ? currentScore
+                : 0,
+          });
+        }
+
+        if (
+          normalized.length ===
+            0 &&
+          currentArea
+        ) {
+          normalized.push({
+            areaName:
+              currentArea,
+            rank: 1,
+            suitabilityScore:
+              Number.isFinite(
+                currentScore,
+              )
+                ? currentScore
+                : 0,
+          });
+        }
+
+        const resolved =
+          await Promise.all(
+            normalized.map(
+              async item => {
+                if (
+                  item.areaName ===
+                    currentArea &&
+                  params.latitude &&
+                  params.longitude
+                ) {
+                  const lat =
+                    Number(
+                      params.latitude,
+                    );
+                  const lng =
+                    Number(
+                      params.longitude,
+                    );
+
+                  if (
+                    Number.isFinite(
+                      lat,
+                    ) &&
+                    Number.isFinite(
+                      lng,
+                    )
+                  ) {
+                    return {
+                      id:
+                        `candidate-${item.rank}-${item.areaName}`,
+                      areaName:
+                        item.areaName,
+                      rank:
+                        item.rank,
+                      suitabilityScore:
+                        item.suitabilityScore,
+                      latitude:
+                        lat,
+                      longitude:
+                        lng,
+                    };
+                  }
+                }
+
+                try {
+                  const result =
+                    await searchLocation(
+                      `${item.areaName} 세종시`,
+                    );
+
+                  if (!result) {
+                    return null;
+                  }
+
+                  return {
+                    id:
+                      `candidate-${item.rank}-${item.areaName}`,
+                    areaName:
+                      item.areaName,
+                    rank:
+                      item.rank,
+                    suitabilityScore:
+                      item.suitabilityScore,
+                    latitude:
+                      result.lat,
+                    longitude:
+                      result.lng,
+                  };
+                } catch (
+                  error
+                ) {
+                  console.error(
+                    '후보 지역 위치 조회 실패:',
+                    item.areaName,
+                    error,
+                  );
+
+                  return null;
+                }
+              },
+            ),
+          );
+
+        if (cancelled) {
+          return;
+        }
+
+        const candidates =
+          resolved.filter(
+            (
+              item,
+            ): item is AnalysisCandidate =>
+              item !== null,
+          );
+
+        setAnalysisCandidates(
+          candidates,
+        );
+
+        if (
+          candidates.length >
+          0
+        ) {
+          const current =
+            candidates.find(
+              item =>
+                item.areaName ===
+                currentArea,
+            ) ??
+            candidates[0];
+
+          setSelectedAnalysisCandidateId(
+            current.id,
+          );
+
+          setMapCenter({
+            latitude:
+              current.latitude,
+            longitude:
+              current.longitude,
+          });
+
+          setSelectedPoint(
+            null,
+          );
+
+          setSheetOpen(
+            false,
+          );
+
+          setMapLayer(
+            'commercial',
+          );
+        }
+      };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isAnalysisResultMode,
+    params.compareData,
+    params.areaName,
+    params.suitabilityScore,
+    params.latitude,
+    params.longitude,
+  ]);
+
+  useEffect(() => {
+    if (
+      isAnalysisResultMode
+    ) {
+      mapStoreRequestRef.current++;
+      setMapStores([]);
+      setMapStoresError('');
+      setMapStoresLoading(false);
+      return;
+    }
+
     if (
       mapLayer !==
       'commercial'
@@ -1082,12 +1617,78 @@ export default function MapScreen() {
       ],
     );
 
+  const handleAnalysisCandidatePress =
+    useCallback(
+      (
+        marker:
+          MapMarkerData,
+      ) => {
+        if (
+          !isAnalysisResultMode
+        ) {
+          return;
+        }
+
+        const candidate =
+          analysisCandidates.find(
+            item =>
+              item.id ===
+              marker.id,
+          );
+
+        if (!candidate) {
+          return;
+        }
+
+        setSelectedAnalysisCandidateId(
+          candidate.id,
+        );
+
+        setMapCenter({
+          latitude:
+            candidate.latitude,
+          longitude:
+            candidate.longitude,
+        });
+      },
+      [
+        isAnalysisResultMode,
+        analysisCandidates,
+      ],
+    );
+
+  const handleCandidateListPress =
+    useCallback(
+      (
+        candidate:
+          AnalysisCandidate,
+      ) => {
+        setSelectedAnalysisCandidateId(
+          candidate.id,
+        );
+
+        setMapCenter({
+          latitude:
+            candidate.latitude,
+          longitude:
+            candidate.longitude,
+        });
+      },
+      [],
+    );
+
   const handleClusterPress =
     useCallback(
       (
         marker:
           ClusterMarkerData,
       ) => {
+        if (
+          isAnalysisResultMode
+        ) {
+          return;
+        }
+
         if (
           mapLayer !==
           'commercial'
@@ -1121,6 +1722,7 @@ export default function MapScreen() {
         );
       },
       [
+        isAnalysisResultMode,
         mapLayer,
         storeClusters,
       ],
@@ -1476,6 +2078,36 @@ export default function MapScreen() {
       );
     };
 
+  const handleReturnToAnalysis =
+    () => {
+      try {
+        const returnParams =
+          params.returnParams
+            ? JSON.parse(
+                params.returnParams,
+              )
+            : {};
+
+        router.replace({
+          pathname:
+            '/market-analysis/region-result-detail',
+          params:
+            returnParams,
+        });
+      } catch (
+        error
+      ) {
+        console.error(
+          '상세 분석 복귀 파라미터 오류:',
+          error,
+        );
+
+        router.replace(
+          '/market-analysis/region-result-detail',
+        );
+      }
+    };
+
   const formatArea =
     (
       value:
@@ -1509,20 +2141,34 @@ export default function MapScreen() {
             mapCenter.longitude
           }
 
+          markers={
+            isAnalysisResultMode
+              ? analysisCandidateMarkers
+              : []
+          }
+
           clusterMarkers={
+            !isAnalysisResultMode &&
             mapLayer ===
-            'commercial'
+              'commercial'
               ? clusterMarkers
               : []
           }
 
           selectable={
+            !isAnalysisResultMode &&
             mapLayer !==
-            'rental'
+              'rental'
           }
 
           onMapPress={
             handleMapPress
+          }
+
+          onMarkerPress={
+            isAnalysisResultMode
+              ? handleAnalysisCandidatePress
+              : undefined
           }
 
           onClusterPress={
@@ -1534,28 +2180,36 @@ export default function MapScreen() {
           }
 
           selectedPoint={
-            selectedPoint
-              ? {
-                  latitude:
-                    selectedPoint.lat,
+            isAnalysisResultMode
+              ? null
+              : selectedPoint
+                ? {
+                    latitude:
+                      selectedPoint.lat,
 
-                  longitude:
-                    selectedPoint.lng,
-                }
-              : null
+                    longitude:
+                      selectedPoint.lng,
+                  }
+                : null
           }
 
           selectedPointLabel={
-            selectedLabel ||
-            undefined
+            isAnalysisResultMode
+              ? undefined
+              : selectedLabel ||
+                undefined
           }
 
           radius={
-            selectedRadius
+            isAnalysisResultMode
+              ? 0
+              : selectedRadius
           }
         />
       </View>
 
+      {!isAnalysisResultMode && (
+        <>
       {/* SEARCH */}
 
       <View
@@ -1627,6 +2281,11 @@ export default function MapScreen() {
         </View>
       </View>
 
+        </>
+      )}
+
+      {!isAnalysisResultMode && (
+        <>
       {/* LAYER */}
 
       <View
@@ -2006,6 +2665,149 @@ export default function MapScreen() {
           >
             위치 확인 중
           </Text>
+        </View>
+      )}
+
+        </>
+      )}
+
+      {isAnalysisResultMode && (
+        <View
+          style={[
+            styles.analysisResultCard,
+            isSmall &&
+              styles.analysisResultCardSmall,
+          ]}
+        >
+          <View
+            style={
+              styles.analysisResultHeader
+            }
+          >
+            <View
+              style={{
+                flex: 1,
+              }}
+            >
+              <Text
+                style={
+                  styles.analysisResultEyebrow
+                }
+              >
+                분석 후보 비교
+              </Text>
+
+              <Text
+                style={
+                  styles.analysisResultTitle
+                }
+              >
+                {params.businessName ||
+                  '업종'} 후보{' '}
+                {analysisCandidates.length}
+                곳
+              </Text>
+            </View>
+          </View>
+
+          <Text
+            style={
+              styles.analysisResultHint
+            }
+          >
+            핀이나 후보 목록을 누르면 해당 지역을 선택할 수 있어요.
+          </Text>
+
+          <View
+            style={
+              styles.analysisCandidateList
+            }
+          >
+            {analysisCandidates
+              .sort(
+                (
+                  a,
+                  b,
+                ) =>
+                  a.rank -
+                  b.rank,
+              )
+              .map(
+                candidate => (
+                  <TouchableOpacity
+                    key={
+                      candidate.id
+                    }
+                    style={[
+                      styles.analysisCandidateRow,
+                      candidate.id ===
+                        selectedAnalysisCandidateId &&
+                        styles.analysisCandidateRowActive,
+                    ]}
+                    activeOpacity={
+                      0.8
+                    }
+                    onPress={() =>
+                      handleCandidateListPress(
+                        candidate,
+                      )
+                    }
+                  >
+                    <View
+                      style={
+                        styles.analysisCandidateRank
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.analysisCandidateRankText
+                        }
+                      >
+                        {candidate.rank}
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={
+                        styles.analysisCandidateName
+                      }
+                    >
+                      {candidate.areaName}
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.analysisCandidateScore
+                      }
+                    >
+                      {candidate.suitabilityScore
+                        .toFixed(1)}
+                      점
+                    </Text>
+                  </TouchableOpacity>
+                ),
+              )}
+          </View>
+
+          <TouchableOpacity
+            style={
+              styles.analysisReturnButton
+            }
+            activeOpacity={
+              0.8
+            }
+            onPress={
+              handleReturnToAnalysis
+            }
+          >
+            <Text
+              style={
+                styles.analysisReturnButtonText
+              }
+            >
+              ← 상세 분석으로 돌아가기
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -3846,6 +4648,197 @@ const styles =
 
       color:
         COLORS.primary,
+    },
+
+    analysisResultCard: {
+      position:
+        'absolute',
+      left: 22,
+      bottom: 22,
+      width: 360,
+      padding: 18,
+      borderWidth: 1,
+      borderColor:
+        '#DCEFE0',
+      borderRadius: 20,
+      backgroundColor:
+        '#FFFFFF',
+      boxShadow:
+        '0 6px 24px rgba(0,0,0,0.16)',
+    },
+
+    analysisResultCardSmall: {
+      left: 12,
+      right: 12,
+      bottom: 12,
+      width:
+        'auto',
+    },
+
+    analysisResultHeader: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      gap: 12,
+    },
+
+    analysisResultEyebrow: {
+      marginBottom: 4,
+      fontSize: 11,
+      fontWeight:
+        '800',
+      color:
+        COLORS.primary,
+    },
+
+    analysisResultTitle: {
+      fontSize: 19,
+      fontWeight:
+        '900',
+      color:
+        COLORS.text,
+    },
+
+    analysisScoreBadge: {
+      minWidth: 68,
+      minHeight: 54,
+      paddingHorizontal: 12,
+      flexDirection:
+        'row',
+      alignItems:
+        'baseline',
+      justifyContent:
+        'center',
+      borderRadius: 16,
+      backgroundColor:
+        '#111111',
+    },
+
+    analysisScoreValue: {
+      fontSize: 24,
+      fontWeight:
+        '900',
+      color:
+        COLORS.neonLime,
+    },
+
+    analysisScoreUnit: {
+      marginLeft: 3,
+      fontSize: 11,
+      fontWeight:
+        '800',
+      color:
+        '#D1D5DB',
+    },
+
+    analysisMetricGrid: {
+      marginTop: 14,
+      flexDirection:
+        'row',
+      gap: 8,
+    },
+
+    analysisMetricItem: {
+      flex: 1,
+      padding: 10,
+      borderRadius: 12,
+      backgroundColor:
+        '#F6F8F6',
+    },
+
+    analysisMetricLabel: {
+      fontSize: 9,
+      color:
+        COLORS.textSecondary,
+    },
+
+    analysisMetricValue: {
+      marginTop: 4,
+      fontSize: 12,
+      fontWeight:
+        '900',
+      color:
+        COLORS.text,
+    },
+
+    analysisResultHint: {
+      marginTop: 12,
+      fontSize: 10,
+      lineHeight: 15,
+      color:
+        COLORS.textSecondary,
+    },
+
+    analysisCandidateList: {
+      marginTop: 12,
+      gap: 7,
+    },
+
+    analysisCandidateRow: {
+      minHeight: 48,
+      paddingHorizontal: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+      borderRadius: 12,
+      backgroundColor: '#FFFFFF',
+    },
+
+    analysisCandidateRowActive: {
+      borderColor: '#9BD94F',
+      backgroundColor: '#F4FBEA',
+    },
+
+    analysisCandidateRank: {
+      width: 28,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+      backgroundColor: '#111111',
+    },
+
+    analysisCandidateRankText: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: '#FFFFFF',
+    },
+
+    analysisCandidateName: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#111111',
+    },
+
+    analysisCandidateScore: {
+      fontSize: 13,
+      fontWeight: '900',
+      color: COLORS.primary,
+    },
+
+
+    analysisReturnButton: {
+      marginTop: 12,
+      minHeight: 44,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      borderRadius: 12,
+      backgroundColor:
+        COLORS.neonLime,
+    },
+
+    analysisReturnButtonText: {
+      fontSize: 12,
+      fontWeight:
+        '900',
+      color:
+        '#111111',
     },
 
     errorBox: {
