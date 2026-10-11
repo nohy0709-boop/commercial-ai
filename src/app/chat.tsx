@@ -1,25 +1,25 @@
 import type {
-    AnalysisHistoryItem,
+  AnalysisHistoryItem,
 } from '@/services/analysisHistory';
 
 import {
-    getAnalysisHistory,
+  getAnalysisHistory,
 } from '@/services/analysisHistory';
 
 import {
-    getChecklistBySourceMessageId,
+  getChecklistBySourceMessageId,
 
-    saveChecklist,
+  saveChecklist,
 
-    updateChecklist,
+  updateChecklist,
 } from '@/services/checklistStorage';
 
 import {
-    ChatContext,
+  ChatContext,
 
-    ChatHistoryItem,
+  ChatHistoryItem,
 
-    sendChatMessage,
+  sendChatMessage,
 } from '@/services/chatbot';
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -27,440 +27,394 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-    ActivityIndicator,
+  ActivityIndicator,
 
-    Image,
+  Image,
 
-    KeyboardAvoidingView,
+  KeyboardAvoidingView,
 
-    Modal,
+  Modal,
 
-    Platform,
+  Platform,
 
-    Pressable,
+  Pressable,
 
-    ScrollView,
+  ScrollView,
 
-    StyleSheet,
+  StyleSheet,
 
-    Text,
+  Text,
 
-    TextInput,
+  TextInput,
 
-    TouchableOpacity,
+  TouchableOpacity,
 
-    View,
+  View,
 } from 'react-native';
-
-
 
 interface Message {
 
-  id: string;
+  id: string;
 
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant';
 
-  content: string;
+  content: string;
 
 }
-
-
 
 type ChatParams = {
 
-  returnTo?: string;
+  returnTo?: string;
 
-  returnParams?: string;
+  returnParams?: string;
 
-  businessName?: string;
+  businessName?: string;
 
-  areaName?: string;
+  areaName?: string;
 
-  rank?: string;
+  rank?: string;
 
-  totalCount?: string;
+  totalCount?: string;
 
-  suitabilityScore?: string;
+  suitabilityScore?: string;
 
-  floatingPopulation?: string;
+  floatingPopulation?: string;
 
-  livingPopulation?: string;
+  livingPopulation?: string;
 
-  storeCount?: string;
+  storeCount?: string;
 
-  competitionDensity?: string;
+  competitionDensity?: string;
 
-  salesAmount?: string;
+  salesAmount?: string;
 
-  averageSalesPerStore?: string;
+  averageSalesPerStore?: string;
 
-  busStopCount?: string;
+  busStopCount?: string;
 
-  livingPopulationChangeRate?: string;
+  livingPopulationChangeRate?: string;
 
-  floatingPopulationChangeRate?: string;
+  floatingPopulationChangeRate?: string;
 
-  analysisType?: string;
+  analysisType?: string;
 
-  dongName?: string;
+  dongName?: string;
 
-  latitude?: string;
+  latitude?: string;
 
-  longitude?: string;
+  longitude?: string;
 
-  radius?: string;
+  radius?: string;
 
-  region?: string;
+  region?: string;
 
-  address?: string;
+  address?: string;
 
-  [key: string]: string | string[] | undefined;
+  [key: string]: string | string[] | undefined;
 
 };
 
-
-
 function getAnalysisTypeLabel(
 
-  type: AnalysisHistoryItem['type'],
+  type: AnalysisHistoryItem['type'],
 
 ) {
 
-  switch (type) {
+  switch (type) {
 
-    case 'comparison':
+    case 'comparison':
 
-      return '업종·지역 비교';
+      return '업종·지역 비교';
 
-    case 'location':
+    case 'location':
 
-      return '입지 추천';
+      return '입지 추천';
 
-    case 'owned':
+    case 'owned':
 
-      return '보유 장소 업종 추천';
+      return '보유 장소 업종 추천';
 
-    default:
+    default:
 
-      return '상권 분석';
+      return '상권 분석';
 
-  }
+  }
 
 }
-
-
 
 function formatHistoryDate(createdAt: string) {
 
-  const date = new Date(createdAt);
+  const date = new Date(createdAt);
 
+  if (Number.isNaN(date.getTime())) {
 
+    return '';
 
-  if (Number.isNaN(date.getTime())) {
+  }
 
-    return '';
+  return new Intl.DateTimeFormat('ko-KR', {
 
-  }
+    year: 'numeric',
 
+    month: '2-digit',
 
+    day: '2-digit',
 
-  return new Intl.DateTimeFormat('ko-KR', {
-
-    year: 'numeric',
-
-    month: '2-digit',
-
-    day: '2-digit',
-
-  }).format(date);
+  }).format(date);
 
 }
-
-
 
 function createHistoryContext(
 
-  item: AnalysisHistoryItem,
+  item: AnalysisHistoryItem,
 
 ): ChatContext {
 
-  const resultData =
+  const resultData =
 
-    item.resultData &&
+    item.resultData &&
 
-    typeof item.resultData === 'object' &&
+    typeof item.resultData === 'object' &&
 
-    !Array.isArray(item.resultData)
+    !Array.isArray(item.resultData)
 
-      ? item.resultData
+      ? item.resultData
 
-      : {
+      : {
 
-          resultData: item.resultData,
+          resultData: item.resultData,
 
-        };
+        };
 
+  return {
 
+    ...resultData,
 
-  return {
+    analysisHistoryId: item.id,
 
-    ...resultData,
+    analysisType: item.type,
 
-    analysisHistoryId: item.id,
+    analysisTitle: item.title,
 
-    analysisType: item.type,
+    businessName: item.businessName,
 
-    analysisTitle: item.title,
+    regions: item.regions,
 
-    businessName: item.businessName,
+    createdAt: item.createdAt,
 
-    regions: item.regions,
-
-    createdAt: item.createdAt,
-
-  };
+  };
 
 }
-
-
-
-
 
 function isKeywordHighlight(text: string) {
 
-  const clean = text
+  const clean = text
 
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, ' ')
 
-    .trim();
+    .trim();
 
+  if (!clean) {
 
+    return false;
 
-  if (!clean) {
+  }
 
-    return false;
+  const isShort =
 
-  }
+    clean.length <= 18;
 
+  const looksLikeSentence =
 
+    /[.!?。！？]|습니다|입니다|해요|돼요|나요|까요|합니다/.test(
 
-  const isShort =
+      clean,
 
-    clean.length <= 18;
+    );
 
-
-
-  const looksLikeSentence =
-
-    /[.!?。！？]|습니다|입니다|해요|돼요|나요|까요|합니다/.test(
-
-      clean,
-
-    );
-
-
-
-  return isShort && !looksLikeSentence;
+  return isShort && !looksLikeSentence;
 
 }
-
-
 
 function renderInlineMarkdown(
 
-  text: string,
+  text: string,
 
-  keyPrefix: string,
+  keyPrefix: string,
 
 ) {
 
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+  const parts = text.split(/(\*\*.*?\*\*)/g);
 
+  return parts.map((part, index) => {
 
+    const key = `${keyPrefix}-${index}`;
 
-  return parts.map((part, index) => {
+    if (
 
-    const key = `${keyPrefix}-${index}`;
+      part.startsWith('**') &&
 
+      part.endsWith('**')
 
+    ) {
 
-    if (
+      const clean =
 
-      part.startsWith('**') &&
+        part.slice(2, -2);
 
-      part.endsWith('**')
+      return (
 
-    ) {
+        <Text
 
-      const clean =
+          key={key}
 
-        part.slice(2, -2);
+          style={
 
+            isKeywordHighlight(clean)
 
+              ? styles.markdownKeyword
 
-      return (
+              : styles.markdownStrong
 
-        <Text
+          }
 
-          key={key}
+        >
 
-          style={
+          {clean}
 
-            isKeywordHighlight(clean)
+        </Text>
 
-              ? styles.markdownKeyword
+      );
 
-              : styles.markdownStrong
+    }
 
-          }
+    return (
 
-        >
+      <Text key={key}>
 
-          {clean}
+        {part}
 
-        </Text>
+      </Text>
 
-      );
+    );
 
-    }
-
-
-
-    return (
-
-      <Text key={key}>
-
-        {part}
-
-      </Text>
-
-    );
-
-  });
+  });
 
 }
-
-
-
-
 
 function ChecklistItem({
 
-  text,
+  text,
 
-  checked,
+  checked,
 
-  compact = false,
+  compact = false,
 
-  onToggle,
+  onToggle,
 
 }: {
 
-  text: string;
+  text: string;
 
-  checked: boolean;
+  checked: boolean;
 
-  compact?: boolean;
+  compact?: boolean;
 
-  onToggle: () => void;
+  onToggle: () => void;
 
 }) {
 
-  return (
+  return (
 
-    <TouchableOpacity
+    <TouchableOpacity
 
-      style={[
+      style={[
 
-        styles.checklistRow,
+        styles.checklistRow,
 
-        compact &&
+        compact &&
 
-          styles.checklistRowCompact,
+          styles.checklistRowCompact,
 
-        checked &&
+        checked &&
 
-          styles.checklistRowChecked,
+          styles.checklistRowChecked,
 
-      ]}
+      ]}
 
-      activeOpacity={0.75}
+      activeOpacity={0.75}
 
-      onPress={onToggle}
+      onPress={onToggle}
 
-    >
+    >
 
-      <View
+      <View
 
-        style={[
+        style={[
 
-          styles.checklistBox,
+          styles.checklistBox,
 
-          compact &&
+          compact &&
 
-            styles.checklistBoxCompact,
+            styles.checklistBoxCompact,
 
-          checked &&
+          checked &&
 
-            styles.checklistBoxChecked,
+            styles.checklistBoxChecked,
 
-        ]}
+        ]}
 
-      >
+      >
 
-        {checked && (
+        {checked && (
 
-          <Text
+          <Text
 
-            style={styles.checklistCheck}
+            style={styles.checklistCheck}
 
-          >
+          >
 
-            ✓
+            ✓
 
-          </Text>
+          </Text>
 
-        )}
+        )}
 
-      </View>
+      </View>
 
+      <Text
 
+        style={[
 
-      <Text
+          styles.checklistText,
 
-        style={[
+          compact &&
 
-          styles.checklistText,
+            styles.checklistTextCompact,
 
-          compact &&
+          checked &&
 
-            styles.checklistTextCompact,
+            styles.checklistTextChecked,
 
-          checked &&
+        ]}
 
-            styles.checklistTextChecked,
+      >
 
-        ]}
+        {renderInlineMarkdown(
 
-      >
+          text,
 
-        {renderInlineMarkdown(
+          `check-${text}`,
 
-          text,
+        )}
 
-          `check-${text}`,
+      </Text>
 
-        )}
+    </TouchableOpacity>
 
-      </Text>
-
-    </TouchableOpacity>
-
-  );
+  );
 
 }
-
-
 
 function AssistantContent({
   content,
@@ -476,257 +430,215 @@ function AssistantContent({
   areaName?: string;
 }) {
 
-  const normalized = useMemo(
+  const normalized = useMemo(
 
-    () =>
+    () =>
 
-      content
+      content
 
-        .replace(/\r\n/g, '\n')
+        .replace(/\r\n/g, '\n')
 
-        .trim(),
+        .trim(),
 
-    [content],
+    [content],
 
-  );
+  );
 
+  const lines = useMemo(
 
+    () => normalized.split('\n'),
 
-  const lines = useMemo(
+    [normalized],
 
-    () => normalized.split('\n'),
+  );
 
-    [normalized],
+  const checklistInfo = useMemo(() => {
 
-  );
+    const parentChildren: Record<
 
+      number,
 
+      number[]
 
-  const checklistInfo = useMemo(() => {
+    > = {};
 
-    const parentChildren: Record<
+    const childParent: Record<
 
-      number,
+      number,
 
-      number[]
+      number
 
-    > = {};
+    > = {};
 
+    let currentParent:
 
+      | number
 
-    const childParent: Record<
+      | null = null;
 
-      number,
+    lines.forEach(
 
-      number
+      (rawLine, index) => {
 
-    > = {};
+        const line =
 
+          rawLine.trim();
 
+        if (!line) {
 
-    let currentParent:
+          return;
 
-      | number
+        }
 
-      | null = null;
+        if (
 
+          /^---+$/.test(line) ||
 
+          /^(#{1,4})\s*/.test(
 
-    lines.forEach(
+            line,
 
-      (rawLine, index) => {
+          )
 
-        const line =
+        ) {
 
-          rawLine.trim();
+          currentParent = null;
 
+          return;
 
+        }
 
-        if (!line) {
+        const parentMatch =
 
-          return;
+          line.match(
 
-        }
+            /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.*)$/,
 
+          );
 
+        if (parentMatch) {
 
-        if (
+          currentParent = index;
 
-          /^---+$/.test(line) ||
+          parentChildren[index] =
 
-          /^(#{1,4})\s*/.test(
+            [];
 
-            line,
+          return;
 
-          )
+        }
 
-        ) {
+        const bulletMatch =
 
-          currentParent = null;
+          line.match(
 
-          return;
+            /^(?:[-*•])\s+(.*)$/,
 
-        }
+          );
 
+        if (
 
+          bulletMatch &&
 
-        const parentMatch =
+          currentParent !== null
 
-          line.match(
+        ) {
 
-            /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.*)$/,
+          parentChildren[
 
-          );
+            currentParent
 
+          ].push(index);
 
+          childParent[index] =
 
-        if (parentMatch) {
+            currentParent;
 
-          currentParent = index;
+          return;
 
-          parentChildren[index] =
+        }
 
-            [];
+        currentParent = null;
 
-          return;
+      },
 
-        }
+    );
 
+    return {
 
+      parentChildren,
 
-        const bulletMatch =
+      childParent,
 
-          line.match(
+    };
 
-            /^(?:[-*•])\s+(.*)$/,
+  }, [lines]);
 
-          );
+  const [checkedMap, setCheckedMap] =
 
+    useState<Record<number, boolean>>(
 
+      () => {
 
-        if (
+        const initial: Record<
 
-          bulletMatch &&
+          number,
 
-          currentParent !== null
+          boolean
 
-        ) {
+        > = {};
 
-          parentChildren[
+        lines.forEach(
 
-            currentParent
+          (rawLine, index) => {
 
-          ].push(index);
+            const line =
 
+              rawLine.trim();
 
+            const match =
 
-          childParent[index] =
+              line.match(
 
-            currentParent;
+                /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.*)$/,
 
+              );
 
+            if (match) {
 
-          return;
+              initial[index] =
 
-        }
+                match[1].toLowerCase() ===
 
+                'x';
 
+            }
 
-        currentParent = null;
+            if (
 
-      },
+              checklistInfo.childParent[
 
-    );
+                index
 
+              ] !== undefined
 
+            ) {
 
-    return {
+              initial[index] =
 
-      parentChildren,
+                false;
 
-      childParent,
+            }
 
-    };
+          },
 
-  }, [lines]);
+        );
 
+        return initial;
 
+      },
 
-  const [checkedMap, setCheckedMap] =
-
-    useState<Record<number, boolean>>(
-
-      () => {
-
-        const initial: Record<
-
-          number,
-
-          boolean
-
-        > = {};
-
-
-
-        lines.forEach(
-
-          (rawLine, index) => {
-
-            const line =
-
-              rawLine.trim();
-
-
-
-            const match =
-
-              line.match(
-
-                /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.*)$/,
-
-              );
-
-
-
-            if (match) {
-
-              initial[index] =
-
-                match[1].toLowerCase() ===
-
-                'x';
-
-            }
-
-
-
-            if (
-
-              checklistInfo.childParent[
-
-                index
-
-              ] !== undefined
-
-            ) {
-
-              initial[index] =
-
-                false;
-
-            }
-
-          },
-
-        );
-
-
-
-        return initial;
-
-      },
-
-    );
+    );
 
   const [savedChecklistId, setSavedChecklistId] =
     useState<string | null>(null);
@@ -929,56 +841,47 @@ function AssistantContent({
     );
   };
 
+  const isParentChecked = (
 
+    parentIndex: number,
 
+  ) => {
 
-  const isParentChecked = (
+    const children =
 
-    parentIndex: number,
+      checklistInfo.parentChildren[
 
-  ) => {
+        parentIndex
 
-    const children =
+      ] ?? [];
 
-      checklistInfo.parentChildren[
+    if (children.length > 0) {
 
-        parentIndex
+      return children.every(
 
-      ] ?? [];
+        childIndex =>
 
+          checkedMap[
 
+            childIndex
 
-    if (children.length > 0) {
+          ] === true,
 
-      return children.every(
+      );
 
-        childIndex =>
+    }
 
-          checkedMap[
+    return (
 
-            childIndex
+      checkedMap[parentIndex] ===
 
-          ] === true,
+      true
 
-      );
+    );
 
-    }
+  };
 
-
-
-    return (
-
-      checkedMap[parentIndex] ===
-
-      true
-
-    );
-
-  };
-
-
-
-  const toggleParent = (
+  const toggleParent = (
     parentIndex: number,
   ) => {
     const children =
@@ -1053,1957 +956,1719 @@ function AssistantContent({
 
   return (
 
-    <View
+    <View
 
-      style={styles.markdownContainer}
+      style={styles.markdownContainer}
 
-    >
+    >
 
-      {lines.map(
+      {lines.map(
 
-        (rawLine, index) => {
+        (rawLine, index) => {
 
-          const line =
+          const line =
 
-            rawLine.trim();
+            rawLine.trim();
 
+          const key =
 
+            `line-${index}`;
 
-          const key =
+          if (!line) {
 
-            `line-${index}`;
+            return (
 
+              <View
 
+                key={key}
 
-          if (!line) {
+                style={
 
-            return (
+                  styles.markdownSpacer
 
-              <View
+                }
 
-                key={key}
+              />
 
-                style={
+            );
 
-                  styles.markdownSpacer
+          }
 
-                }
+          if (
 
-              />
+            /^---+$/.test(line)
 
-            );
+          ) {
 
-          }
+            return (
 
+              <View
 
+                key={key}
 
-          if (
+                style={
 
-            /^---+$/.test(line)
+                  styles.markdownDivider
 
-          ) {
+                }
 
-            return (
+              />
 
-              <View
+            );
 
-                key={key}
+          }
 
-                style={
+          const checklistMatch =
 
-                  styles.markdownDivider
+            line.match(
 
-                }
+              /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.*)$/,
 
-              />
+            );
 
-            );
+          if (checklistMatch) {
 
-          }
+            return (
 
+              <ChecklistItem
 
+                key={key}
 
-          const checklistMatch =
+                text={
 
-            line.match(
+                  checklistMatch[2]
 
-              /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.*)$/,
+                }
 
-            );
+                checked={isParentChecked(
 
+                  index,
 
+                )}
 
-          if (checklistMatch) {
+                onToggle={() =>
 
-            return (
+                  toggleParent(index)
 
-              <ChecklistItem
+                }
 
-                key={key}
+              />
 
-                text={
+            );
 
-                  checklistMatch[2]
+          }
 
-                }
+          const headingMatch =
 
-                checked={isParentChecked(
+            line.match(
 
-                  index,
+              /^(#{1,4})\s*(.*)$/,
 
-                )}
+            );
 
-                onToggle={() =>
+          if (headingMatch) {
 
-                  toggleParent(index)
+            const headingText =
 
-                }
+              headingMatch[2]
 
-              />
+                .replace(
 
-            );
+                  /^\*\*/,
 
-          }
+                  '',
 
+                )
 
+                .replace(
 
-          const headingMatch =
+                  /\*\*$/,
 
-            line.match(
+                  '',
 
-              /^(#{1,4})\s*(.*)$/,
+                )
 
-            );
+                .trim();
 
+            return (
 
+              <Text
 
-          if (headingMatch) {
+                key={key}
 
-            const headingText =
+                style={
 
-              headingMatch[2]
+                  styles.markdownHeading
 
-                .replace(
+                }
 
-                  /^\*\*/,
+              >
 
-                  '',
+                {headingText}
 
-                )
+              </Text>
 
-                .replace(
+            );
 
-                  /\*\*$/,
+          }
 
-                  '',
+          const bulletMatch =
 
-                )
+            line.match(
 
-                .trim();
+              /^(?:[-*•])\s+(.*)$/,
 
+            );
 
+          if (bulletMatch) {
 
-            return (
+            const parentIndex =
 
-              <Text
+              checklistInfo
 
-                key={key}
+                .childParent[index];
 
-                style={
+            if (
 
-                  styles.markdownHeading
+              parentIndex !==
 
-                }
+              undefined
 
-              >
+            ) {
 
-                {headingText}
+              return (
 
-              </Text>
+                <ChecklistItem
 
-            );
+                  key={key}
 
-          }
+                  text={
 
+                    bulletMatch[1]
 
+                  }
 
-          const bulletMatch =
+                  compact
 
-            line.match(
+                  checked={
 
-              /^(?:[-*•])\s+(.*)$/,
+                    checkedMap[
 
-            );
+                      index
 
+                    ] === true
 
+                  }
 
-          if (bulletMatch) {
+                  onToggle={() =>
 
-            const parentIndex =
+                    toggleChild(
 
-              checklistInfo
+                      index,
 
-                .childParent[index];
+                    )
 
+                  }
 
+                />
 
-            if (
+              );
 
-              parentIndex !==
+            }
 
-              undefined
+            return (
 
-            ) {
+              <View
 
-              return (
+                key={key}
 
-                <ChecklistItem
+                style={
 
-                  key={key}
+                  styles.markdownBulletRow
 
-                  text={
+                }
 
-                    bulletMatch[1]
+              >
 
-                  }
+                <View
 
-                  compact
+                  style={
 
-                  checked={
+                    styles.markdownBulletDot
 
-                    checkedMap[
+                  }
 
-                      index
+                />
 
-                    ] === true
+                <Text
 
-                  }
+                  style={
 
-                  onToggle={() =>
+                    styles.markdownBulletText
 
-                    toggleChild(
+                  }
 
-                      index,
+                >
 
-                    )
+                  {renderInlineMarkdown(
 
-                  }
+                    bulletMatch[1],
 
-                />
+                    `${key}-bullet`,
 
-              );
+                  )}
 
-            }
+                </Text>
 
+              </View>
 
+            );
 
-            return (
+          }
 
-              <View
+          const numberedMatch =
 
-                key={key}
+            line.match(
 
-                style={
+              /^(\d+)\.\s+(.*)$/,
 
-                  styles.markdownBulletRow
+            );
 
-                }
+          if (
 
-              >
+            numberedMatch
 
-                <View
+          ) {
 
-                  style={
+            return (
 
-                    styles.markdownBulletDot
+              <View
 
-                  }
+                key={key}
 
-                />
+                style={
 
+                  styles.markdownNumberRow
 
+                }
 
-                <Text
+              >
 
-                  style={
+                <View
 
-                    styles.markdownBulletText
+                  style={
 
-                  }
+                    styles.markdownNumberBadge
 
-                >
+                  }
 
-                  {renderInlineMarkdown(
+                >
 
-                    bulletMatch[1],
+                  <Text
 
-                    `${key}-bullet`,
+                    style={
 
-                  )}
+                      styles.markdownNumberText
 
-                </Text>
+                    }
 
-              </View>
+                  >
 
-            );
+                    {
 
-          }
+                      numberedMatch[1]
 
+                    }
 
+                  </Text>
 
-          const numberedMatch =
+                </View>
 
-            line.match(
+                <Text
 
-              /^(\d+)\.\s+(.*)$/,
+                  style={
 
-            );
+                    styles.markdownNumberContent
 
+                  }
 
+                >
 
-          if (
+                  {renderInlineMarkdown(
 
-            numberedMatch
+                    numberedMatch[2],
 
-          ) {
+                    `${key}-number`,
 
-            return (
+                  )}
 
-              <View
+                </Text>
 
-                key={key}
+              </View>
 
-                style={
+            );
 
-                  styles.markdownNumberRow
+          }
 
-                }
+          return (
 
-              >
+            <Text
 
-                <View
+              key={key}
 
-                  style={
+              style={
 
-                    styles.markdownNumberBadge
+                styles.markdownParagraph
 
-                  }
+              }
 
-                >
+            >
 
-                  <Text
+              {renderInlineMarkdown(
 
-                    style={
+                line,
 
-                      styles.markdownNumberText
+                `${key}-paragraph`,
 
-                    }
+              )}
 
-                  >
+            </Text>
 
-                    {
+          );
 
-                      numberedMatch[1]
+        },
 
-                    }
+      )}
 
-                  </Text>
+    </View>
 
-                </View>
-
-
-
-                <Text
-
-                  style={
-
-                    styles.markdownNumberContent
-
-                  }
-
-                >
-
-                  {renderInlineMarkdown(
-
-                    numberedMatch[2],
-
-                    `${key}-number`,
-
-                  )}
-
-                </Text>
-
-              </View>
-
-            );
-
-          }
-
-
-
-          return (
-
-            <Text
-
-              key={key}
-
-              style={
-
-                styles.markdownParagraph
-
-              }
-
-            >
-
-              {renderInlineMarkdown(
-
-                line,
-
-                `${key}-paragraph`,
-
-              )}
-
-            </Text>
-
-          );
-
-        },
-
-      )}
-
-    </View>
-
-  );
+  );
 
 }
 
-
-
-
-
 export default function ChatScreen() {
 
-  const router = useRouter();
+  const router = useRouter();
 
-  const params = useLocalSearchParams<ChatParams>();
+  const params = useLocalSearchParams<ChatParams>();
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
+  const initialContext = useMemo<ChatContext>(() => {
 
+    const result: ChatContext = {};
 
-  const initialContext = useMemo<ChatContext>(() => {
+    Object.entries(params).forEach(([key, value]) => {
 
-    const result: ChatContext = {};
+      if (key === 'returnTo' || key === 'returnParams') {
 
+        return;
 
+      }
 
-    Object.entries(params).forEach(([key, value]) => {
+      if (typeof value === 'string' && value.trim()) {
 
-      if (key === 'returnTo' || key === 'returnParams') {
+        result[key] = value;
 
-        return;
+      }
 
-      }
+    });
 
+    return result;
 
+  }, [params]);
 
-      if (typeof value === 'string' && value.trim()) {
+  const [activeContext, setActiveContext] =
 
-        result[key] = value;
+    useState<ChatContext>(initialContext);
 
-      }
+  const [selectedHistory, setSelectedHistory] =
 
-    });
+    useState<AnalysisHistoryItem | null>(null);
 
+  const [input, setInput] = useState('');
 
+  const [isLoading, setIsLoading] = useState(false);
 
-    return result;
+  const [historyVisible, setHistoryVisible] =
 
-  }, [params]);
+    useState(false);
 
+  const [historyLoading, setHistoryLoading] =
 
+    useState(false);
 
-  const [activeContext, setActiveContext] =
+  const [historyItems, setHistoryItems] =
 
-    useState<ChatContext>(initialContext);
+    useState<AnalysisHistoryItem[]>([]);
 
+  const [compareVisible, setCompareVisible] =
 
+    useState(false);
 
-  const [selectedHistory, setSelectedHistory] =
+  const [compareTarget, setCompareTarget] =
 
-    useState<AnalysisHistoryItem | null>(null);
+    useState<AnalysisHistoryItem | null>(null);
 
+  const contextLabel = useMemo(() => {
 
+    if (selectedHistory) {
 
-  const [input, setInput] = useState('');
+      const regionText =
 
-  const [isLoading, setIsLoading] = useState(false);
+        selectedHistory.regions?.length > 0
 
+          ? selectedHistory.regions.join(', ')
 
+          : '';
 
-  const [historyVisible, setHistoryVisible] =
+      if (
 
-    useState(false);
+        selectedHistory.businessName &&
 
+        regionText
 
+      ) {
 
-  const [historyLoading, setHistoryLoading] =
+        return `${regionText} · ${selectedHistory.businessName}`;
 
-    useState(false);
+      }
 
+      return (
 
+        selectedHistory.title ||
 
-  const [historyItems, setHistoryItems] =
+        selectedHistory.businessName ||
 
-    useState<AnalysisHistoryItem[]>([]);
+        regionText
 
+      );
 
+    }
 
-  const [compareVisible, setCompareVisible] =
+    const business =
 
-    useState(false);
+      typeof params.businessName === 'string'
 
+        ? params.businessName
 
+        : '';
 
-  const [compareTarget, setCompareTarget] =
+    const area =
 
-    useState<AnalysisHistoryItem | null>(null);
+      typeof params.areaName === 'string'
 
+        ? params.areaName
 
+        : typeof params.region === 'string'
 
-  const contextLabel = useMemo(() => {
+          ? params.region
 
-    if (selectedHistory) {
+          : '';
 
-      const regionText =
+    if (business && area) {
 
-        selectedHistory.regions?.length > 0
+      return `${area} · ${business} 분석 결과`;
 
-          ? selectedHistory.regions.join(', ')
+    }
 
-          : '';
+    if (area) {
 
+      return `${area} 분석 결과`;
 
+    }
 
-      if (
+    if (business) {
 
-        selectedHistory.businessName &&
+      return `${business} 분석 결과`;
 
-        regionText
+    }
 
-      ) {
+    return '';
 
-        return `${regionText} · ${selectedHistory.businessName}`;
+  }, [params, selectedHistory]);
 
-      }
+  const suggestedQuestions = useMemo(() => {
 
+    const hasAnalysisContext =
 
+      Object.keys(activeContext).length > 0;
 
-      return (
+    if (hasAnalysisContext) {
 
-        selectedHistory.title ||
+      return [
 
-        selectedHistory.businessName ||
+        '이 분석 결과를 쉽게 설명해줘',
 
-        regionText
+        '왜 이런 점수가 나왔나요?',
 
-      );
+        '가장 강점인 지표는 뭐예요?',
 
-    }
+        '가장 위험한 요소는 뭐예요?',
 
+        '경쟁 수준은 어떤 편인가요?',
 
+        '창업 전에 추가로 확인할 건 뭐예요?',
 
-    const business =
+      ];
 
-      typeof params.businessName === 'string'
+    }
 
-        ? params.businessName
+    return [
 
-        : '';
+      '유동인구가 많으면 무조건 좋은가요?',
 
+      '경쟁이 심한 지역은 피해야 하나요?',
 
+      '매출이 높은 지역이 무조건 좋은가요?',
 
-    const area =
+      '점포 수가 많으면 불리한가요?',
 
-      typeof params.areaName === 'string'
+      '창업할 때 가장 먼저 볼 지표는 뭐예요?',
 
-        ? params.areaName
+      '상권 분석 결과는 어떻게 해석하나요?',
 
-        : typeof params.region === 'string'
+    ];
 
-          ? params.region
+  }, [activeContext]);
 
-          : '';
+  const [messages, setMessages] = useState<Message[]>([
 
+    {
 
+      id: 'welcome',
 
-    if (business && area) {
+      role: 'assistant',
 
-      return `${area} · ${business} 분석 결과`;
+      content:
 
-    }
+        Object.keys(initialContext).length > 0
 
+          ? '현재 분석 결과를 바탕으로 답변해드릴게요. 궁금한 점을 물어보세요.'
 
+          : '안녕하세요! 상권 분석 AI입니다. 추천 질문을 눌러보거나 직접 질문해보세요.',
 
-    if (area) {
+    },
 
-      return `${area} 분석 결과`;
+  ]);
 
-    }
+  const handleBack = () => {
 
+    const returnTo =
 
+      typeof params.returnTo === 'string'
 
-    if (business) {
+        ? params.returnTo
 
-      return `${business} 분석 결과`;
+        : '';
 
-    }
+    if (returnTo) {
 
+      let parsedReturnParams: Record<
 
+        string,
 
-    return '';
+        string
 
-  }, [params, selectedHistory]);
+      > = {};
 
+      if (
 
+        typeof params.returnParams ===
 
-  const suggestedQuestions = useMemo(() => {
+        'string'
 
-    const hasAnalysisContext =
+      ) {
 
-      Object.keys(activeContext).length > 0;
+        try {
 
+          parsedReturnParams = JSON.parse(
 
+            params.returnParams,
 
-    if (hasAnalysisContext) {
+          );
 
-      return [
+        } catch (error) {
 
-        '이 분석 결과를 쉽게 설명해줘',
+          console.error(
 
-        '왜 이런 점수가 나왔나요?',
+            '챗봇 복귀 파라미터 파싱 오류:',
 
-        '가장 강점인 지표는 뭐예요?',
+            error,
 
-        '가장 위험한 요소는 뭐예요?',
+          );
 
-        '경쟁 수준은 어떤 편인가요?',
+        }
 
-        '창업 전에 추가로 확인할 건 뭐예요?',
+      }
 
-      ];
+      (router as any).replace({
 
-    }
+        pathname: returnTo,
 
+        params: parsedReturnParams,
 
+      });
 
-    return [
+      return;
 
-      '유동인구가 많으면 무조건 좋은가요?',
+    }
 
-      '경쟁이 심한 지역은 피해야 하나요?',
+    router.replace('/');
 
-      '매출이 높은 지역이 무조건 좋은가요?',
+  };
 
-      '점포 수가 많으면 불리한가요?',
+  const openHistoryModal = async () => {
 
-      '창업할 때 가장 먼저 볼 지표는 뭐예요?',
+    setHistoryVisible(true);
 
-      '상권 분석 결과는 어떻게 해석하나요?',
+    setHistoryLoading(true);
 
-    ];
+    try {
 
-  }, [activeContext]);
+      const items =
 
+        await getAnalysisHistory();
 
+      setHistoryItems(items);
 
-  const [messages, setMessages] = useState<Message[]>([
+    } catch (error) {
 
-    {
+      console.error(
 
-      id: 'welcome',
+        '챗봇 분석 기록 조회 실패:',
 
-      role: 'assistant',
+        error,
 
-      content:
+      );
 
-        Object.keys(initialContext).length > 0
+      setHistoryItems([]);
 
-          ? '현재 분석 결과를 바탕으로 답변해드릴게요. 궁금한 점을 물어보세요.'
+    } finally {
 
-          : '안녕하세요! 상권 분석 AI입니다. 추천 질문을 눌러보거나 직접 질문해보세요.',
+      setHistoryLoading(false);
 
-    },
+    }
 
-  ]);
+  };
 
+  const selectHistory = (
 
+    item: AnalysisHistoryItem,
 
-  const handleBack = () => {
+  ) => {
 
-    const returnTo =
+    setSelectedHistory(item);
 
-      typeof params.returnTo === 'string'
+    setActiveContext(
 
-        ? params.returnTo
+      createHistoryContext(item),
 
-        : '';
+    );
 
+    setHistoryVisible(false);
 
+    setMessages(prev => [
 
-    if (returnTo) {
+      ...prev,
 
-      let parsedReturnParams: Record<
+      {
 
-        string,
+        id: `${Date.now()}-history`,
 
-        string
+        role: 'assistant',
 
-      > = {};
+        content: `'${item.title}' 분석 기록을 불러왔어요. 이제 이 결과를 기준으로 질문해주세요.`,
 
+      },
 
+    ]);
 
-      if (
+    setTimeout(() => {
 
-        typeof params.returnParams ===
+      scrollRef.current?.scrollToEnd({
 
-        'string'
+        animated: true,
 
-      ) {
+      });
 
-        try {
+    }, 100);
 
-          parsedReturnParams = JSON.parse(
+  };
 
-            params.returnParams,
+  const clearSelectedHistory = () => {
 
-          );
+    setSelectedHistory(null);
 
-        } catch (error) {
+    setActiveContext(initialContext);
 
-          console.error(
+    setMessages(prev => [
 
-            '챗봇 복귀 파라미터 파싱 오류:',
+      ...prev,
 
-            error,
+      {
 
-          );
+        id: `${Date.now()}-context-reset`,
 
-        }
+        role: 'assistant',
 
-      }
+        content:
 
+          Object.keys(initialContext).length > 0
 
+            ? '불러온 기록을 해제하고 현재 화면의 분석 결과로 돌아왔어요.'
 
-      (router as any).replace({
+            : '불러온 분석 기록을 해제했어요. 일반 상권 질문을 해주세요.',
 
-        pathname: returnTo,
+      },
 
-        params: parsedReturnParams,
+    ]);
 
-      });
+  };
 
+  const openCompareModal = async () => {
 
+    if (!selectedHistory) {
 
-      return;
+      setMessages(prev => [
 
-    }
+        ...prev,
 
+        {
 
+          id: `${Date.now()}-compare-no-base`,
 
-    router.replace('/');
+          role: 'assistant',
 
-  };
+          content:
 
+            '먼저 비교 기준이 될 분석 기록을 하나 불러와주세요.',
 
+        },
 
-  const openHistoryModal = async () => {
+      ]);
 
-    setHistoryVisible(true);
+      return;
 
-    setHistoryLoading(true);
+    }
 
+    let items = historyItems;
 
+    if (items.length === 0) {
 
-    try {
+      items =
 
-      const items =
+        await getAnalysisHistory();
 
-        await getAnalysisHistory();
+      setHistoryItems(items);
 
+    }
 
+    const candidates =
 
-      setHistoryItems(items);
+      items.filter(
 
-    } catch (error) {
+        item =>
 
-      console.error(
+          item.id !== selectedHistory.id,
 
-        '챗봇 분석 기록 조회 실패:',
+      );
 
-        error,
+    if (candidates.length === 0) {
 
-      );
+      setMessages(prev => [
 
+        ...prev,
 
+        {
 
-      setHistoryItems([]);
+          id: `${Date.now()}-compare-not-enough`,
 
-    } finally {
+          role: 'assistant',
 
-      setHistoryLoading(false);
+          content:
 
-    }
+            '비교하려면 분석 기록이 2개 이상 필요해요. 분석을 하나 더 진행한 뒤 다시 비교해보세요.',
 
-  };
+        },
 
+      ]);
 
+      setTimeout(() => {
 
-  const selectHistory = (
+        scrollRef.current?.scrollToEnd({
 
-    item: AnalysisHistoryItem,
+          animated: true,
 
-  ) => {
+        });
 
-    setSelectedHistory(item);
+      }, 100);
 
-    setActiveContext(
+      return;
 
-      createHistoryContext(item),
+    }
 
-    );
+    setCompareVisible(true);
 
-    setHistoryVisible(false);
+  };
 
+  const compareWithHistory = async (
 
+    target: AnalysisHistoryItem,
 
-    setMessages(prev => [
+  ) => {
 
-      ...prev,
+    if (!selectedHistory) {
 
-      {
+      return;
 
-        id: `${Date.now()}-history`,
+    }
 
-        role: 'assistant',
+    setCompareTarget(target);
 
-        content: `'${item.title}' 분석 기록을 불러왔어요. 이제 이 결과를 기준으로 질문해주세요.`,
+    setCompareVisible(false);
 
-      },
+    const baseContext =
 
-    ]);
+      createHistoryContext(
 
+        selectedHistory,
 
+      );
 
-    setTimeout(() => {
+    const targetContext =
 
-      scrollRef.current?.scrollToEnd({
+      createHistoryContext(
 
-        animated: true,
+        target,
 
-      });
+      );
 
-    }, 100);
+    const compareContext: ChatContext = {
 
-  };
+      comparisonMode: true,
 
+      firstAnalysis: baseContext,
 
+      secondAnalysis: targetContext,
 
-  const clearSelectedHistory = () => {
+    };
 
-    setSelectedHistory(null);
+    const compareQuestion =
 
-    setActiveContext(initialContext);
+      `'${selectedHistory.title}'과 '${target.title}' 분석 결과를 비교해줘. ` +
 
+      '적합도, 유동인구, 생활인구, 매출, 경쟁 수준, 점포당 평균 매출 등 제공된 지표를 기준으로 차이를 설명하고, ' +
 
+      '각 분석의 강점과 위험요소를 정리한 뒤 어떤 경우에 어느 쪽이 더 적합한지 알려줘. 제공되지 않은 수치는 추측하지 마.';
 
-    setMessages(prev => [
+    const previousMessages =
 
-      ...prev,
+      messages;
 
-      {
+    const userMessage: Message = {
 
-        id: `${Date.now()}-context-reset`,
+      id: `${Date.now()}-compare-user`,
 
-        role: 'assistant',
+      role: 'user',
 
-        content:
+      content: `${selectedHistory.title}과 ${target.title} 비교해줘`,
 
-          Object.keys(initialContext).length > 0
+    };
 
-            ? '불러온 기록을 해제하고 현재 화면의 분석 결과로 돌아왔어요.'
+    setMessages(prev => [
 
-            : '불러온 분석 기록을 해제했어요. 일반 상권 질문을 해주세요.',
+      ...prev,
 
-      },
+      userMessage,
 
-    ]);
+    ]);
 
-  };
+    setIsLoading(true);
 
+    setTimeout(() => {
 
+      scrollRef.current?.scrollToEnd({
 
+        animated: true,
 
+      });
 
-  const openCompareModal = async () => {
+    }, 100);
 
-    if (!selectedHistory) {
+    try {
 
-      setMessages(prev => [
+      const history: ChatHistoryItem[] =
 
-        ...prev,
+        previousMessages
 
-        {
+          .filter(
 
-          id: `${Date.now()}-compare-no-base`,
+            message =>
 
-          role: 'assistant',
+              message.id !== 'welcome',
 
-          content:
+          )
 
-            '먼저 비교 기준이 될 분석 기록을 하나 불러와주세요.',
+          .map(message => ({
 
-        },
+            role: message.role,
 
-      ]);
+            content: message.content,
 
-      return;
+          }));
 
-    }
+      const answer = await sendChatMessage(
 
+        compareQuestion,
 
+        compareContext,
 
-    let items = historyItems;
+        history,
 
+      );
 
+      setMessages(prev => [
 
-    if (items.length === 0) {
+        ...prev,
 
-      items =
+        {
 
-        await getAnalysisHistory();
+          id: `${Date.now()}-compare-answer`,
 
+          role: 'assistant',
 
+          content: answer,
 
-      setHistoryItems(items);
+        },
 
-    }
+      ]);
 
+    } catch (error) {
 
+      const message =
 
-    const candidates =
+        error instanceof Error
 
-      items.filter(
+          ? error.message
 
-        item =>
+          : '비교 결과를 불러오는 중 오류가 발생했습니다.';
 
-          item.id !== selectedHistory.id,
+      setMessages(prev => [
 
-      );
+        ...prev,
 
+        {
 
+          id: `${Date.now()}-compare-error`,
 
-    if (candidates.length === 0) {
+          role: 'assistant',
 
-      setMessages(prev => [
+          content: `오류가 발생했습니다.\n${message}`,
 
-        ...prev,
+        },
 
-        {
+      ]);
 
-          id: `${Date.now()}-compare-not-enough`,
+    } finally {
 
-          role: 'assistant',
+      setIsLoading(false);
 
-          content:
+      setTimeout(() => {
 
-            '비교하려면 분석 기록이 2개 이상 필요해요. 분석을 하나 더 진행한 뒤 다시 비교해보세요.',
+        scrollRef.current?.scrollToEnd({
 
-        },
+          animated: true,
 
-      ]);
+        });
 
+      }, 100);
 
+    }
 
-      setTimeout(() => {
+  };
 
-        scrollRef.current?.scrollToEnd({
+  const handleSend = async (
 
-          animated: true,
+    presetMessage?: string,
 
-        });
+  ) => {
 
-      }, 100);
+    const trimmed = (
 
+      presetMessage ?? input
 
+    ).trim();
 
-      return;
+    if (!trimmed || isLoading) {
 
-    }
+      return;
 
+    }
 
+    const userMessage: Message = {
 
-    setCompareVisible(true);
+      id: `${Date.now()}-user`,
 
-  };
+      role: 'user',
 
+      content: trimmed,
 
+    };
 
-  const compareWithHistory = async (
+    const previousMessages = messages;
 
-    target: AnalysisHistoryItem,
+    setMessages(prev => [
 
-  ) => {
+      ...prev,
 
-    if (!selectedHistory) {
+      userMessage,
 
-      return;
+    ]);
 
-    }
+    if (!presetMessage) {
 
+      setInput('');
 
+    }
 
-    setCompareTarget(target);
+    setIsLoading(true);
 
-    setCompareVisible(false);
+    setTimeout(() => {
 
+      scrollRef.current?.scrollToEnd({
 
+        animated: true,
 
-    const baseContext =
+      });
 
-      createHistoryContext(
+    }, 100);
 
-        selectedHistory,
+    try {
 
-      );
+      const history: ChatHistoryItem[] =
 
+        previousMessages
 
+          .filter(
 
-    const targetContext =
+            message =>
 
-      createHistoryContext(
+              message.id !== 'welcome',
 
-        target,
+          )
 
-      );
+          .map(message => ({
 
+            role: message.role,
 
+            content: message.content,
 
-    const compareContext: ChatContext = {
+          }));
 
-      comparisonMode: true,
+      const answer = await sendChatMessage(
 
-      firstAnalysis: baseContext,
+        trimmed,
 
-      secondAnalysis: targetContext,
+        activeContext,
 
-    };
+        history,
 
+      );
 
+      const assistantMessage: Message = {
 
-    const compareQuestion =
+        id: `${Date.now()}-assistant`,
 
-      `'${selectedHistory.title}'과 '${target.title}' 분석 결과를 비교해줘. ` +
+        role: 'assistant',
 
-      '적합도, 유동인구, 생활인구, 매출, 경쟁 수준, 점포당 평균 매출 등 제공된 지표를 기준으로 차이를 설명하고, ' +
+        content: answer,
 
-      '각 분석의 강점과 위험요소를 정리한 뒤 어떤 경우에 어느 쪽이 더 적합한지 알려줘. 제공되지 않은 수치는 추측하지 마.';
+      };
 
+      setMessages(prev => [
 
+        ...prev,
 
-    const previousMessages =
+        assistantMessage,
 
-      messages;
+      ]);
 
+      setTimeout(() => {
 
+        scrollRef.current?.scrollToEnd({
 
-    const userMessage: Message = {
+          animated: true,
 
-      id: `${Date.now()}-compare-user`,
+        });
 
-      role: 'user',
+      }, 100);
 
-      content: `${selectedHistory.title}과 ${target.title} 비교해줘`,
+    } catch (error) {
 
-    };
+      const message =
 
+        error instanceof Error
 
+          ? error.message
 
-    setMessages(prev => [
+          : 'AI 응답을 불러오는 중 오류가 발생했습니다.';
 
-      ...prev,
+      setMessages(prev => [
 
-      userMessage,
+        ...prev,
 
-    ]);
+        {
 
+          id: `${Date.now()}-error`,
 
+          role: 'assistant',
 
-    setIsLoading(true);
+          content: `오류가 발생했습니다.\n${message}`,
 
+        },
 
+      ]);
 
-    setTimeout(() => {
+    } finally {
 
-      scrollRef.current?.scrollToEnd({
+      setIsLoading(false);
 
-        animated: true,
+    }
 
-      });
+  };
 
-    }, 100);
+  return (
 
+    <KeyboardAvoidingView
 
+      style={styles.screen}
 
-    try {
+      behavior={
 
-      const history: ChatHistoryItem[] =
+        Platform.OS === 'ios'
 
-        previousMessages
+          ? 'padding'
 
-          .filter(
+          : undefined
 
-            message =>
+      }
 
-              message.id !== 'welcome',
+    >
 
-          )
+      <Stack.Screen
 
-          .map(message => ({
+        options={{
 
-            role: message.role,
+          headerShown: false,
 
-            content: message.content,
+        }}
 
-          }));
+      />
 
+      <View style={styles.header}>
 
+        <TouchableOpacity
 
-      const answer = await sendChatMessage(
+          style={styles.backButton}
 
-        compareQuestion,
+          onPress={handleBack}
 
-        compareContext,
+          activeOpacity={0.7}
 
-        history,
+          hitSlop={{
 
-      );
+            top: 8,
 
+            bottom: 8,
 
+            left: 8,
 
-      setMessages(prev => [
+            right: 8,
 
-        ...prev,
+          }}
 
-        {
+        >
 
-          id: `${Date.now()}-compare-answer`,
+          <Text style={styles.backIcon}>
 
-          role: 'assistant',
+            ‹
 
-          content: answer,
+          </Text>
 
-        },
+        </TouchableOpacity>
 
-      ]);
+        <View style={styles.headerTextArea}>
 
-    } catch (error) {
+          <Text style={styles.headerTitle}>
 
-      const message =
+            상권 분석 AI
 
-        error instanceof Error
+          </Text>
 
-          ? error.message
+          <Text
 
-          : '비교 결과를 불러오는 중 오류가 발생했습니다.';
+            style={styles.headerSubtitle}
 
+            numberOfLines={1}
 
+          >
 
-      setMessages(prev => [
+            {contextLabel ||
 
-        ...prev,
+              '창업 궁금증을 물어보세요'}
 
-        {
+          </Text>
 
-          id: `${Date.now()}-compare-error`,
+        </View>
 
-          role: 'assistant',
+      </View>
 
-          content: `오류가 발생했습니다.\n${message}`,
+      <ScrollView
 
-        },
+        ref={scrollRef}
 
-      ]);
+        style={styles.messages}
 
-    } finally {
+        contentContainerStyle={
 
-      setIsLoading(false);
+          styles.messagesContent
 
+        }
 
+        keyboardShouldPersistTaps="handled"
 
-      setTimeout(() => {
+        onContentSizeChange={() =>
 
-        scrollRef.current?.scrollToEnd({
+          scrollRef.current?.scrollToEnd({
 
-          animated: true,
+            animated: true,
 
-        });
+          })
 
-      }, 100);
+        }
 
-    }
+      >
 
-  };
+        <View
 
+          style={styles.contextSection}
 
+        >
 
-  const handleSend = async (
+          <View
 
-    presetMessage?: string,
+            style={styles.contextTopRow}
 
-  ) => {
+          >
 
-    const trimmed = (
+            <View style={styles.contextTextArea}>
 
-      presetMessage ?? input
+              <Text
 
-    ).trim();
+                style={styles.contextSectionTitle}
 
+              >
 
+                분석 결과로 질문하기
 
-    if (!trimmed || isLoading) {
+              </Text>
 
-      return;
+              <Text
 
-    }
+                style={
 
+                  styles.contextSectionDescription
 
+                }
 
-    const userMessage: Message = {
+              >
 
-      id: `${Date.now()}-user`,
+                저장된 분석 기록을 불러오면
 
-      role: 'user',
+                해당 결과를 기준으로 AI에게
 
-      content: trimmed,
+                질문할 수 있어요.
 
-    };
+              </Text>
 
+            </View>
 
+            <TouchableOpacity
 
-    const previousMessages = messages;
+              style={styles.historyButton}
 
+              activeOpacity={0.8}
 
+              onPress={openHistoryModal}
 
-    setMessages(prev => [
+            >
 
-      ...prev,
+              <Text
 
-      userMessage,
+                style={
 
-    ]);
+                  styles.historyButtonText
 
+                }
 
+              >
 
-    if (!presetMessage) {
+                내 분석 기록
 
-      setInput('');
+              </Text>
 
-    }
+            </TouchableOpacity>
 
+          </View>
 
+          {selectedHistory && (
 
-    setIsLoading(true);
+            <View
 
+              style={styles.selectedHistoryCard}
 
+            >
 
-    setTimeout(() => {
+              <View
 
-      scrollRef.current?.scrollToEnd({
+                style={
 
-        animated: true,
+                  styles.selectedHistoryTextArea
 
-      });
+                }
 
-    }, 100);
+              >
 
+                <Text
 
+                  style={
 
-    try {
+                    styles.selectedHistoryBadge
 
-      const history: ChatHistoryItem[] =
+                  }
 
-        previousMessages
+                >
 
-          .filter(
+                  현재 불러온 기록
 
-            message =>
+                </Text>
 
-              message.id !== 'welcome',
+                <Text
 
-          )
+                  style={
 
-          .map(message => ({
+                    styles.selectedHistoryTitle
 
-            role: message.role,
+                  }
 
-            content: message.content,
+                  numberOfLines={1}
 
-          }));
+                >
 
+                  {selectedHistory.title}
 
+                </Text>
 
-      const answer = await sendChatMessage(
+                <Text
 
-        trimmed,
+                  style={
 
-        activeContext,
+                    styles.selectedHistoryMeta
 
-        history,
+                  }
 
-      );
+                  numberOfLines={2}
 
+                >
 
+                  {getAnalysisTypeLabel(
 
-      const assistantMessage: Message = {
+                    selectedHistory.type,
 
-        id: `${Date.now()}-assistant`,
+                  )}
 
-        role: 'assistant',
+                  {' · '}
 
-        content: answer,
+                  {selectedHistory.businessName}
 
-      };
+                  {selectedHistory.regions
 
+                    .length > 0
 
+                    ? ` · ${selectedHistory.regions.join(
 
-      setMessages(prev => [
+                        ', ',
 
-        ...prev,
+                      )}`
 
-        assistantMessage,
+                    : ''}
 
-      ]);
+                </Text>
 
+              </View>
 
+              <View
 
-      setTimeout(() => {
+                style={styles.selectedHistoryActions}
 
-        scrollRef.current?.scrollToEnd({
+              >
 
-          animated: true,
+                <TouchableOpacity
 
-        });
+                  style={styles.compareButton}
 
-      }, 100);
+                  activeOpacity={0.75}
 
-    } catch (error) {
+                  onPress={openCompareModal}
 
-      const message =
+                >
 
-        error instanceof Error
+                  <Text
 
-          ? error.message
+                    style={styles.compareButtonText}
 
-          : 'AI 응답을 불러오는 중 오류가 발생했습니다.';
+                  >
 
+                    다른 기록과 비교
 
+                  </Text>
 
-      setMessages(prev => [
+                </TouchableOpacity>
 
-        ...prev,
+                <TouchableOpacity
 
-        {
+                  style={
 
-          id: `${Date.now()}-error`,
+                    styles.contextClearButton
 
-          role: 'assistant',
+                  }
 
-          content: `오류가 발생했습니다.\n${message}`,
+                  activeOpacity={0.7}
 
-        },
+                  onPress={clearSelectedHistory}
 
-      ]);
+                >
 
-    } finally {
+                  <Text
 
-      setIsLoading(false);
+                    style={
 
-    }
+                      styles.contextClearText
 
-  };
+                    }
 
+                  >
 
+                    해제
 
-  return (
+                  </Text>
 
-    <KeyboardAvoidingView
+                </TouchableOpacity>
 
-      style={styles.screen}
+              </View>
 
-      behavior={
+            </View>
 
-        Platform.OS === 'ios'
+          )}
 
-          ? 'padding'
+          {compareTarget && selectedHistory && (
 
-          : undefined
+            <View style={styles.compareStatusCard}>
 
-      }
+              <Text style={styles.compareStatusLabel}>
 
-    >
+                최근 비교 대상
 
-      <Stack.Screen
+              </Text>
 
-        options={{
+              <Text
 
-          headerShown: false,
+                style={styles.compareStatusText}
 
-        }}
+                numberOfLines={1}
 
-      />
+              >
 
+                {selectedHistory.title}
 
+                {'  ↔  '}
 
-      <View style={styles.header}>
+                {compareTarget.title}
 
-        <TouchableOpacity
+              </Text>
 
-          style={styles.backButton}
+            </View>
 
-          onPress={handleBack}
+          )}
 
-          activeOpacity={0.7}
+        </View>
 
-          hitSlop={{
+        <View
 
-            top: 8,
+          style={styles.suggestedSection}
 
-            bottom: 8,
+        >
 
-            left: 8,
+          <Text
 
-            right: 8,
+            style={styles.suggestedTitle}
 
-          }}
+          >
 
-        >
+            많이 묻는 질문
 
-          <Text style={styles.backIcon}>
+          </Text>
 
-            ‹
+          <Text
 
-          </Text>
+            style={
 
-        </TouchableOpacity>
+              styles.suggestedDescription
 
+            }
 
+          >
 
-        <View style={styles.headerTextArea}>
+            궁금한 질문을 바로 누르거나 직접
 
-          <Text style={styles.headerTitle}>
+            입력해보세요.
 
-            상권 분석 AI
+          </Text>
 
-          </Text>
+          <View
 
+            style={styles.suggestedWrap}
 
+          >
 
-          <Text
+            {suggestedQuestions.map(
 
-            style={styles.headerSubtitle}
+              question => (
 
-            numberOfLines={1}
+                <TouchableOpacity
 
-          >
+                  key={question}
 
-            {contextLabel ||
+                  style={
 
-              '창업 궁금증을 물어보세요'}
+                    styles.suggestedChip
 
-          </Text>
+                  }
 
-        </View>
+                  activeOpacity={0.75}
 
-      </View>
+                  disabled={isLoading}
 
+                  onPress={() =>
 
+                    handleSend(question)
 
-      <ScrollView
+                  }
 
-        ref={scrollRef}
+                >
 
-        style={styles.messages}
+                  <Text
 
-        contentContainerStyle={
+                    style={
 
-          styles.messagesContent
+                      styles.suggestedChipText
 
-        }
+                    }
 
-        keyboardShouldPersistTaps="handled"
+                  >
 
-        onContentSizeChange={() =>
+                    {question}
 
-          scrollRef.current?.scrollToEnd({
+                  </Text>
 
-            animated: true,
+                </TouchableOpacity>
 
-          })
+              ),
 
-        }
+            )}
 
-      >
+          </View>
 
-        <View
+        </View>
 
-          style={styles.contextSection}
+        {messages.map(message => {
 
-        >
+          const isUser =
 
-          <View
+            message.role === 'user';
 
-            style={styles.contextTopRow}
+          return (
 
-          >
+            <View
 
-            <View style={styles.contextTextArea}>
+              key={message.id}
 
-              <Text
+              style={[
 
-                style={styles.contextSectionTitle}
+                styles.messageRow,
 
-              >
+                isUser
 
-                분석 결과로 질문하기
+                  ? styles.userMessageRow
 
-              </Text>
+                  : styles.assistantMessageRow,
 
+              ]}
 
+            >
 
-              <Text
+              {!isUser && (
 
-                style={
+                <Image
 
-                  styles.contextSectionDescription
+                  source={require('../../assets/images/chatbot-question-map.png')}
 
-                }
+                  style={styles.aiAvatar}
 
-              >
+                  resizeMode="contain"
 
-                저장된 분석 기록을 불러오면
+                />
 
-                해당 결과를 기준으로 AI에게
+              )}
 
-                질문할 수 있어요.
+              <View
 
-              </Text>
+                style={[
 
-            </View>
+                  styles.bubble,
 
+                  isUser
 
+                    ? styles.userBubble
 
-            <TouchableOpacity
+                    : styles.assistantBubble,
 
-              style={styles.historyButton}
+                ]}
 
-              activeOpacity={0.8}
+              >
 
-              onPress={openHistoryModal}
+                {isUser ? (
 
-            >
+                  <Text
 
-              <Text
+                    style={[
 
-                style={
+                      styles.messageText,
 
-                  styles.historyButtonText
+                      styles.userMessageText,
 
-                }
+                    ]}
 
-              >
+                  >
 
-                내 분석 기록
+                    {message.content}
 
-              </Text>
+                  </Text>
 
-            </TouchableOpacity>
+                ) : (
 
-          </View>
-
-
-
-          {selectedHistory && (
-
-            <View
-
-              style={styles.selectedHistoryCard}
-
-            >
-
-              <View
-
-                style={
-
-                  styles.selectedHistoryTextArea
-
-                }
-
-              >
-
-                <Text
-
-                  style={
-
-                    styles.selectedHistoryBadge
-
-                  }
-
-                >
-
-                  현재 불러온 기록
-
-                </Text>
-
-
-
-                <Text
-
-                  style={
-
-                    styles.selectedHistoryTitle
-
-                  }
-
-                  numberOfLines={1}
-
-                >
-
-                  {selectedHistory.title}
-
-                </Text>
-
-
-
-                <Text
-
-                  style={
-
-                    styles.selectedHistoryMeta
-
-                  }
-
-                  numberOfLines={2}
-
-                >
-
-                  {getAnalysisTypeLabel(
-
-                    selectedHistory.type,
-
-                  )}
-
-                  {' · '}
-
-                  {selectedHistory.businessName}
-
-                  {selectedHistory.regions
-
-                    .length > 0
-
-                    ? ` · ${selectedHistory.regions.join(
-
-                        ', ',
-
-                      )}`
-
-                    : ''}
-
-                </Text>
-
-              </View>
-
-
-
-              <View
-
-                style={styles.selectedHistoryActions}
-
-              >
-
-                <TouchableOpacity
-
-                  style={styles.compareButton}
-
-                  activeOpacity={0.75}
-
-                  onPress={openCompareModal}
-
-                >
-
-                  <Text
-
-                    style={styles.compareButtonText}
-
-                  >
-
-                    다른 기록과 비교
-
-                  </Text>
-
-                </TouchableOpacity>
-
-
-
-                <TouchableOpacity
-
-                  style={
-
-                    styles.contextClearButton
-
-                  }
-
-                  activeOpacity={0.7}
-
-                  onPress={clearSelectedHistory}
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.contextClearText
-
-                    }
-
-                  >
-
-                    해제
-
-                  </Text>
-
-                </TouchableOpacity>
-
-              </View>
-
-            </View>
-
-          )}
-
-
-
-          {compareTarget && selectedHistory && (
-
-            <View style={styles.compareStatusCard}>
-
-              <Text style={styles.compareStatusLabel}>
-
-                최근 비교 대상
-
-              </Text>
-
-
-
-              <Text
-
-                style={styles.compareStatusText}
-
-                numberOfLines={1}
-
-              >
-
-                {selectedHistory.title}
-
-                {'  ↔  '}
-
-                {compareTarget.title}
-
-              </Text>
-
-            </View>
-
-          )}
-
-        </View>
-
-
-
-        <View
-
-          style={styles.suggestedSection}
-
-        >
-
-          <Text
-
-            style={styles.suggestedTitle}
-
-          >
-
-            많이 묻는 질문
-
-          </Text>
-
-
-
-          <Text
-
-            style={
-
-              styles.suggestedDescription
-
-            }
-
-          >
-
-            궁금한 질문을 바로 누르거나 직접
-
-            입력해보세요.
-
-          </Text>
-
-
-
-          <View
-
-            style={styles.suggestedWrap}
-
-          >
-
-            {suggestedQuestions.map(
-
-              question => (
-
-                <TouchableOpacity
-
-                  key={question}
-
-                  style={
-
-                    styles.suggestedChip
-
-                  }
-
-                  activeOpacity={0.75}
-
-                  disabled={isLoading}
-
-                  onPress={() =>
-
-                    handleSend(question)
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.suggestedChipText
-
-                    }
-
-                  >
-
-                    {question}
-
-                  </Text>
-
-                </TouchableOpacity>
-
-              ),
-
-            )}
-
-          </View>
-
-        </View>
-
-
-
-        {messages.map(message => {
-
-          const isUser =
-
-            message.role === 'user';
-
-
-
-          return (
-
-            <View
-
-              key={message.id}
-
-              style={[
-
-                styles.messageRow,
-
-                isUser
-
-                  ? styles.userMessageRow
-
-                  : styles.assistantMessageRow,
-
-              ]}
-
-            >
-
-              {!isUser && (
-
-                <Image
-
-                  source={require('../../assets/images/chatbot-question-map.png')}
-
-                  style={styles.aiAvatar}
-
-                  resizeMode="contain"
-
-                />
-
-              )}
-
-
-
-              <View
-
-                style={[
-
-                  styles.bubble,
-
-                  isUser
-
-                    ? styles.userBubble
-
-                    : styles.assistantBubble,
-
-                ]}
-
-              >
-
-                {isUser ? (
-
-                  <Text
-
-                    style={[
-
-                      styles.messageText,
-
-                      styles.userMessageText,
-
-                    ]}
-
-                  >
-
-                    {message.content}
-
-                  </Text>
-
-                ) : (
-
-                  <AssistantContent
+                  <AssistantContent
                     content={message.content}
                     messageId={message.id}
                     contextTitle={
@@ -3023,1950 +2688,1898 @@ export default function ChatScreen() {
                     }
                   />
 
-                )}
+                )}
 
-              </View>
+              </View>
 
-            </View>
+            </View>
 
-          );
+          );
 
-        })}
+        })}
 
+        {isLoading && (
 
+          <View style={styles.loadingRow}>
 
-        {isLoading && (
+            <Image
 
-          <View style={styles.loadingRow}>
+              source={require('../../assets/images/chatbot-question-map.png')}
 
-            <Image
+              style={styles.aiAvatar}
 
-              source={require('../../assets/images/chatbot-question-map.png')}
+              resizeMode="contain"
 
-              style={styles.aiAvatar}
+            />
 
-              resizeMode="contain"
+            <View
 
-            />
+              style={styles.loadingBubble}
 
+            >
 
+              <ActivityIndicator size="small" />
 
-            <View
+              <Text
 
-              style={styles.loadingBubble}
+                style={styles.loadingText}
 
-            >
+              >
 
-              <ActivityIndicator size="small" />
+                답변을 생각하고 있어요...
 
+              </Text>
 
+            </View>
 
-              <Text
+          </View>
 
-                style={styles.loadingText}
+        )}
 
-              >
+      </ScrollView>
 
-                답변을 생각하고 있어요...
+      <View style={styles.inputArea}>
 
-              </Text>
+        <View style={styles.inputContainer}>
 
-            </View>
+          <TextInput
 
-          </View>
+            style={styles.input}
 
-        )}
+            value={input}
 
-      </ScrollView>
+            onChangeText={setInput}
 
+            placeholder="상권이나 창업에 대해 질문해보세요"
 
+            placeholderTextColor="#9CA3AF"
 
-      <View style={styles.inputArea}>
+            multiline
 
-        <View style={styles.inputContainer}>
+            maxLength={1000}
 
-          <TextInput
+            editable={!isLoading}
 
-            style={styles.input}
+            submitBehavior="submit"
 
-            value={input}
+            enterKeyHint="send"
 
-            onChangeText={setInput}
+            onSubmitEditing={() => {
 
-            placeholder="상권이나 창업에 대해 질문해보세요"
+              handleSend();
 
-            placeholderTextColor="#9CA3AF"
+            }}
 
-            multiline
+          />
 
-            maxLength={1000}
+          <TouchableOpacity
 
-            editable={!isLoading}
+            style={[
 
-            submitBehavior="submit"
+              styles.sendButton,
 
-            enterKeyHint="send"
+              (!input.trim() ||
 
-            onSubmitEditing={() => {
+                isLoading) &&
 
-              handleSend();
+                styles.sendButtonDisabled,
 
-            }}
+            ]}
 
-          />
+            onPress={() => handleSend()}
 
+            disabled={
 
+              !input.trim() ||
 
-          <TouchableOpacity
+              isLoading
 
-            style={[
+            }
 
-              styles.sendButton,
+            activeOpacity={0.8}
 
-              (!input.trim() ||
+          >
 
-                isLoading) &&
+            <Text
 
-                styles.sendButtonDisabled,
+              style={styles.sendButtonText}
 
-            ]}
+            >
 
-            onPress={() => handleSend()}
+              전송
 
-            disabled={
+            </Text>
 
-              !input.trim() ||
+          </TouchableOpacity>
 
-              isLoading
+        </View>
 
-            }
+      </View>
 
-            activeOpacity={0.8}
+      <Modal
 
-          >
+        visible={historyVisible}
 
-            <Text
+        transparent
 
-              style={styles.sendButtonText}
+        animationType="fade"
 
-            >
+        onRequestClose={() =>
 
-              전송
+          setHistoryVisible(false)
 
-            </Text>
+        }
 
-          </TouchableOpacity>
+      >
 
-        </View>
+        <Pressable
 
-      </View>
+          style={styles.modalBackdrop}
 
+          onPress={() =>
 
+            setHistoryVisible(false)
 
-      <Modal
+          }
 
-        visible={historyVisible}
+        >
 
-        transparent
+          <Pressable
 
-        animationType="fade"
+            style={styles.modalCard}
 
-        onRequestClose={() =>
+            onPress={event =>
 
-          setHistoryVisible(false)
+              event.stopPropagation()
 
-        }
+            }
 
-      >
+          >
 
-        <Pressable
+            <View
 
-          style={styles.modalBackdrop}
+              style={styles.modalHeader}
 
-          onPress={() =>
+            >
 
-            setHistoryVisible(false)
+              <View>
 
-          }
+                <Text
 
-        >
+                  style={styles.modalTitle}
 
-          <Pressable
+                >
 
-            style={styles.modalCard}
+                  내 분석 기록
 
-            onPress={event =>
+                </Text>
 
-              event.stopPropagation()
+                <Text
 
-            }
+                  style={
 
-          >
+                    styles.modalDescription
 
-            <View
+                  }
 
-              style={styles.modalHeader}
+                >
 
-            >
+                  질문에 사용할 분석 결과를
 
-              <View>
+                  선택해주세요.
 
-                <Text
+                </Text>
 
-                  style={styles.modalTitle}
+              </View>
 
-                >
+              <TouchableOpacity
 
-                  내 분석 기록
+                style={styles.modalCloseButton}
 
-                </Text>
+                activeOpacity={0.7}
 
+                onPress={() =>
 
+                  setHistoryVisible(false)
 
-                <Text
+                }
 
-                  style={
+              >
 
-                    styles.modalDescription
+                <Text
 
-                  }
+                  style={styles.modalCloseText}
 
-                >
+                >
 
-                  질문에 사용할 분석 결과를
+                  ×
 
-                  선택해주세요.
+                </Text>
 
-                </Text>
+              </TouchableOpacity>
 
-              </View>
+            </View>
 
+            {historyLoading ? (
 
+              <View
 
-              <TouchableOpacity
+                style={styles.historyLoading}
 
-                style={styles.modalCloseButton}
+              >
 
-                activeOpacity={0.7}
+                <ActivityIndicator
 
-                onPress={() =>
+                  size="small"
 
-                  setHistoryVisible(false)
+                />
 
-                }
+                <Text
 
-              >
+                  style={
 
-                <Text
+                    styles.historyLoadingText
 
-                  style={styles.modalCloseText}
+                  }
 
-                >
+                >
 
-                  ×
+                  분석 기록을 불러오는 중...
 
-                </Text>
+                </Text>
 
-              </TouchableOpacity>
+              </View>
 
-            </View>
+            ) : historyItems.length === 0 ? (
 
+              <View
 
+                style={styles.emptyHistory}
 
-            {historyLoading ? (
+              >
 
-              <View
+                <Text
 
-                style={styles.historyLoading}
+                  style={
 
-              >
+                    styles.emptyHistoryTitle
 
-                <ActivityIndicator
+                  }
 
-                  size="small"
+                >
 
-                />
+                  아직 저장된 분석 기록이 없어요
 
+                </Text>
 
+                <Text
 
-                <Text
+                  style={
 
-                  style={
+                    styles.emptyHistoryDescription
 
-                    styles.historyLoadingText
+                  }
 
-                  }
+                >
 
-                >
+                  상권 분석을 진행하고 결과를
 
-                  분석 기록을 불러오는 중...
+                  저장하면 여기에서 불러올 수
 
-                </Text>
+                  있어요.
 
-              </View>
+                </Text>
 
-            ) : historyItems.length === 0 ? (
+              </View>
 
-              <View
+            ) : (
 
-                style={styles.emptyHistory}
+              <ScrollView
 
-              >
+                style={styles.historyList}
 
-                <Text
+                showsVerticalScrollIndicator={
 
-                  style={
+                  false
 
-                    styles.emptyHistoryTitle
+                }
 
-                  }
+              >
 
-                >
+                {historyItems.map(item => {
 
-                  아직 저장된 분석 기록이 없어요
+                  const isSelected =
 
-                </Text>
+                    selectedHistory?.id ===
 
+                    item.id;
 
+                  return (
 
-                <Text
+                    <TouchableOpacity
 
-                  style={
+                      key={item.id}
 
-                    styles.emptyHistoryDescription
+                      style={[
 
-                  }
+                        styles.historyItem,
 
-                >
+                        isSelected &&
 
-                  상권 분석을 진행하고 결과를
+                          styles.historyItemSelected,
 
-                  저장하면 여기에서 불러올 수
+                      ]}
 
-                  있어요.
+                      activeOpacity={0.75}
 
-                </Text>
+                      onPress={() =>
 
-              </View>
+                        selectHistory(item)
 
-            ) : (
+                      }
 
-              <ScrollView
+                    >
 
-                style={styles.historyList}
+                      <View
 
-                showsVerticalScrollIndicator={
+                        style={
 
-                  false
+                          styles.historyItemTop
 
-                }
+                        }
 
-              >
+                      >
 
-                {historyItems.map(item => {
+                        <Text
 
-                  const isSelected =
+                          style={
 
-                    selectedHistory?.id ===
+                            styles.historyType
 
-                    item.id;
+                          }
 
+                        >
 
+                          {getAnalysisTypeLabel(
 
-                  return (
+                            item.type,
 
-                    <TouchableOpacity
+                          )}
 
-                      key={item.id}
+                        </Text>
 
-                      style={[
+                        {item.isFavorite && (
 
-                        styles.historyItem,
+                          <Text
 
-                        isSelected &&
+                            style={
 
-                          styles.historyItemSelected,
+                              styles.favoriteMark
 
-                      ]}
+                            }
 
-                      activeOpacity={0.75}
+                          >
 
-                      onPress={() =>
+                            ★
 
-                        selectHistory(item)
+                          </Text>
 
-                      }
+                        )}
 
-                    >
+                      </View>
 
-                      <View
+                      <Text
 
-                        style={
+                        style={
 
-                          styles.historyItemTop
+                          styles.historyItemTitle
 
-                        }
+                        }
 
-                      >
+                        numberOfLines={1}
 
-                        <Text
+                      >
 
-                          style={
+                        {item.title}
 
-                            styles.historyType
+                      </Text>
 
-                          }
+                      <Text
 
-                        >
+                        style={
 
-                          {getAnalysisTypeLabel(
+                          styles.historyItemMeta
 
-                            item.type,
+                        }
 
-                          )}
+                        numberOfLines={2}
 
-                        </Text>
+                      >
 
+                        {item.businessName}
 
+                        {item.regions.length >
 
-                        {item.isFavorite && (
+                        0
 
-                          <Text
+                          ? ` · ${item.regions.join(
 
-                            style={
+                              ', ',
 
-                              styles.favoriteMark
+                            )}`
 
-                            }
+                          : ''}
 
-                          >
+                      </Text>
 
-                            ★
+                      <Text
 
-                          </Text>
+                        style={
 
-                        )}
+                          styles.historyDate
 
-                      </View>
+                        }
 
+                      >
 
+                        {formatHistoryDate(
 
-                      <Text
+                          item.createdAt,
 
-                        style={
+                        )}
 
-                          styles.historyItemTitle
+                      </Text>
 
-                        }
+                    </TouchableOpacity>
 
-                        numberOfLines={1}
+                  );
 
-                      >
+                })}
 
-                        {item.title}
+              </ScrollView>
 
-                      </Text>
+            )}
 
+          </Pressable>
 
+        </Pressable>
 
-                      <Text
+      </Modal>
 
-                        style={
+      <Modal
 
-                          styles.historyItemMeta
+        visible={compareVisible}
 
-                        }
+        transparent
 
-                        numberOfLines={2}
+        animationType="fade"
 
-                      >
+        onRequestClose={() =>
 
-                        {item.businessName}
+          setCompareVisible(false)
 
-                        {item.regions.length >
+        }
 
-                        0
+      >
 
-                          ? ` · ${item.regions.join(
+        <Pressable
 
-                              ', ',
+          style={styles.modalBackdrop}
 
-                            )}`
+          onPress={() =>
 
-                          : ''}
+            setCompareVisible(false)
 
-                      </Text>
+          }
 
+        >
 
+          <Pressable
 
-                      <Text
+            style={styles.modalCard}
 
-                        style={
+            onPress={event =>
 
-                          styles.historyDate
+              event.stopPropagation()
 
-                        }
+            }
 
-                      >
+          >
 
-                        {formatHistoryDate(
+            <View
 
-                          item.createdAt,
+              style={styles.modalHeader}
 
-                        )}
+            >
 
-                      </Text>
+              <View>
 
-                    </TouchableOpacity>
+                <Text
 
-                  );
+                  style={styles.modalTitle}
 
-                })}
+                >
 
-              </ScrollView>
+                  비교할 분석 기록 선택
 
-            )}
+                </Text>
 
-          </Pressable>
+                <Text
 
-        </Pressable>
+                  style={
 
-      </Modal>
+                    styles.modalDescription
 
+                  }
 
+                >
 
-      <Modal
+                  현재 기록과 비교할 다른 분석
 
-        visible={compareVisible}
+                  결과를 선택해주세요.
 
-        transparent
+                </Text>
 
-        animationType="fade"
+              </View>
 
-        onRequestClose={() =>
+              <TouchableOpacity
 
-          setCompareVisible(false)
+                style={styles.modalCloseButton}
 
-        }
+                activeOpacity={0.7}
 
-      >
+                onPress={() =>
 
-        <Pressable
+                  setCompareVisible(false)
 
-          style={styles.modalBackdrop}
+                }
 
-          onPress={() =>
+              >
 
-            setCompareVisible(false)
+                <Text
 
-          }
+                  style={styles.modalCloseText}
 
-        >
+                >
 
-          <Pressable
+                  ×
 
-            style={styles.modalCard}
+                </Text>
 
-            onPress={event =>
+              </TouchableOpacity>
 
-              event.stopPropagation()
+            </View>
 
-            }
+            <ScrollView
 
-          >
+              style={styles.historyList}
 
-            <View
+              showsVerticalScrollIndicator={
 
-              style={styles.modalHeader}
+                false
 
-            >
+              }
 
-              <View>
+            >
 
-                <Text
+              {historyItems
 
-                  style={styles.modalTitle}
+                .filter(
 
-                >
+                  item =>
 
-                  비교할 분석 기록 선택
+                    item.id !==
 
-                </Text>
+                    selectedHistory?.id,
 
+                )
 
+                .map(item => (
 
-                <Text
+                  <TouchableOpacity
 
-                  style={
+                    key={item.id}
 
-                    styles.modalDescription
+                    style={styles.historyItem}
 
-                  }
+                    activeOpacity={0.75}
 
-                >
+                    onPress={() =>
 
-                  현재 기록과 비교할 다른 분석
+                      compareWithHistory(item)
 
-                  결과를 선택해주세요.
+                    }
 
-                </Text>
+                  >
 
-              </View>
+                    <View
 
+                      style={styles.historyItemTop}
 
+                    >
 
-              <TouchableOpacity
+                      <Text
 
-                style={styles.modalCloseButton}
+                        style={styles.historyType}
 
-                activeOpacity={0.7}
+                      >
 
-                onPress={() =>
+                        {getAnalysisTypeLabel(
 
-                  setCompareVisible(false)
+                          item.type,
 
-                }
+                        )}
 
-              >
+                      </Text>
 
-                <Text
+                      {item.isFavorite && (
 
-                  style={styles.modalCloseText}
+                        <Text
 
-                >
+                          style={
 
-                  ×
+                            styles.favoriteMark
 
-                </Text>
+                          }
 
-              </TouchableOpacity>
+                        >
 
-            </View>
+                          ★
 
+                        </Text>
 
+                      )}
 
-            <ScrollView
+                    </View>
 
-              style={styles.historyList}
+                    <Text
 
-              showsVerticalScrollIndicator={
+                      style={styles.historyItemTitle}
 
-                false
+                      numberOfLines={1}
 
-              }
+                    >
 
-            >
+                      {item.title}
 
-              {historyItems
+                    </Text>
 
-                .filter(
+                    <Text
 
-                  item =>
+                      style={styles.historyItemMeta}
 
-                    item.id !==
+                      numberOfLines={2}
 
-                    selectedHistory?.id,
+                    >
 
-                )
+                      {item.businessName}
 
-                .map(item => (
+                      {item.regions.length > 0
 
-                  <TouchableOpacity
+                        ? ` · ${item.regions.join(
 
-                    key={item.id}
+                            ', ',
 
-                    style={styles.historyItem}
+                          )}`
 
-                    activeOpacity={0.75}
+                        : ''}
 
-                    onPress={() =>
+                    </Text>
 
-                      compareWithHistory(item)
+                    <Text
 
-                    }
+                      style={styles.historyDate}
 
-                  >
+                    >
 
-                    <View
+                      {formatHistoryDate(
 
-                      style={styles.historyItemTop}
+                        item.createdAt,
 
-                    >
+                      )}
 
-                      <Text
+                    </Text>
 
-                        style={styles.historyType}
+                  </TouchableOpacity>
 
-                      >
+                ))}
 
-                        {getAnalysisTypeLabel(
+            </ScrollView>
 
-                          item.type,
+          </Pressable>
 
-                        )}
+        </Pressable>
 
-                      </Text>
+      </Modal>
 
+    </KeyboardAvoidingView>
 
-
-                      {item.isFavorite && (
-
-                        <Text
-
-                          style={
-
-                            styles.favoriteMark
-
-                          }
-
-                        >
-
-                          ★
-
-                        </Text>
-
-                      )}
-
-                    </View>
-
-
-
-                    <Text
-
-                      style={styles.historyItemTitle}
-
-                      numberOfLines={1}
-
-                    >
-
-                      {item.title}
-
-                    </Text>
-
-
-
-                    <Text
-
-                      style={styles.historyItemMeta}
-
-                      numberOfLines={2}
-
-                    >
-
-                      {item.businessName}
-
-                      {item.regions.length > 0
-
-                        ? ` · ${item.regions.join(
-
-                            ', ',
-
-                          )}`
-
-                        : ''}
-
-                    </Text>
-
-
-
-                    <Text
-
-                      style={styles.historyDate}
-
-                    >
-
-                      {formatHistoryDate(
-
-                        item.createdAt,
-
-                      )}
-
-                    </Text>
-
-                  </TouchableOpacity>
-
-                ))}
-
-            </ScrollView>
-
-          </Pressable>
-
-        </Pressable>
-
-      </Modal>
-
-    </KeyboardAvoidingView>
-
-  );
+  );
 
 }
 
-
-
 const styles = StyleSheet.create({
 
-  screen: {
+  screen: {
 
-    flex: 1,
+    flex: 1,
 
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F8FAF9',
 
-  },
+  },
 
-  header: {
+  header: {
 
-    minHeight: 68,
+    minHeight: 68,
 
-    paddingHorizontal: 20,
+    paddingHorizontal: 20,
 
-    flexDirection: 'row',
+    flexDirection: 'row',
 
-    alignItems: 'center',
+    alignItems: 'center',
 
-    gap: 10,
+    gap: 10,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-    borderBottomWidth: 1,
+    borderBottomWidth: 1,
 
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#E5E7EB',
 
-  },
+  },
 
-  backButton: {
+  backButton: {
 
-    width: 36,
+    width: 36,
 
-    height: 36,
+    height: 36,
 
-    alignItems: 'center',
+    alignItems: 'center',
 
-    justifyContent: 'center',
+    justifyContent: 'center',
 
-  },
+  },
 
-  backIcon: {
+  backIcon: {
 
-    fontSize: 32,
+    fontSize: 32,
 
-    lineHeight: 34,
+    lineHeight: 34,
 
-    color: '#111827',
+    color: '#111827',
 
-  },
+  },
 
-  headerTextArea: {
+  headerTextArea: {
 
-    flex: 1,
+    flex: 1,
 
-  },
+  },
 
-  headerTitle: {
+  headerTitle: {
 
-    fontSize: 17,
+    fontSize: 17,
 
-    fontWeight: '700',
+    fontWeight: '700',
 
-    color: '#111827',
+    color: '#111827',
 
-  },
+  },
 
-  headerSubtitle: {
+  headerSubtitle: {
 
-    marginTop: 2,
+    marginTop: 2,
 
-    fontSize: 12,
+    fontSize: 12,
 
-    color: '#6B7280',
+    color: '#6B7280',
 
-  },
+  },
 
-  messages: {
+  messages: {
 
-    flex: 1,
+    flex: 1,
 
-  },
+  },
 
-  messagesContent: {
+  messagesContent: {
 
-    paddingHorizontal: 18,
+    paddingHorizontal: 18,
 
-    paddingTop: 18,
+    paddingTop: 18,
 
-    paddingBottom: 28,
+    paddingBottom: 28,
 
-  },
+  },
 
-  contextSection: {
+  contextSection: {
 
-    marginBottom: 14,
+    marginBottom: 14,
 
-    padding: 16,
+    padding: 16,
 
-    borderRadius: 16,
+    borderRadius: 16,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#E5E7EB',
+    borderColor: '#E5E7EB',
 
-  },
+  },
 
-  contextTopRow: {
+  contextTopRow: {
 
-    flexDirection: 'row',
+    flexDirection: 'row',
 
-    alignItems: 'center',
+    alignItems: 'center',
 
-    gap: 12,
+    gap: 12,
 
-  },
+  },
 
-  contextTextArea: {
+  contextTextArea: {
 
-    flex: 1,
+    flex: 1,
 
-  },
+  },
 
-  contextSectionTitle: {
+  contextSectionTitle: {
 
-    fontSize: 14,
+    fontSize: 14,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#111827',
+    color: '#111827',
 
-  },
+  },
 
-  contextSectionDescription: {
+  contextSectionDescription: {
 
-    marginTop: 4,
+    marginTop: 4,
 
-    fontSize: 11,
+    fontSize: 11,
 
-    lineHeight: 16,
+    lineHeight: 16,
 
-    color: '#6B7280',
+    color: '#6B7280',
 
-  },
+  },
 
-  historyButton: {
+  historyButton: {
 
-    minHeight: 38,
+    minHeight: 38,
 
-    paddingHorizontal: 13,
+    paddingHorizontal: 13,
 
-    alignItems: 'center',
+    alignItems: 'center',
 
-    justifyContent: 'center',
+    justifyContent: 'center',
 
-    borderRadius: 12,
+    borderRadius: 12,
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#25824A',
 
-  },
+  },
 
-  historyButtonText: {
+  historyButtonText: {
 
-    fontSize: 11,
+    fontSize: 11,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#FFFFFF',
+    color: '#FFFFFF',
 
-  },
+  },
 
-  selectedHistoryCard: {
+  selectedHistoryCard: {
 
-    marginTop: 13,
+    marginTop: 13,
 
-    padding: 12,
+    padding: 12,
 
-    borderRadius: 12,
+    borderRadius: 12,
 
-    backgroundColor: '#F3FBF5',
+    backgroundColor: '#F3FBF5',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#CDEED7',
+    borderColor: '#CDEED7',
 
-    flexDirection: 'row',
+    flexDirection: 'row',
 
-    alignItems: 'center',
+    alignItems: 'center',
 
-    gap: 10,
+    gap: 10,
 
-  },
+  },
 
-  selectedHistoryTextArea: {
+  selectedHistoryTextArea: {
 
-    flex: 1,
+    flex: 1,
 
-  },
+  },
 
-  selectedHistoryActions: {
+  selectedHistoryActions: {
 
-    alignItems: 'flex-end',
+    alignItems: 'flex-end',
 
-    gap: 7,
+    gap: 7,
 
-  },
+  },
 
-  compareButton: {
+  compareButton: {
 
-    paddingHorizontal: 10,
+    paddingHorizontal: 10,
 
-    paddingVertical: 7,
+    paddingVertical: 7,
 
-    borderRadius: 9,
+    borderRadius: 9,
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#25824A',
 
-  },
+  },
 
-  compareButtonText: {
+  compareButtonText: {
 
-    fontSize: 10,
+    fontSize: 10,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#FFFFFF',
+    color: '#FFFFFF',
 
-  },
+  },
 
-  compareStatusCard: {
+  compareStatusCard: {
 
-    marginTop: 10,
+    marginTop: 10,
 
-    padding: 10,
+    padding: 10,
 
-    borderRadius: 10,
+    borderRadius: 10,
 
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F8FAF9',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#E5E7EB',
+    borderColor: '#E5E7EB',
 
-  },
+  },
 
-  compareStatusLabel: {
+  compareStatusLabel: {
 
-    fontSize: 9,
+    fontSize: 9,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#6B7280',
+    color: '#6B7280',
 
-  },
+  },
 
-  compareStatusText: {
+  compareStatusText: {
 
-    marginTop: 3,
+    marginTop: 3,
 
-    fontSize: 11,
+    fontSize: 11,
 
-    fontWeight: '700',
+    fontWeight: '700',
 
-    color: '#374151',
+    color: '#374151',
 
-  },
+  },
 
-  selectedHistoryBadge: {
+  selectedHistoryBadge: {
 
-    fontSize: 10,
+    fontSize: 10,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#25824A',
+    color: '#25824A',
 
-  },
+  },
 
-  selectedHistoryTitle: {
+  selectedHistoryTitle: {
 
-    marginTop: 3,
+    marginTop: 3,
 
-    fontSize: 13,
+    fontSize: 13,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#111827',
+    color: '#111827',
 
-  },
+  },
 
-  selectedHistoryMeta: {
+  selectedHistoryMeta: {
 
-    marginTop: 3,
+    marginTop: 3,
 
-    fontSize: 10,
+    fontSize: 10,
 
-    lineHeight: 15,
+    lineHeight: 15,
 
-    color: '#6B7280',
+    color: '#6B7280',
 
-  },
+  },
 
-  contextClearButton: {
+  contextClearButton: {
 
-    paddingHorizontal: 10,
+    paddingHorizontal: 10,
 
-    paddingVertical: 7,
+    paddingVertical: 7,
 
-    borderRadius: 9,
+    borderRadius: 9,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#DCE8DF',
+    borderColor: '#DCE8DF',
 
-  },
+  },
 
-  contextClearText: {
+  contextClearText: {
 
-    fontSize: 10,
+    fontSize: 10,
 
-    fontWeight: '700',
+    fontWeight: '700',
 
-    color: '#6B7280',
+    color: '#6B7280',
 
-  },
+  },
 
-  suggestedSection: {
+  suggestedSection: {
 
-    marginBottom: 22,
+    marginBottom: 22,
 
-    padding: 16,
+    padding: 16,
 
-    borderRadius: 16,
+    borderRadius: 16,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#E5E7EB',
+    borderColor: '#E5E7EB',
 
-  },
+  },
 
-  suggestedTitle: {
+  suggestedTitle: {
 
-    fontSize: 14,
+    fontSize: 14,
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#111827',
+    color: '#111827',
 
-  },
+  },
 
-  suggestedDescription: {
+  suggestedDescription: {
 
-    marginTop: 4,
+    marginTop: 4,
 
-    marginBottom: 12,
+    marginBottom: 12,
 
-    fontSize: 12,
+    fontSize: 12,
 
-    lineHeight: 17,
+    lineHeight: 17,
 
-    color: '#6B7280',
+    color: '#6B7280',
 
-  },
+  },
 
-  suggestedWrap: {
+  suggestedWrap: {
 
-    flexDirection: 'row',
+    flexDirection: 'row',
 
-    flexWrap: 'wrap',
+    flexWrap: 'wrap',
 
-    gap: 8,
+    gap: 8,
 
-  },
+  },
 
-  suggestedChip: {
+  suggestedChip: {
 
-    maxWidth: '100%',
+    maxWidth: '100%',
 
-    paddingHorizontal: 12,
+    paddingHorizontal: 12,
 
-    paddingVertical: 9,
+    paddingVertical: 9,
 
-    borderRadius: 999,
+    borderRadius: 999,
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#CDEED7',
+    borderColor: '#CDEED7',
 
-    backgroundColor: '#F3FBF5',
+    backgroundColor: '#F3FBF5',
 
-  },
+  },
 
-  suggestedChipText: {
+  suggestedChipText: {
 
-    fontSize: 12,
+    fontSize: 12,
 
-    lineHeight: 17,
+    lineHeight: 17,
 
-    fontWeight: '700',
+    fontWeight: '700',
 
-    color: '#25824A',
+    color: '#25824A',
 
-  },
+  },
 
-  messageRow: {
+  messageRow: {
 
-    width: '100%',
+    width: '100%',
 
-    marginBottom: 18,
+    marginBottom: 18,
 
-    flexDirection: 'row',
+    flexDirection: 'row',
 
-    alignItems: 'flex-end',
+    alignItems: 'flex-end',
 
-  },
+  },
 
-  userMessageRow: {
+  userMessageRow: {
 
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-end',
 
-  },
+  },
 
-  assistantMessageRow: {
+  assistantMessageRow: {
 
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-start',
 
-  },
+  },
 
-  aiAvatar: {
+  aiAvatar: {
 
-    width: 36,
+    width: 36,
 
-    height: 36,
+    height: 36,
 
-    marginRight: 9,
+    marginRight: 9,
 
-  },
+  },
 
-  bubble: {
+  bubble: {
 
-    maxWidth: '88%',
+    maxWidth: '88%',
 
-    paddingHorizontal: 16,
+    paddingHorizontal: 16,
 
-    paddingVertical: 14,
+    paddingVertical: 14,
 
-    borderRadius: 18,
+    borderRadius: 18,
 
-  },
+  },
 
-  userBubble: {
+  userBubble: {
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#25824A',
 
-    borderBottomRightRadius: 5,
+    borderBottomRightRadius: 5,
 
-  },
+  },
 
-  assistantBubble: {
+  assistantBubble: {
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#DFE8E2',
+    borderColor: '#DFE8E2',
 
-    borderBottomLeftRadius: 5,
+    borderBottomLeftRadius: 5,
 
-  },
+  },
 
-  messageText: {
+  messageText: {
 
-    fontSize: 14,
+    fontSize: 14,
 
-    lineHeight: 21,
+    lineHeight: 21,
 
-  },
+  },
 
-  userMessageText: {
+  userMessageText: {
 
-    color: '#FFFFFF',
+    color: '#FFFFFF',
 
-  },
+  },
 
-  assistantMessageText: {
+  assistantMessageText: {
 
-    color: '#1F2937',
+    color: '#1F2937',
 
-  },
+  },
 
-  markdownContainer: {
+  markdownContainer: {
 
-    width: '100%',
+    width: '100%',
 
-  },
+  },
 
-  markdownHeading: {
+  markdownHeading: {
 
-    marginTop: 4,
+    marginTop: 4,
 
-    marginBottom: 8,
+    marginBottom: 8,
 
-    fontSize: 15,
+    fontSize: 15,
 
-    lineHeight: 22,
+    lineHeight: 22,
 
-    fontWeight: '900',
+    fontWeight: '900',
 
-    color: '#1F2937',
+    color: '#1F2937',
 
-  },
+  },
 
-  markdownParagraph: {
+  markdownParagraph: {
 
-    marginBottom: 7,
+    marginBottom: 7,
 
-    fontSize: 14,
+    fontSize: 14,
 
-    lineHeight: 22,
+    lineHeight: 22,
 
-    color: '#263238',
+    color: '#263238',
 
-  },
+  },
 
-  markdownStrong: {
+  markdownStrong: {
 
-    fontWeight: '800',
+    fontWeight: '800',
 
-    color: '#1F2937',
+    color: '#1F2937',
 
-  },
+  },
 
-  markdownKeyword: {
+  markdownKeyword: {
 
-    fontWeight: '900',
+    fontWeight: '900',
 
-    color: '#25824A',
+    color: '#25824A',
 
-  },
+  },
 
-  checklistRow: {
+  checklistRow: {
 
-    flexDirection: 'row',
+    flexDirection: 'row',
 
-    alignItems: 'flex-start',
+    alignItems: 'flex-start',
 
-    marginBottom: 8,
+    marginBottom: 8,
 
-    paddingHorizontal: 10,
+    paddingHorizontal: 10,
 
-    paddingVertical: 9,
+    paddingVertical: 9,
 
-    borderRadius: 10,
+    borderRadius: 10,
 
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F8FAF9',
 
-    borderWidth: 1,
+    borderWidth: 1,
 
-    borderColor: '#E5E7EB',
+    borderColor: '#E5E7EB',
 
-  },
+  },
 
-  checklistRowChecked: {
+  checklistRowChecked: {
 
-    backgroundColor: '#F3F8F4',
+    backgroundColor: '#F3F8F4',
 
-    borderColor: '#D7E8DB',
+    borderColor: '#D7E8DB',
 
-  },
+  },
 
-  checklistRowCompact: {
+  checklistRowCompact: {
 
-    marginLeft: 18,
+    marginLeft: 18,
 
-    marginBottom: 6,
+    marginBottom: 6,
 
-    paddingHorizontal: 8,
+    paddingHorizontal: 8,
 
-    paddingVertical: 7,
+    paddingVertical: 7,
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-    borderColor: '#EEF1EF',
+    borderColor: '#EEF1EF',
 
-  },
+  },
 
-  checklistBox: {
+  checklistBox: {
 
-    width: 20,
+    width: 20,
 
-    height: 20,
+    height: 20,
 
-    marginTop: 1,
+    marginTop: 1,
 
-    marginRight: 10,
+    marginRight: 10,
 
-    borderRadius: 5,
+    borderRadius: 5,
 
-    borderWidth: 1.5,
+    borderWidth: 1.5,
 
-    borderColor: '#AAB4AE',
+    borderColor: '#AAB4AE',
 
-    alignItems: 'center',
+    alignItems: 'center',
 
-    justifyContent: 'center',
+    justifyContent: 'center',
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
 
-  },
+  },
 
-  checklistBoxChecked: {
+  checklistBoxChecked: {
 
-    borderColor: '#25824A',
+    borderColor: '#25824A',
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#25824A',
 
-  },
+  },
 
-  checklistBoxCompact: {
+  checklistBoxCompact: {
 
-    width: 17,
+    width: 17,
 
-    height: 17,
+    height: 17,
 
-    marginTop: 2,
+    marginTop: 2,
 
-    marginRight: 8,
+    marginRight: 8,
 
-    borderRadius: 4,
+    borderRadius: 4,
 
-  },
+  },
 
-  checklistCheck: {
+  checklistCheck: {
 
-    fontSize: 13,
+    fontSize: 13,
 
-    lineHeight: 15,
+    lineHeight: 15,
 
-    fontWeight: '900',
+    fontWeight: '900',
 
-    color: '#FFFFFF',
+    color: '#FFFFFF',
 
-  },
+  },
 
-  checklistText: {
+  checklistText: {
 
-    flex: 1,
+    flex: 1,
 
-    fontSize: 14,
+    fontSize: 14,
 
-    lineHeight: 21,
+    lineHeight: 21,
 
-    color: '#263238',
+    color: '#263238',
 
-  },
+  },
 
-  checklistTextChecked: {
+  checklistTextChecked: {
 
-    color: '#8A938E',
+    color: '#8A938E',
 
-    textDecorationLine: 'line-through',
+    textDecorationLine: 'line-through',
 
-  },
+  },
 
-  checklistTextCompact: {
+  checklistTextCompact: {
 
-    fontSize: 13,
+    fontSize: 13,
 
-    lineHeight: 20,
+    lineHeight: 20,
 
-    fontWeight: '500',
+    fontWeight: '500',
 
-  },
+  },
 
+  markdownDivider: {
 
+    height: 1,
 
-  markdownDivider: {
+    marginVertical: 12,
 
-    height: 1,
+    backgroundColor: '#E3EAE5',
 
-    marginVertical: 12,
+  },
 
-    backgroundColor: '#E3EAE5',
+  markdownSpacer: {
 
-  },
+    height: 5,
 
-  markdownSpacer: {
+  },
 
-    height: 5,
+  markdownBulletRow: {
 
-  },
+    flexDirection: 'row',
 
-  markdownBulletRow: {
+    alignItems: 'flex-start',
 
-    flexDirection: 'row',
+    marginBottom: 7,
 
-    alignItems: 'flex-start',
+    paddingRight: 4,
 
-    marginBottom: 7,
+  },
 
-    paddingRight: 4,
+  markdownBulletDot: {
 
-  },
+    width: 5,
 
-  markdownBulletDot: {
+    height: 5,
 
-    width: 5,
+    marginTop: 8,
 
-    height: 5,
+    marginRight: 9,
 
-    marginTop: 8,
+    borderRadius: 3,
 
-    marginRight: 9,
+    backgroundColor: '#9CA3AF',
 
-    borderRadius: 3,
+  },
 
-    backgroundColor: '#9CA3AF',
+  markdownBulletText: {
 
-  },
+    flex: 1,
 
-  markdownBulletText: {
+    fontSize: 14,
 
-    flex: 1,
+    lineHeight: 22,
 
-    fontSize: 14,
+    color: '#263238',
 
-    lineHeight: 22,
+  },
 
-    color: '#263238',
+  markdownNumberRow: {
 
-  },
+    flexDirection: 'row',
 
-  markdownNumberRow: {
+    alignItems: 'flex-start',
 
-    flexDirection: 'row',
+    marginBottom: 9,
 
-    alignItems: 'flex-start',
+  },
 
-    marginBottom: 9,
+  markdownNumberBadge: {
 
-  },
+    width: 22,
 
-  markdownNumberBadge: {
+    height: 22,
 
-    width: 22,
+    marginTop: 1,
 
-    height: 22,
+    marginRight: 9,
 
-    marginTop: 1,
+    borderRadius: 11,
 
-    marginRight: 9,
+    alignItems: 'center',
 
-    borderRadius: 11,
+    justifyContent: 'center',
 
-    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
 
-    justifyContent: 'center',
+  },
 
-    backgroundColor: '#F3F4F6',
+  markdownNumberText: {
 
-  },
+    fontSize: 11,
 
-  markdownNumberText: {
+    fontWeight: '900',
 
-    fontSize: 11,
+    color: '#6B7280',
 
-    fontWeight: '900',
+  },
 
-    color: '#6B7280',
+  markdownNumberContent: {
 
-  },
+    flex: 1,
 
-  markdownNumberContent: {
+    fontSize: 14,
 
-    flex: 1,
+    lineHeight: 22,
 
-    fontSize: 14,
+    color: '#263238',
 
-    lineHeight: 22,
+  },
 
-    color: '#263238',
+  loadingRow: {
 
-  },
+    flexDirection: 'row',
 
-  loadingRow: {
+    alignItems: 'flex-end',
 
-    flexDirection: 'row',
+    marginBottom: 18,
 
-    alignItems: 'flex-end',
+  },
 
-    marginBottom: 18,
+  loadingBubble: {
 
-  },
+    flexDirection: 'row',
 
-  loadingBubble: {
+    alignItems: 'center',
 
-    flexDirection: 'row',
+    gap: 8,
 
-    alignItems: 'center',
+    paddingHorizontal: 15,
 
-    gap: 8,
+    paddingVertical: 12,
 
-    paddingHorizontal: 15,
+    borderRadius: 18,
 
-    paddingVertical: 12,
+    borderBottomLeftRadius: 5,
 
-    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
 
-    borderBottomLeftRadius: 5,
+    borderWidth: 1,
 
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
 
-    borderWidth: 1,
+  },
 
-    borderColor: '#E5E7EB',
+  loadingText: {
 
-  },
+    fontSize: 13,
 
-  loadingText: {
+    color: '#6B7280',
 
-    fontSize: 13,
+  },
 
-    color: '#6B7280',
+  inputArea: {
 
-  },
+    paddingHorizontal: 16,
 
-  inputArea: {
+    paddingTop: 10,
 
-    paddingHorizontal: 16,
+    paddingBottom:
 
-    paddingTop: 10,
+      Platform.OS === 'ios'
 
-    paddingBottom:
+        ? 24
 
-      Platform.OS === 'ios'
+        : 14,
 
-        ? 24
+    backgroundColor: '#FFFFFF',
 
-        : 14,
+    borderTopWidth: 1,
 
-    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E5E7EB',
 
-    borderTopWidth: 1,
+  },
 
-    borderTopColor: '#E5E7EB',
+  inputContainer: {
 
-  },
+    flexDirection: 'row',
 
-  inputContainer: {
+    alignItems: 'flex-end',
 
-    flexDirection: 'row',
+    gap: 10,
 
-    alignItems: 'flex-end',
+    paddingLeft: 15,
 
-    gap: 10,
+    paddingRight: 7,
 
-    paddingLeft: 15,
+    paddingVertical: 7,
 
-    paddingRight: 7,
+    borderRadius: 20,
 
-    paddingVertical: 7,
+    backgroundColor: '#F3F4F6',
 
-    borderRadius: 20,
+  },
 
-    backgroundColor: '#F3F4F6',
+  input: {
 
-  },
+    flex: 1,
 
-  input: {
+    minHeight: 38,
 
-    flex: 1,
+    maxHeight: 110,
 
-    minHeight: 38,
+    paddingVertical: 8,
 
-    maxHeight: 110,
+    fontSize: 14,
 
-    paddingVertical: 8,
+    lineHeight: 20,
 
-    fontSize: 14,
+    color: '#111827',
 
-    lineHeight: 20,
+    outlineStyle: 'none',
 
-    color: '#111827',
+  } as any,
 
-    outlineStyle: 'none',
+  sendButton: {
 
-  } as any,
+    height: 38,
 
-  sendButton: {
+    paddingHorizontal: 16,
 
-    height: 38,
+    borderRadius: 19,
 
-    paddingHorizontal: 16,
+    alignItems: 'center',
 
-    borderRadius: 19,
+    justifyContent: 'center',
 
-    alignItems: 'center',
+    backgroundColor: '#25824A',
 
-    justifyContent: 'center',
+  },
 
-    backgroundColor: '#25824A',
+  sendButtonDisabled: {
 
-  },
+    opacity: 0.4,
 
-  sendButtonDisabled: {
+  },
 
-    opacity: 0.4,
+  sendButtonText: {
 
-  },
+    fontSize: 13,
 
-  sendButtonText: {
+    fontWeight: '700',
 
-    fontSize: 13,
+    color: '#FFFFFF',
 
-    fontWeight: '700',
+  },
 
-    color: '#FFFFFF',
+  modalBackdrop: {
 
-  },
+    flex: 1,
 
-  modalBackdrop: {
+    padding: 20,
 
-    flex: 1,
+    justifyContent: 'center',
 
-    padding: 20,
+    alignItems: 'center',
 
-    justifyContent: 'center',
+    backgroundColor:
 
-    alignItems: 'center',
+      'rgba(17, 24, 39, 0.35)',
 
-    backgroundColor:
+  },
 
-      'rgba(17, 24, 39, 0.35)',
+  modalCard: {
 
-  },
+    width: '100%',
 
-  modalCard: {
+    maxWidth: 520,
 
-    width: '100%',
+    maxHeight: '75%',
 
-    maxWidth: 520,
+    padding: 18,
 
-    maxHeight: '75%',
+    borderRadius: 20,
 
-    padding: 18,
+    backgroundColor: '#FFFFFF',
 
-    borderRadius: 20,
+  },
 
-    backgroundColor: '#FFFFFF',
+  modalHeader: {
 
-  },
+    flexDirection: 'row',
 
-  modalHeader: {
+    justifyContent: 'space-between',
 
-    flexDirection: 'row',
+    alignItems: 'flex-start',
 
-    justifyContent: 'space-between',
+    gap: 12,
 
-    alignItems: 'flex-start',
+    marginBottom: 14,
 
-    gap: 12,
+  },
 
-    marginBottom: 14,
+  modalTitle: {
 
-  },
+    fontSize: 17,
 
-  modalTitle: {
+    fontWeight: '900',
 
-    fontSize: 17,
+    color: '#111827',
 
-    fontWeight: '900',
+  },
 
-    color: '#111827',
+  modalDescription: {
 
-  },
+    marginTop: 4,
 
-  modalDescription: {
+    fontSize: 11,
 
-    marginTop: 4,
+    lineHeight: 16,
 
-    fontSize: 11,
+    color: '#6B7280',
 
-    lineHeight: 16,
+  },
 
-    color: '#6B7280',
+  modalCloseButton: {
 
-  },
+    width: 32,
 
-  modalCloseButton: {
+    height: 32,
 
-    width: 32,
+    borderRadius: 16,
 
-    height: 32,
+    alignItems: 'center',
 
-    borderRadius: 16,
+    justifyContent: 'center',
 
-    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
 
-    justifyContent: 'center',
+  },
 
-    backgroundColor: '#F3F4F6',
+  modalCloseText: {
 
-  },
+    marginTop: -2,
 
-  modalCloseText: {
+    fontSize: 22,
 
-    marginTop: -2,
+    color: '#6B7280',
 
-    fontSize: 22,
+  },
 
-    color: '#6B7280',
+  historyLoading: {
 
-  },
+    paddingVertical: 34,
 
-  historyLoading: {
+    alignItems: 'center',
 
-    paddingVertical: 34,
+    justifyContent: 'center',
 
-    alignItems: 'center',
+    gap: 10,
 
-    justifyContent: 'center',
+  },
 
-    gap: 10,
+  historyLoadingText: {
 
-  },
+    fontSize: 12,
 
-  historyLoadingText: {
+    color: '#6B7280',
 
-    fontSize: 12,
+  },
 
-    color: '#6B7280',
+  emptyHistory: {
 
-  },
+    paddingVertical: 36,
 
-  emptyHistory: {
+    paddingHorizontal: 18,
 
-    paddingVertical: 36,
+    alignItems: 'center',
 
-    paddingHorizontal: 18,
+  },
 
-    alignItems: 'center',
+  emptyHistoryTitle: {
 
-  },
+    fontSize: 14,
 
-  emptyHistoryTitle: {
+    fontWeight: '800',
 
-    fontSize: 14,
+    color: '#111827',
 
-    fontWeight: '800',
+  },
 
-    color: '#111827',
+  emptyHistoryDescription: {
 
-  },
+    marginTop: 7,
 
-  emptyHistoryDescription: {
+    fontSize: 11,
 
-    marginTop: 7,
+    lineHeight: 17,
 
-    fontSize: 11,
+    textAlign: 'center',
 
-    lineHeight: 17,
+    color: '#6B7280',
 
-    textAlign: 'center',
+  },
 
-    color: '#6B7280',
+  historyList: {
 
-  },
+    width: '100%',
 
-  historyList: {
+  },
 
-    width: '100%',
+  historyItem: {
 
-  },
+    marginBottom: 10,
 
-  historyItem: {
+    padding: 14,
 
-    marginBottom: 10,
+    borderRadius: 14,
 
-    padding: 14,
+    borderWidth: 1,
 
-    borderRadius: 14,
+    borderColor: '#E5E7EB',
 
-    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
 
-    borderColor: '#E5E7EB',
+  },
 
-    backgroundColor: '#FFFFFF',
+  historyItemSelected: {
 
-  },
+    borderColor: '#25824A',
 
-  historyItemSelected: {
+    backgroundColor: '#F3FBF5',
 
-    borderColor: '#25824A',
+  },
 
-    backgroundColor: '#F3FBF5',
+  historyItemTop: {
 
-  },
+    flexDirection: 'row',
 
-  historyItemTop: {
+    justifyContent: 'space-between',
 
-    flexDirection: 'row',
+    alignItems: 'center',
 
-    justifyContent: 'space-between',
+  },
 
-    alignItems: 'center',
+  historyType: {
 
-  },
+    fontSize: 10,
 
-  historyType: {
+    fontWeight: '800',
 
-    fontSize: 10,
+    color: '#25824A',
 
-    fontWeight: '800',
+  },
 
-    color: '#25824A',
+  favoriteMark: {
 
-  },
+    fontSize: 12,
 
-  favoriteMark: {
+    color: '#EAB308',
 
-    fontSize: 12,
+  },
 
-    color: '#EAB308',
+  historyItemTitle: {
 
-  },
+    marginTop: 5,
 
-  historyItemTitle: {
+    fontSize: 14,
 
-    marginTop: 5,
+    fontWeight: '800',
 
-    fontSize: 14,
+    color: '#111827',
 
-    fontWeight: '800',
+  },
 
-    color: '#111827',
+  historyItemMeta: {
 
-  },
+    marginTop: 4,
 
-  historyItemMeta: {
+    fontSize: 11,
 
-    marginTop: 4,
+    lineHeight: 16,
 
-    fontSize: 11,
+    color: '#6B7280',
 
-    lineHeight: 16,
+  },
 
-    color: '#6B7280',
+  historyDate: {
 
-  },
+    marginTop: 7,
 
-  historyDate: {
+    fontSize: 10,
 
-    marginTop: 7,
+    color: '#9CA3AF',
 
-    fontSize: 10,
-
-    color: '#9CA3AF',
-
-  },
+  },
 
 });
