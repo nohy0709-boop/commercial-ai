@@ -1,3 +1,4 @@
+import { GlossaryProvider, Term } from '@/components/Term';
 import { COLORS } from '@/constants/colors';
 import {
     addMonths,
@@ -353,6 +354,7 @@ export default function TrendSection({ areaName, businessName }: Props) {
   /* ----- 렌더 ----- */
 
   return (
+    <GlossaryProvider>
     <View style={styles.box}>
       <View style={styles.titleRow}>
         <Text style={styles.title}>상권 변화 추이</Text>
@@ -543,7 +545,9 @@ export default function TrendSection({ areaName, businessName }: Props) {
                     </View>
 
                     <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>평균 개업률</Text>
+                      <Text style={styles.summaryLabel}>
+                        평균 <Term k="openRate">개업률</Term>
+                      </Text>
                       <Text style={[styles.summaryValue, { color: OPEN_COLOR }]}>
                         {summary.avgOpen.toFixed(1)}%
                       </Text>
@@ -551,7 +555,9 @@ export default function TrendSection({ areaName, businessName }: Props) {
                     </View>
 
                     <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>평균 폐업률</Text>
+                      <Text style={styles.summaryLabel}>
+                        평균 <Term k="closeRate">폐업률</Term>
+                      </Text>
                       <Text style={[styles.summaryValue, { color: CLOSE_COLOR }]}>
                         {summary.avgClose.toFixed(1)}%
                       </Text>
@@ -600,15 +606,18 @@ export default function TrendSection({ areaName, businessName }: Props) {
               ) : null}
 
               <Text style={styles.footnote}>
-                개업·폐업은 상가 데이터에서 점포가 새로 생기거나 사라진 것을 비교한 추정치예요.
-                양도·이전·업종 변경은 개업과 폐업으로 함께 잡힐 수 있어요.
-                개업률·폐업률은 기간 시작 시점의 점포 수 대비 비율이에요.
+                개업·폐업은 상가 데이터에서 점포가 새로 생기거나 사라진 것을 비교한{' '}
+                <Term k="estimate">추정치</Term>예요.
+                양도·이전·업종 변경은 개업과 폐업으로 함께 잡힐 수 있어요.{' '}
+                <Term k="openRate">개업률</Term>·<Term k="closeRate">폐업률</Term>은 기간
+                시작 시점의 점포 수(<Term k="baseStoreCount">기초 점포 수</Term>) 대비 비율이에요.
               </Text>
             </>
           )}
         </>
       )}
     </View>
+    </GlossaryProvider>
   );
 }
 
