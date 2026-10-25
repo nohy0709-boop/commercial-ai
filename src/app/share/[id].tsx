@@ -93,8 +93,8 @@ const METRICS: MetricDefinition[] = [
 ];
 
 const NAVY = '#202544';
-const YELLOW = '#FFDA35';
-const LIGHT_YELLOW = '#FFF8DC';
+const YELLOW = '#F59E0B';
+const LIGHT_YELLOW = COLORS.warningLight;
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') {
@@ -158,7 +158,7 @@ function getMetricColor(
     return COLORS.textSecondary;
   }
 
-  return index % 2 === 0 ? NAVY : YELLOW;
+  return index % 2 === 0 ? '#202544' : '#F59E0B';
 }
 
 function getReportValue(
@@ -439,7 +439,7 @@ export default function SharedAnalysisScreen() {
               metric.type,
             );
 
-            const color = getMetricColor(index, value);
+           const color = index % 2 === 0 ? NAVY : YELLOW;
 
             const isPositiveRate =
               metric.type === 'percent' &&
@@ -641,7 +641,7 @@ export default function SharedAnalysisScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor:'#F7F9FE',
   },
 
   container: {
@@ -838,9 +838,9 @@ const styles = StyleSheet.create({
   },
 
   sectionCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E6ECF5',
     borderRadius: 22,
     padding: 20,
     marginBottom: 22,
@@ -865,164 +865,163 @@ const styles = StyleSheet.create({
   },
 
   metricCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 15,
-    padding: 16,
-  },
+  backgroundColor: '#FFFFFF',
+  borderBottomWidth: 1,
+  borderBottomColor: '#E9EDF5',
+  paddingVertical: 20,
+  paddingHorizontal: 0,
+},
 
-  metricHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+metricHeader: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+},
 
-  metricHeadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
+metricHeadingRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 9,
+},
 
-  metricAccent: {
-    width: 5,
-    height: 19,
-    borderRadius: 3,
-  },
+metricAccent: {
+  width: 4,
+  height: 18,
+  borderRadius: 3,
+},
 
-  metricTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: NAVY,
-  },
+metricTitle: {
+  fontSize: 15,
+  fontWeight: '900',
+  color: '#202544',
+},
 
-  metricDescription: {
-    marginTop: 9,
-    fontSize: 11,
-    lineHeight: 17,
-    color: COLORS.textSecondary,
-  },
+metricDescription: {
+  marginTop: 7,
+  fontSize: 11,
+  lineHeight: 17,
+  color: '#7C8798',
+},
 
-  metricValueRow: {
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
+metricValueRow: {
+  marginTop: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
 
-  metricValue: {
-    fontSize: 24,
-    fontWeight: '900',
-  },
+metricValue: {
+  fontSize: 18,
+  fontWeight: '900',
+},
 
-  rateInfo: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
+rateInfo: {
+  fontSize: 11,
+  fontWeight: '700',
+  color: '#7C8798',
+},
 
-  metricBottomLine: {
-    marginTop: 15,
-    height: 4,
-    width: '100%',
-    borderRadius: 999,
-    backgroundColor: COLORS.lightGray,
-    overflow: 'hidden',
-  },
+metricBottomLine: {
+  marginTop: 12,
+  height: 9,
+  width: '100%',
+  borderRadius: 10,
+  backgroundColor: '#E6ECF5',
+  overflow: 'hidden',
+},
 
-  metricBottomAccent: {
-    height: '100%',
-    width: '32%',
-    borderRadius: 999,
-  },
+metricBottomAccent: {
+  height: '100%',
+  width: '32%',
+  borderRadius: 10,
+},
 
-  dataNotice: {
-    fontSize: 11,
-    lineHeight: 18,
-    color: COLORS.textSecondary,
-    marginTop: 18,
-  },
+dataNotice: {
+  fontSize: 11,
+  lineHeight: 18,
+  color: COLORS.textSecondary,
+  marginTop: 18,
+},
 
-  aiBlock: {
-    marginBottom: 17,
-  },
+aiBlock: {
+  marginBottom: 17,
+},
 
-  aiLabel: {
-    marginBottom: 8,
-    fontSize: 13,
-    fontWeight: '900',
-    color: NAVY,
-  },
+aiLabel: {
+  marginBottom: 8,
+  fontSize: 13,
+  fontWeight: '900',
+  color: NAVY,
+},
 
-  aiText: {
-    fontSize: 13,
-    lineHeight: 21,
-    color: COLORS.text,
-    flexShrink: 1,
-  },
+aiText: {
+  fontSize: 13,
+  lineHeight: 21,
+  color: COLORS.text,
+  flexShrink: 1,
+},
 
-  reasonBox: {
-    padding: 15,
-    backgroundColor: LIGHT_YELLOW,
-    borderRadius: 13,
-  },
+reasonBox: {
+  padding: 15,
+  backgroundColor: LIGHT_YELLOW,
+  borderRadius: 13,
+},
 
-  advantageBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: 14,
-    marginBottom: 7,
-    borderRadius: 12,
-    backgroundColor: '#F1FBF3',
-  },
+advantageBox: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  gap: 10,
+  padding: 14,
+  marginBottom: 7,
+  borderRadius: 12,
+  backgroundColor: '#F1FBF3',
+},
 
-  advantageIcon: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#278848',
-  },
+advantageIcon: {
+  fontSize: 17,
+  fontWeight: '900',
+  color: '#278848',
+},
 
-  riskBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: 14,
-    marginBottom: 7,
-    borderRadius: 12,
-    backgroundColor: LIGHT_YELLOW,
-  },
+riskBox: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  gap: 10,
+  padding: 14,
+  marginBottom: 7,
+  borderRadius: 12,
+  backgroundColor: LIGHT_YELLOW,
+},
 
-  riskIcon: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: NAVY,
-  },
+riskIcon: {
+  fontSize: 17,
+  fontWeight: '900',
+  color: NAVY,
+},
 
-  aiNeutralBox: {
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightGray,
-  },
+aiNeutralBox: {
+  padding: 14,
+  borderRadius: 12,
+  backgroundColor: COLORS.lightGray,
+},
 
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 25,
-    paddingHorizontal: 12,
-  },
+footer: {
+  alignItems: 'center',
+  paddingVertical: 25,
+  paddingHorizontal: 12,
+},
 
-  footerTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
+footerTitle: {
+  fontSize: 18,
+  fontWeight: '900',
+  color: COLORS.text,
+  marginBottom: 8,
+},
 
-  footerText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
+footerText: {
+  fontSize: 11,
+  color: COLORS.textSecondary,
+  textAlign: 'center',
+  lineHeight: 19,
+},
 });
