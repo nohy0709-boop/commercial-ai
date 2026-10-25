@@ -1,13 +1,13 @@
 import {
-    useMemo,
-    useState,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 import { WebView } from 'react-native-webview';
@@ -15,14 +15,11 @@ import { WebView } from 'react-native-webview';
 type Props = {
   latitude: number;
   longitude: number;
-
-  /**
-   * 카카오 JS SDK 키
-   * .env의 EXPO_PUBLIC_KAKAO_JS_KEY 사용
-   */
+  buildingName?: string;
+  address?: string;
   kakaoJsKey?: string;
-
   height?: number;
+  onClose?: () => void;
 };
 
 export default function BuildingRoadview({
@@ -116,7 +113,7 @@ export default function BuildingRoadview({
 <body>
   <div id="roadview"></div>
   <div id="message">
-    로드뷰를 불러오는 중입니다.
+    濡쒕뱶酉곕? 遺덈윭?ㅻ뒗 以묒엯?덈떎.
   </div>
 
   <script>
@@ -174,7 +171,7 @@ export default function BuildingRoadview({
           !window.kakao.maps
         ) {
           showMessage(
-            '카카오 지도 SDK를 불러오지 못했습니다.'
+            '移댁뭅??吏??SDK瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??'
           );
 
           sendMessage(
@@ -212,7 +209,7 @@ export default function BuildingRoadview({
               !panoId
             ) {
               showMessage(
-                '이 위치 주변에는 이용 가능한 로드뷰가 없습니다.'
+                '???꾩튂 二쇰??먮뒗 ?댁슜 媛?ν븳 濡쒕뱶酉곌? ?놁뒿?덈떎.'
               );
 
               sendMessage(
@@ -248,7 +245,7 @@ export default function BuildingRoadview({
             : String(error);
 
         showMessage(
-          '로드뷰를 불러오는 중 오류가 발생했습니다.'
+          '濡쒕뱶酉곕? 遺덈윭?ㅻ뒗 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
         );
 
         sendMessage(
@@ -272,7 +269,7 @@ export default function BuildingRoadview({
           : String(error);
 
       showMessage(
-        '카카오 지도 SDK 초기화에 실패했습니다.'
+        '移댁뭅??吏??SDK 珥덇린?붿뿉 ?ㅽ뙣?덉뒿?덈떎.'
       );
 
       sendMessage(
@@ -309,7 +306,7 @@ export default function BuildingRoadview({
             styles.errorTitle
           }
         >
-          카카오 지도 키가 없습니다.
+          移댁뭅??吏???ㅺ? ?놁뒿?덈떎.
         </Text>
 
         <Text
@@ -317,7 +314,7 @@ export default function BuildingRoadview({
             styles.errorText
           }
         >
-          .env의 EXPO_PUBLIC_KAKAO_JS_KEY를 확인해주세요.
+          .env??EXPO_PUBLIC_KAKAO_JS_KEY瑜??뺤씤?댁＜?몄슂.
         </Text>
       </View>
     );
@@ -337,8 +334,8 @@ export default function BuildingRoadview({
           html,
 
           /**
-           * Kakao JavaScript SDK의 도메인 검사 때문에
-           * baseUrl을 지정
+           * Kakao JavaScript SDK???꾨찓??寃???뚮Ц??
+           * baseUrl??吏??
            */
           baseUrl:
             'https://localhost',
@@ -385,7 +382,7 @@ export default function BuildingRoadview({
             const description =
               event.nativeEvent
                 .description ||
-              'WebView 오류가 발생했습니다.';
+              'WebView ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.';
 
             console.error(
               'Roadview WebView error:',
@@ -433,7 +430,7 @@ export default function BuildingRoadview({
                 );
 
                 console.log(
-                  '✅ 앱 로드뷰 로드 완료',
+                  '????濡쒕뱶酉?濡쒕뱶 ?꾨즺',
                   message.payload,
                 );
               }
@@ -447,7 +444,7 @@ export default function BuildingRoadview({
                 );
 
                 setError(
-                  '이 위치 주변에는 이용 가능한 로드뷰가 없습니다.',
+                  '???꾩튂 二쇰??먮뒗 ?댁슜 媛?ν븳 濡쒕뱶酉곌? ?놁뒿?덈떎.',
                 );
               }
 
@@ -463,11 +460,11 @@ export default function BuildingRoadview({
                   typeof message.payload ===
                     'string'
                     ? message.payload
-                    : '로드뷰를 불러오지 못했습니다.',
+                    : '濡쒕뱶酉곕? 遺덈윭?ㅼ? 紐삵뻽?듬땲??',
                 );
 
                 console.error(
-                  '로드뷰 내부 오류:',
+                  '濡쒕뱶酉??대? ?ㅻ쪟:',
                   message.payload,
                 );
               }
@@ -503,7 +500,7 @@ export default function BuildingRoadview({
               styles.loadingText
             }
           >
-            로드뷰를 불러오는 중...
+            濡쒕뱶酉곕? 遺덈윭?ㅻ뒗 以?..
           </Text>
         </View>
       )}
@@ -521,7 +518,7 @@ export default function BuildingRoadview({
               styles.errorTitle
             }
           >
-            로드뷰를 표시할 수 없어요
+            濡쒕뱶酉곕? ?쒖떆?????놁뼱??
           </Text>
 
           <Text
@@ -560,7 +557,7 @@ const styles =
     },
 
     loadingOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
 
       alignItems:
         'center',
@@ -585,7 +582,7 @@ const styles =
     },
 
     errorOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
 
       alignItems:
         'center',
