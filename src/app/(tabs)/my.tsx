@@ -18,7 +18,11 @@ import {
 
 import { getCurrentUser, signOut } from '@/services/auth';
 
-import { getStartupNeeds, StartupNeeds } from '@/services/startupNeeds';
+import {
+  getStartupNeeds,
+  getStartupNeedsProgress,
+  StartupNeeds,
+} from '@/services/startupNeeds';
 
 import { confirmDialog } from '@/utils/dialog';
 
@@ -293,6 +297,11 @@ export default function MyScreen() {
         )
         .slice(0, 3),
     [checklists],
+  );
+
+  const needsProgress = useMemo(
+    () => getStartupNeedsProgress(startupNeed),
+    [startupNeed],
   );
 
   const getGroupedChecklistItems = useCallback(
@@ -671,19 +680,43 @@ export default function MyScreen() {
 
             >
 
-              <Text style={styles.editButtonText}>수정</Text>
+              <Text style={styles.editButtonText}>다시 보기 · 수정</Text>
 
             </TouchableOpacity>
 
           </View>
 
+          {/* 진행 상태 표시 */}
+          <View style={styles.needProgressRow}>
+            <View style={styles.needProgressTrack}>
+              <View
+                style={[
+                  styles.needProgressFill,
+                  { width: `${needsProgress.percent}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.needProgressText}>
+              {needsProgress.completed}/{needsProgress.total}개 항목 작성 (
+              {needsProgress.percent}%)
+            </Text>
+          </View>
+
+          {!!startupNeed.updatedAt && (
+            <Text style={styles.needUpdatedAt}>
+              마지막 수정 {formatDate(startupNeed.updatedAt)}
+            </Text>
+          )}
+
           <View style={styles.needMainRow}>
 
             <View style={styles.needMainItem}>
 
-              <Text style={styles.needLabel}>희망 업종</Text>
+              <Text style={styles.needLabel}>준비 단계</Text>
 
-              <Text style={styles.needValue}>{startupNeed.businessType}</Text>
+              <Text style={styles.needValue}>
+                {startupNeed.startupStage || '미설정'}
+              </Text>
 
             </View>
 
@@ -691,7 +724,29 @@ export default function MyScreen() {
 
               <Text style={styles.needLabel}>예산</Text>
 
-              <Text style={styles.needValue}>{startupNeed.budget}</Text>
+              <Text style={styles.needValue}>
+                {startupNeed.budget || '미설정'}
+              </Text>
+
+            </View>
+
+          </View>
+
+          <View style={styles.needBlock}>
+
+            <Text style={styles.needLabel}>관심 업종</Text>
+
+            <View style={styles.chipRow}>
+
+              {startupNeed.businessTypes.length > 0 ? (
+                startupNeed.businessTypes.map(business => (
+                  <View key={business} style={styles.grayChip}>
+                    <Text style={styles.grayChipText}>{business}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.needText}>미설정</Text>
+              )}
 
             </View>
 
@@ -714,6 +769,28 @@ export default function MyScreen() {
               ))}
 
             </View>
+
+          </View>
+
+          <View style={styles.needBlock}>
+
+            <Text style={styles.needLabel}>창업 형태</Text>
+
+            <Text style={styles.needText}>
+              {startupNeed.startupType || '미설정'}
+            </Text>
+
+          </View>
+
+          <View style={styles.needBlock}>
+
+            <Text style={styles.needLabel}>보유 장소</Text>
+
+            <Text style={styles.needText}>
+              {startupNeed.hasLocation
+                ? startupNeed.locationAddress || '있음 (주소 미입력)'
+                : '없음 · 입지부터 탐색 중'}
+            </Text>
 
           </View>
 
@@ -746,6 +823,16 @@ export default function MyScreen() {
             <Text style={styles.needText}>{startupNeed.targetCustomer}</Text>
 
           </View>
+
+          <TouchableOpacity
+            style={styles.needCtaButton}
+            onPress={() => router.push('/market-analysis/industry')}
+          >
+            <Text style={styles.needCtaButtonText}>
+              이 조건으로 분석 시작하기
+            </Text>
+            <Text style={styles.needCtaArrow}>›</Text>
+          </TouchableOpacity>
 
         </View>
 
@@ -1564,13 +1651,43 @@ const styles = StyleSheet.create({
 
   },
 
+  needProgressRow: {
+    marginTop: 14,
+  },
+
+  needProgressTrack: {
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: '#F0E2A8',
+    overflow: 'hidden',
+  },
+
+  needProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: COLORS.primary,
+  },
+
+  needProgressText: {
+    marginTop: 6,
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+  },
+
+  needUpdatedAt: {
+    marginTop: 4,
+    fontSize: 10,
+    color: COLORS.textSecondary,
+  },
+
   needMainRow: {
 
     flexDirection: 'row',
 
     gap: 10,
 
-    marginTop: 8,
+    marginTop: 14,
 
   },
 
@@ -1706,6 +1823,29 @@ const styles = StyleSheet.create({
 
     color: COLORS.text,
 
+  },
+
+  needCtaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    marginTop: 20,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#1D2545',
+  },
+
+  needCtaButtonText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+
+  needCtaArrow: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 
   emptyNeedsCard: {

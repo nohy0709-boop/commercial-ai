@@ -2,11 +2,22 @@ import { supabase } from '@/lib/supabase';
 import { getCurrentUser } from '@/services/auth';
 
 export interface StartupNeeds {
+  /** 대표 업종 (관심 업종 중 첫 번째) - 기존 화면 호환용 */
   businessType: string;
+  /** 관심 업종 전체 목록 */
+  businessTypes: string[];
   budget: string;
   preferredAreas: string[];
   priorities: string[];
   targetCustomer: string;
+  /** 현재 창업 준비 단계 (예: 아이디어 탐색, 업종 결정 ...) */
+  startupStage: string;
+  /** 생각 중인 창업 형태 (개인 창업 / 프랜차이즈 / 아직 미정) */
+  startupType: string;
+  /** 보유한 점포/장소가 있는지 여부 */
+  hasLocation: boolean;
+  /** 보유한 장소의 주소 (hasLocation이 true일 때만 값이 있을 수 있음) */
+  locationAddress: string | null;
   updatedAt: string;
 }
 
@@ -93,6 +104,14 @@ function rangeToBudget(
 
 /**
  * 현재 사용자의 창업 니즈 조회
+ *
+ * needs-setup.tsx에서 services/userProfile.ts의 saveUserProfile()로
+ * 저장하는 user_profiles 테이블을 그대로 읽어온다.
+ *
+ * (이전엔 일부 필드만 선택해서 읽어와서,
+ *  질문지에서 입력한 준비 단계 / 창업 형태 / 보유 장소 /
+ *  복수 관심 업종 중 첫 번째 외의 나머지가 MY 페이지에
+ *  반영되지 않는 문제가 있었음 → 전체 필드로 확장)
  */
 export async function getStartupNeeds(): Promise<
   StartupNeeds | null
@@ -110,6 +129,10 @@ export async function getStartupNeeds(): Promise<
         interested_regions,
         priority_factors,
         target_customer,
+        startup_stage,
+        startup_type,
+        has_location,
+        location_address,
         setup_completed,
         updated_at
         `,
@@ -149,6 +172,7 @@ export async function getStartupNeeds(): Promise<
 
     return {
       businessType: businesses[0] ?? '',
+      businessTypes: businesses,
 
       budget: rangeToBudget(
         data.budget_min,
@@ -161,6 +185,18 @@ export async function getStartupNeeds(): Promise<
 
       targetCustomer:
         data.target_customer ?? '',
+
+      startupStage:
+        data.startup_stage ?? '',
+
+      startupType:
+        data.startup_type ?? '',
+
+      hasLocation:
+        data.has_location === true,
+
+      locationAddress:
+        data.location_address ?? null,
 
       updatedAt:
         data.updated_at ??
@@ -181,9 +217,20 @@ export async function getStartupNeeds(): Promise<
  *
  * AsyncStorage가 아니라
  * Supabase user_profiles에 저장
+ *
+ * 참고: 실제 질문지(needs-setup.tsx)는 이 함수가 아니라
+ * services/userProfile.ts의 saveUserProfile()을 직접 호출한다.
+ * 이 함수는 (혹시 다른 곳에서 쓰고 있을 수 있는) 기존 호출부와의
+ * 호환을 위해 시그니처를 그대로 유지했다.
  */
 export async function saveStartupNeeds(
-  data: Omit<StartupNeeds, 'updatedAt'>,
+  data: {
+    businessType: string;
+    budget: string;
+    preferredAreas: string[];
+    priorities: string[];
+    targetCustomer: string;
+  },
 ): Promise<StartupNeeds> {
   const user = await getUser();
 
@@ -241,6 +288,11 @@ export async function saveStartupNeeds(
 
   return {
     ...data,
+    businessTypes: [data.businessType],
+    startupStage: '',
+    startupType: '',
+    hasLocation: false,
+    locationAddress: null,
     updatedAt: now,
   };
 }
@@ -267,6 +319,41 @@ export async function getStartupNeedsHistory(): Promise<
       createdAt: needs.updatedAt,
     },
   ];
+}
+
+/**
+ * 창업 니즈 설정 진행률
+ *
+ * 질문지의 핵심 항목 8개 중 몇 개를 채웠는지 계산해서
+ * MY 페이지의 진행 상태 표시에 사용한다.
+ */
+export function getStartupNeedsProgress(
+  needs: StartupNeeds | null,
+): { completed: number; total: number; percent: number } {
+  const total = 8;
+
+  if (!needs) {
+    return { completed: 0, total, percent: 0 };
+  }
+
+  const checks = [
+    !!needs.startupStage,
+    needs.businessTypes.length > 0,
+    !!needs.budget,
+    needs.preferredAreas.length > 0,
+    !!needs.startupType,
+    needs.priorities.length > 0,
+    !!needs.targetCustomer,
+    needs.hasLocation === true || needs.hasLocation === false,
+  ];
+
+  const completed = checks.filter(Boolean).length;
+
+  return {
+    completed,
+    total,
+    percent: Math.round((completed / total) * 100),
+  };
 }
 
 /**
