@@ -7,9 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 1;
+const GEMINI_TIMEOUT_MS = 20000;
 
 type ChatHistoryItem = {
   role: "user" | "assistant";
@@ -212,6 +213,7 @@ async function requestGemini(
     attempt <= MAX_RETRIES;
     attempt += 1
   ) {
+    const startedAt = Date.now();
     try {
       const response =
         await fetch(
@@ -224,8 +226,15 @@ async function requestGemini(
             },
             body:
               JSON.stringify(body),
+            signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
           },
         );
+
+      console.info("Gemini API response", {
+        attempt: attempt + 1,
+        status: response.status,
+        elapsedMs: Date.now() - startedAt,
+      });
 
       const rawText =
         await response.text();
@@ -306,7 +315,10 @@ async function requestGemini(
 
       console.error(
         `Gemini 네트워크 오류 (${attempt + 1}/${MAX_RETRIES + 1})`,
-        error,
+        {
+          elapsedMs: Date.now() - startedAt,
+          error: lastMessage,
+        },
       );
 
       if (
