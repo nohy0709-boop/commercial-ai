@@ -30,8 +30,6 @@ import { getStoreList } from '@/services/storeApi';
 
 import {
   exportAnalysisReportPdf,
-
-  shareAnalysisReportPdf,
 } from '@/services/pdfExport';
 
 import {
@@ -956,67 +954,38 @@ export default function RegionResultDetailScreen() {
   };
 
   const handleSharePdf = async () => {
-
-    if (pdfAction) {
-
-      return;
-
-    }
+    if (pdfAction) return;
 
     try {
-
       setPdfAction('share');
 
-      if (Platform.OS === 'web') {
-
-        const { url } = await createSharedAnalysis(getPdfReportData());
-
-        const result = await sharePublicAnalysisLink(
-
-          url,
-
-          `${areaName} ${businessName} 상권 분석`,
-
-          `${areaName} ${businessName} 분석 결과를 확인해보세요.`,
-
-        );
-
-        if (result === 'copied') {
-
-          Alert.alert(
-
-            '링크 복사 완료',
-
-            '공유 링크를 복사했어요. 카카오톡이나 메신저에 붙여넣으면 바로 열 수 있는 링크로 전송됩니다.',
-
-          );
-
-        }
-
-        return;
-
-      }
-
-      await shareAnalysisReportPdf(getPdfReportData());
-
-    } catch (error) {
-
-      console.error('공유 실패:', error);
-
-      Alert.alert(
-
-        '공유 실패',
-
-        error instanceof Error ? error.message : '분석 결과를 공유하지 못했습니다.',
-
+      const { url } = await createSharedAnalysis(getPdfReportData());
+      const result = await sharePublicAnalysisLink(
+        url,
+        `${areaName} ${businessName} 상권 분석`,
+        `${areaName} ${businessName} 분석 결과를 확인해보세요.`,
       );
 
+      if (result === 'copied') {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('공유 링크가 복사되었습니다.');
+        } else {
+          Alert.alert('링크 복사 완료', '공유 링크가 복사되었습니다.');
+        }
+      }
+
+      if (result === 'unsupported') {
+        Alert.alert('공유 불가', '현재 환경에서는 공유 기능을 지원하지 않습니다.');
+      }
+    } catch (error) {
+      console.error('공유 실패:', error);
+      Alert.alert(
+        '공유 실패',
+        error instanceof Error ? error.message : '분석 결과를 공유하지 못했습니다.',
+      );
     } finally {
-
       setPdfAction(null);
-
     }
-
   };
 
   const handleCreateChecklist =
@@ -1843,11 +1812,7 @@ export default function RegionResultDetailScreen() {
 
               <Text style={styles.reportActionDescription}>
 
-                {Platform.OS === 'web'
-
-                  ? '클릭 가능한 공유 링크를 만들어요'
-
-                  : 'PDF 파일을 다른 앱으로 보내요'}
+                웹과 휴대폰에서 분석 링크를 공유해요
 
               </Text>
 
