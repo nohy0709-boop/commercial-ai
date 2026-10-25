@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants/colors';
+import { useResponsive } from '@/hooks/useResponsive';
 
 import {
   AnalysisHistoryItem,
@@ -174,7 +175,7 @@ function getChecklistPlace(text: string) {
 }
 
 export default function MyScreen() {
-
+  const { frameMaxWidth, horizontalPadding } = useResponsive();
   const router = useRouter();
 
   const [histories, setHistories] = useState<AnalysisHistoryItem[]>([]);
@@ -618,15 +619,18 @@ export default function MyScreen() {
   }
 
   return (
-
     <ScrollView
-
       style={styles.screen}
-
-      contentContainerStyle={styles.container}
-
+      contentContainerStyle={[
+        styles.container,
+        {
+          width: '100%',
+          maxWidth: frameMaxWidth,
+          alignSelf: 'center',
+          paddingHorizontal: horizontalPadding,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
-
     >
 
       <View style={styles.profileHeader}>

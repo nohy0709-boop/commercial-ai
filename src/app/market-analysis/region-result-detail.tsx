@@ -11,8 +11,6 @@ import {
   saveAnalysis,
   toggleAnalysisFavorite,
 } from '@/services/analysisHistory';
-import type { NearbyStore } from '@/services/storeApi';
-import { getStoreList } from '@/services/storeApi';
 import {
   exportAnalysisReportPdf,
   shareAnalysisReportPdf,
@@ -21,6 +19,8 @@ import {
   createSharedAnalysis,
   sharePublicAnalysisLink,
 } from '@/services/shareAnalysis';
+import type { NearbyStore } from '@/services/storeApi';
+import { getStoreList } from '@/services/storeApi';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -668,7 +668,7 @@ export default function RegionResultDetailScreen() {
           onPress={handleOpenChat}
         >
           <Image
-            source={require('../../../assets/images/chatbot-question-map.png')}
+            source={require('../../../assets/images/chatbot-question-map-red.png')}
             style={styles.chatImageIcon}
             resizeMode="contain"
           />
