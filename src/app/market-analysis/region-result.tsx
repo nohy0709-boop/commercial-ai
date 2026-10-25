@@ -446,7 +446,7 @@ export default function RegionResultScreen() {
 
     detailedLocations:
 
-      detailedLocationsParam,
+    detailedLocationsParam,
 
   } =
 
@@ -586,9 +586,9 @@ export default function RegionResultScreen() {
 
         ? areas
 
-            .split(',')
+          .split(',')
 
-            .filter(Boolean)
+          .filter(Boolean)
 
         : [];
 
@@ -1018,7 +1018,7 @@ export default function RegionResultScreen() {
 
             groups[0]?.businessName ??
 
-              null,
+            null,
 
           );
 
@@ -1353,13 +1353,13 @@ export default function RegionResultScreen() {
 
           result.latitude !==
 
-          undefined
+            undefined
 
             ? String(
 
-                result.latitude,
+              result.latitude,
 
-              )
+            )
 
             : '',
 
@@ -1367,13 +1367,13 @@ export default function RegionResultScreen() {
 
           result.longitude !==
 
-          undefined
+            undefined
 
             ? String(
 
-                result.longitude,
+              result.longitude,
 
-              )
+            )
 
             : '',
 
@@ -1381,13 +1381,13 @@ export default function RegionResultScreen() {
 
           result.radius !==
 
-          undefined
+            undefined
 
             ? String(
 
-                result.radius,
+              result.radius,
 
-              )
+            )
 
             : '',
 
@@ -1525,13 +1525,13 @@ export default function RegionResultScreen() {
 
       ? groupedResults.filter(
 
-          group =>
+        group =>
 
-            group.businessName ===
+          group.businessName ===
 
-            activeTab,
+          activeTab,
 
-        )
+      )
 
       : groupedResults;
 
@@ -1577,81 +1577,27 @@ export default function RegionResultScreen() {
 
       >
 
-      <View
-
-        style={
-
-          styles.headerBackground
-
-        }
-
-      >
-
-        <Text
-
-          style={
-
-            styles.title
-
-          }
-
-        >
-
-          입지 추천 결과
-
-        </Text>
-
-        <Text
-
-          style={
-
-            styles.subTitle
-
-          }
-
-        >
-
-          데이터와 AI 분석을 통해 적합한 입지를 추천해드려요
-
-        </Text>
-
-      </View>
-
-      {loading && (
-
         <View
 
           style={
 
-            styles.loadingBox
+            styles.headerBackground
 
           }
 
         >
-
-          <ActivityIndicator
-
-            size="large"
-
-            color={
-
-              COLORS.primary
-
-            }
-
-          />
 
           <Text
 
             style={
 
-              styles.loadingText
+              styles.title
 
             }
 
           >
 
-            상권 데이터를 분석하는 중...
+            입지 추천 결과
 
           </Text>
 
@@ -1659,45 +1605,53 @@ export default function RegionResultScreen() {
 
             style={
 
-              styles.loadingSubText
+              styles.subTitle
 
             }
 
           >
 
-            여러 업종이나 지역을 선택한 경우 시간이 걸릴 수 있어요.
+            데이터와 AI 분석을 통해 적합한 입지를 추천해드려요
 
           </Text>
 
         </View>
 
-      )}
-
-      {!loading &&
-
-        errorMessage !== '' && (
+        {loading && (
 
           <View
 
             style={
 
-              styles.errorBox
+              styles.loadingBox
 
             }
 
           >
 
+            <ActivityIndicator
+
+              size="large"
+
+              color={
+
+                COLORS.primary
+
+              }
+
+            />
+
             <Text
 
               style={
 
-                styles.errorTitle
+                styles.loadingText
 
               }
 
             >
 
-              분석 결과를 불러오지 못했어요
+              상권 데이터를 분석하는 중...
 
             </Text>
 
@@ -1705,17 +1659,13 @@ export default function RegionResultScreen() {
 
               style={
 
-                styles.error
+                styles.loadingSubText
 
               }
 
             >
 
-              {
-
-                errorMessage
-
-              }
+              여러 업종이나 지역을 선택한 경우 시간이 걸릴 수 있어요.
 
             </Text>
 
@@ -1723,349 +1673,113 @@ export default function RegionResultScreen() {
 
         )}
 
-      {!loading &&
+        {!loading &&
 
-        errorMessage === '' &&
+          errorMessage !== '' && (
 
-        groupedResults.length > 1 && (
+            <View
 
-          <View
+              style={
 
-            style={
+                styles.errorBox
 
-              styles.tabRow
+              }
 
-            }
+            >
 
-          >
+              <Text
 
-            {groupedResults.map(
+                style={
 
-              group => {
+                  styles.errorTitle
 
-                const isActive =
+                }
 
-                  activeTab ===
+              >
 
-                  group.businessName;
+                분석 결과를 불러오지 못했어요
 
-                return (
+              </Text>
 
-                  <TouchableOpacity
+              <Text
 
-                    key={
+                style={
 
-                      group.businessName
+                  styles.error
 
-                    }
+                }
 
-                    style={[
+              >
 
-                      styles.tabButton,
+                {
 
-                      isActive &&
+                  errorMessage
 
-                        styles.tabButtonActive,
+                }
 
-                    ]}
+              </Text>
 
-                    activeOpacity={
+            </View>
 
-                      0.7
+          )}
 
-                    }
+        {!loading &&
 
-                    onPress={() =>
+          errorMessage === '' &&
 
-                      setActiveTab(
+          groupedResults.length > 1 && (
 
-                        group.businessName,
+            <View
 
-                      )
+              style={
 
-                    }
+                styles.tabRow
 
-                  >
+              }
 
-                    <Text
+            >
 
-                      style={[
+              {groupedResults.map(
 
-                        styles.tabButtonText,
+                group => {
 
-                        isActive &&
+                  const isActive =
 
-                          styles.tabButtonTextActive,
+                    activeTab ===
 
-                      ]}
+                    group.businessName;
 
-                    >
+                  return (
 
-                      {
+                    <TouchableOpacity
+
+                      key={
 
                         group.businessName
 
                       }
 
-                    </Text>
-
-                  </TouchableOpacity>
-
-                );
-
-              },
-
-            )}
-
-          </View>
-
-        )}
-
-      {!loading &&
-
-        errorMessage === '' &&
-
-        visibleGroups.map(
-
-          group => (
-
-            <View
-
-              key={
-
-                group.businessName
-
-              }
-
-              style={
-
-                styles.businessSection
-
-              }
-
-            >
-
-              <View
-
-                style={
-
-                  styles.businessChip
-
-                }
-
-              >
-
-                <Text
-
-                  style={
-
-                    styles.businessChipLabel
-
-                  }
-
-                >
-
-                  선택한 업종
-
-                </Text>
-
-                <Text
-
-                  style={
-
-                    styles.businessChipName
-
-                  }
-
-                >
-
-                  {
-
-                    group.businessName
-
-                  }
-
-                </Text>
-
-              </View>
-
-              <Text
-
-                style={
-
-                  styles.groupTitle
-
-                }
-
-              >
-
-                {`${group.businessName} 업종에 적합한 입지 TOP ${group.items.length}를 분석했어요!`}
-
-              </Text>
-
-              <Text
-
-                style={
-
-                  styles.groupDescription
-
-                }
-
-              >
-
-                유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.
-
-              </Text>
-
-              {(topAiLoading[
-
-                group.businessName
-
-              ] ||
-
-                topAiSummary[
-
-                  group.businessName
-
-                ]) && (
-
-                <View
-
-                  style={
-
-                    styles.aiCallout
-
-                  }
-
-                >
-
-                  <Text
-
-                    style={
-
-                      styles.aiCalloutTitle
-
-                    }
-
-                  >
-
-                    💡 AI 한줄 요약
-
-                  </Text>
-
-                  {topAiLoading[
-
-                    group.businessName
-
-                  ] ? (
-
-                    <View
-
-                      style={
-
-                        styles.aiCalloutLoading
-
-                      }
-
-                    >
-
-                      <ActivityIndicator
-
-                        size="small"
-
-                        color={
-
-                          COLORS.primary
-
-                        }
-
-                      />
-
-                      <Text
-
-                        style={
-
-                          styles.aiCalloutLoadingText
-
-                        }
-
-                      >
-
-                        AI가 요약하는 중...
-
-                      </Text>
-
-                    </View>
-
-                  ) : (
-
-                    <Text
-
-                      style={
-
-                        styles.aiCalloutText
-
-                      }
-
-                    >
-
-                      {
-
-                        topAiSummary[
-
-                          group.businessName
-
-                        ]
-
-                      }
-
-                    </Text>
-
-                  )}
-
-                </View>
-
-              )}
-
-              {group.items.map(
-
-                result => {
-
-                  const isFirst =
-
-                    result.rank === 1;
-
-                  const isPoint =
-
-                    result.analysisType ===
-
-                    'point';
-
-                  return (
-
-                    <Pressable
-
-                      key={`${group.businessName}-${result.areaName}-${result.rank}`}
-
                       style={[
 
-                        styles.card,
+                        styles.tabButton,
 
-                        isFirst &&
+                        isActive &&
 
-                          styles.firstCard,
+                        styles.tabButtonActive,
 
                       ]}
 
+                      activeOpacity={
+
+                        0.7
+
+                      }
+
                       onPress={() =>
 
-                        handleCardPress(
+                        setActiveTab(
 
                           group.businessName,
-
-                          result,
-
-                          group.items,
 
                         )
 
@@ -2073,371 +1787,29 @@ export default function RegionResultScreen() {
 
                     >
 
-                      <View
+                      <Text
 
-                        style={
+                        style={[
 
-                          styles.cardImageWrap
+                          styles.tabButtonText,
 
-                        }
+                          isActive &&
 
-                      >
+                          styles.tabButtonTextActive,
 
-                        {isPoint &&
-
-                        result.latitude !== undefined &&
-
-                        result.longitude !== undefined ? (
-
-                          <CardMapThumbnail
-
-                            coords={{
-
-                              lat:
-
-                                result.latitude,
-
-                              lng:
-
-                                result.longitude,
-
-                            }}
-
-                          />
-
-                        ) : (
-
-                          <CardMapThumbnail
-
-                            coords={
-
-                              areaCoordinates[
-
-                                result.areaName
-
-                              ]
-
-                            }
-
-                          />
-
-                        )}
-
-                        <View
-
-                          style={[
-
-                            styles.rankBadge,
-
-                            isFirst &&
-
-                              styles.rankBadgeFirst,
-
-                          ]}
-
-                        >
-
-                          <Text
-
-                            style={[
-
-                              styles.rankText,
-
-                              isFirst &&
-
-                                styles.rankTextFirst,
-
-                            ]}
-
-                          >
-
-                            {
-
-                              result.rank
-
-                            }
-
-                          </Text>
-
-                        </View>
-
-                      </View>
-
-                      <View
-
-                        style={
-
-                          styles.cardBody
-
-                        }
+                        ]}
 
                       >
 
-                        <View
+                        {
 
-                          style={
+                          group.businessName
 
-                            styles.cardTopRow
+                        }
 
-                          }
+                      </Text>
 
-                        >
-
-                          <View
-
-                            style={{
-
-                              flex: 1,
-
-                            }}
-
-                          >
-
-                            <Text
-
-                              style={
-
-                                styles.areaName
-
-                              }
-
-                            >
-
-                              {
-
-                                result.areaName
-
-                              }
-
-                            </Text>
-
-                            {isPoint &&
-
-                              result.radius && (
-
-                                <Text
-
-                                  style={
-
-                                    styles.pointInfo
-
-                                  }
-
-                                >
-
-                                  반경{' '}
-
-                                  {
-
-                                    result.radius
-
-                                  }
-
-                                  m 분석
-
-                                </Text>
-
-                              )}
-
-                          </View>
-
-                          <View
-
-                            style={
-
-                              styles.scoreBox
-
-                            }
-
-                          >
-
-                            <Text
-
-                              style={
-
-                                styles.scoreValue
-
-                              }
-
-                            >
-
-                              {
-
-                                result.suitabilityScore
-
-                              }
-
-                            </Text>
-
-                            <Text
-
-                              style={
-
-                                styles.scoreUnit
-
-                              }
-
-                            >
-
-                              점
-
-                            </Text>
-
-                          </View>
-
-                        </View>
-
-                        <View
-
-                          style={
-
-                            styles.tagRow
-
-                          }
-
-                        >
-
-                          <View
-
-                            style={
-
-                              styles.tag
-
-                            }
-
-                          >
-
-                            <Text
-
-                              style={
-
-                                styles.tagText
-
-                              }
-
-                            >
-
-                              유동인구{' '}
-
-                              {getLevelLabel(
-
-                                result.floatingPopulationScore,
-
-                              )}
-
-                            </Text>
-
-                          </View>
-
-                          <View
-
-                            style={
-
-                              styles.tag
-
-                            }
-
-                          >
-
-                            <Text
-
-                              style={
-
-                                styles.tagText
-
-                              }
-
-                            >
-
-                              {getCompetitionLabel(
-
-                                result.competitionScore,
-
-                              )}
-
-                            </Text>
-
-                          </View>
-
-                          {isPoint && (
-
-                            <View
-
-                              style={
-
-                                styles.pointTag
-
-                              }
-
-                            >
-
-                              <Text
-
-                                style={
-
-                                  styles.pointTagText
-
-                                }
-
-                              >
-
-                                위치 기반
-
-                              </Text>
-
-                            </View>
-
-                          )}
-
-                        </View>
-
-                        <View
-
-                          style={
-
-                            styles.cardBottomRow
-
-                          }
-
-                        >
-
-                          <Text
-
-                            style={
-
-                              styles.oneLineSummary
-
-                            }
-
-                          >
-
-                            {getOneLineSummary(
-
-                              result,
-
-                            )}
-
-                          </Text>
-
-                          <Text
-
-                            style={
-
-                              styles.arrow
-
-                            }
-
-                          >
-
-                            ›
-
-                          </Text>
-
-                        </View>
-
-                      </View>
-
-                    </Pressable>
+                    </TouchableOpacity>
 
                   );
 
@@ -2447,9 +1819,637 @@ export default function RegionResultScreen() {
 
             </View>
 
-          ),
+          )}
 
-        )}
+        {!loading &&
+
+          errorMessage === '' &&
+
+          visibleGroups.map(
+
+            group => (
+
+              <View
+
+                key={
+
+                  group.businessName
+
+                }
+
+                style={
+
+                  styles.businessSection
+
+                }
+
+              >
+
+                <View
+
+                  style={
+
+                    styles.businessChip
+
+                  }
+
+                >
+
+                  <Text
+
+                    style={
+
+                      styles.businessChipLabel
+
+                    }
+
+                  >
+
+                    선택한 업종
+
+                  </Text>
+
+                  <Text
+
+                    style={
+
+                      styles.businessChipName
+
+                    }
+
+                  >
+
+                    {
+
+                      group.businessName
+
+                    }
+
+                  </Text>
+
+                </View>
+
+                <Text
+
+                  style={
+
+                    styles.groupTitle
+
+                  }
+
+                >
+
+                  {`${group.businessName} 업종에 적합한 입지 TOP ${group.items.length}를 분석했어요!`}
+
+                </Text>
+
+                <Text
+
+                  style={
+
+                    styles.groupDescription
+
+                  }
+
+                >
+
+                  유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.
+
+                </Text>
+
+                {(topAiLoading[
+
+                  group.businessName
+
+                ] ||
+
+                  topAiSummary[
+
+                  group.businessName
+
+                  ]) && (
+
+                    <View
+
+                      style={
+
+                        styles.aiCallout
+
+                      }
+
+                    >
+
+                      <Text
+
+                        style={
+
+                          styles.aiCalloutTitle
+
+                        }
+
+                      >
+
+                        💡 AI 한줄 요약
+
+                      </Text>
+
+                      {topAiLoading[
+
+                        group.businessName
+
+                      ] ? (
+
+                        <View
+
+                          style={
+
+                            styles.aiCalloutLoading
+
+                          }
+
+                        >
+
+                          <ActivityIndicator
+
+                            size="small"
+
+                            color={
+
+                              COLORS.primary
+
+                            }
+
+                          />
+
+                          <Text
+
+                            style={
+
+                              styles.aiCalloutLoadingText
+
+                            }
+
+                          >
+
+                            AI가 요약하는 중...
+
+                          </Text>
+
+                        </View>
+
+                      ) : (
+
+                        <Text
+
+                          style={
+
+                            styles.aiCalloutText
+
+                          }
+
+                        >
+
+                          {
+
+                            topAiSummary[
+
+                            group.businessName
+
+                            ]
+
+                          }
+
+                        </Text>
+
+                      )}
+
+                    </View>
+
+                  )}
+
+                {group.items.map(
+
+                  result => {
+
+                    const isFirst =
+
+                      result.rank === 1;
+
+                    const isPoint =
+
+                      result.analysisType ===
+
+                      'point';
+
+                    return (
+
+                      <Pressable
+
+                        key={`${group.businessName}-${result.areaName}-${result.rank}`}
+
+                        style={[
+
+                          styles.card,
+
+                          isFirst &&
+
+                          styles.firstCard,
+
+                        ]}
+
+                        onPress={() =>
+
+                          handleCardPress(
+
+                            group.businessName,
+
+                            result,
+
+                            group.items,
+
+                          )
+
+                        }
+
+                      >
+
+                        <View
+
+                          style={
+
+                            styles.cardImageWrap
+
+                          }
+
+                        >
+
+                          {isPoint &&
+
+                            result.latitude !== undefined &&
+
+                            result.longitude !== undefined ? (
+
+                            <CardMapThumbnail
+
+                              coords={{
+
+                                lat:
+
+                                  result.latitude,
+
+                                lng:
+
+                                  result.longitude,
+
+                              }}
+
+                            />
+
+                          ) : (
+
+                            <CardMapThumbnail
+
+                              coords={
+
+                                areaCoordinates[
+
+                                result.areaName
+
+                                ]
+
+                              }
+
+                            />
+
+                          )}
+
+                          <View
+
+                            style={[
+
+                              styles.rankBadge,
+
+                              isFirst &&
+
+                              styles.rankBadgeFirst,
+
+                            ]}
+
+                          >
+
+                            <Text
+
+                              style={[
+
+                                styles.rankText,
+
+                                isFirst &&
+
+                                styles.rankTextFirst,
+
+                              ]}
+
+                            >
+
+                              {
+
+                                result.rank
+
+                              }
+
+                            </Text>
+
+                          </View>
+
+                        </View>
+
+                        <View
+
+                          style={
+
+                            styles.cardBody
+
+                          }
+
+                        >
+
+                          <View
+
+                            style={
+
+                              styles.cardTopRow
+
+                            }
+
+                          >
+
+                            <View
+
+                              style={{
+
+                                flex: 1,
+
+                              }}
+
+                            >
+
+                              <Text
+
+                                style={
+
+                                  styles.areaName
+
+                                }
+
+                              >
+
+                                {
+
+                                  result.areaName
+
+                                }
+
+                              </Text>
+
+                              {isPoint &&
+
+                                result.radius && (
+
+                                  <Text
+
+                                    style={
+
+                                      styles.pointInfo
+
+                                    }
+
+                                  >
+
+                                    반경{' '}
+
+                                    {
+
+                                      result.radius
+
+                                    }
+
+                                    m 분석
+
+                                  </Text>
+
+                                )}
+
+                            </View>
+
+                            <View
+
+                              style={
+
+                                styles.scoreBox
+
+                              }
+
+                            >
+
+                              <Text
+
+                                style={
+
+                                  styles.scoreValue
+
+                                }
+
+                              >
+
+                                {
+
+                                  result.suitabilityScore
+
+                                }
+
+                              </Text>
+
+                              <Text
+
+                                style={
+
+                                  styles.scoreUnit
+
+                                }
+
+                              >
+
+                                점
+
+                              </Text>
+
+                            </View>
+
+                          </View>
+
+                          <View
+
+                            style={
+
+                              styles.tagRow
+
+                            }
+
+                          >
+
+                            <View
+
+                              style={
+
+                                styles.tag
+
+                              }
+
+                            >
+
+                              <Text
+
+                                style={
+
+                                  styles.tagText
+
+                                }
+
+                              >
+
+                                유동인구{' '}
+
+                                {getLevelLabel(
+
+                                  result.floatingPopulationScore,
+
+                                )}
+
+                              </Text>
+
+                            </View>
+
+                            <View
+
+                              style={
+
+                                styles.tag
+
+                              }
+
+                            >
+
+                              <Text
+
+                                style={
+
+                                  styles.tagText
+
+                                }
+
+                              >
+
+                                {getCompetitionLabel(
+
+                                  result.competitionScore,
+
+                                )}
+
+                              </Text>
+
+                            </View>
+
+                            {isPoint && (
+
+                              <View
+
+                                style={
+
+                                  styles.pointTag
+
+                                }
+
+                              >
+
+                                <Text
+
+                                  style={
+
+                                    styles.pointTagText
+
+                                  }
+
+                                >
+
+                                  위치 기반
+
+                                </Text>
+
+                              </View>
+
+                            )}
+
+                          </View>
+
+                          <View
+
+                            style={
+
+                              styles.cardBottomRow
+
+                            }
+
+                          >
+
+                            <Text
+
+                              style={
+
+                                styles.oneLineSummary
+
+                              }
+
+                            >
+
+                              {getOneLineSummary(
+
+                                result,
+
+                              )}
+
+                            </Text>
+
+                            <Text
+
+                              style={
+
+                                styles.arrow
+
+                              }
+
+                            >
+
+                              ›
+
+                            </Text>
+
+                          </View>
+
+                        </View>
+
+                      </Pressable>
+
+                    );
+
+                  },
+
+                )}
+
+              </View>
+
+            ),
+
+          )}
 
       </ScrollView>
 
@@ -2680,33 +2680,15 @@ const styles =
     },
 
     businessChip: {
-
-      flexDirection:
-
-        'row',
-
-      alignItems:
-
-        'center',
-
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: 8,
-
-      alignSelf:
-
-        'flex-start',
-
-      backgroundColor:
-
-        '#F1FFF5',
-
+      alignSelf: 'flex-start',
+      backgroundColor: '#FFF5C2',
       borderRadius: 14,
-
       paddingVertical: 8,
-
       paddingHorizontal: 14,
-
       marginBottom: 14,
-
     },
 
     businessChipLabel: {

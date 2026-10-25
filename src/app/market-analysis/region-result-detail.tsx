@@ -23,11 +23,6 @@ import {
 
   toggleAnalysisFavorite,
 } from '@/services/analysisHistory';
-
-import type { NearbyStore } from '@/services/storeApi';
-
-import { getStoreList } from '@/services/storeApi';
-
 import {
   exportAnalysisReportPdf,
 } from '@/services/pdfExport';
@@ -37,7 +32,8 @@ import {
 
   sharePublicAnalysisLink,
 } from '@/services/shareAnalysis';
-
+import type { NearbyStore } from '@/services/storeApi';
+import { getStoreList } from '@/services/storeApi';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useEffect, useState } from 'react';
@@ -1570,7 +1566,7 @@ export default function RegionResultDetailScreen() {
 
           <Image
 
-            source={require('../../../assets/images/chatbot-question-map.png')}
+            source={require('../../../assets/images/chatbot-question-map-red.png')}
 
             style={styles.chatImageIcon}
 
@@ -3301,4 +3297,3 @@ checklistCreateButton: {
   },
 
 });
-

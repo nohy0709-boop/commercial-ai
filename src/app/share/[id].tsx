@@ -1,4 +1,3 @@
-
 import { COLORS } from '@/constants/colors';
 import {
   getSharedAnalysis,
@@ -93,9 +92,9 @@ const METRICS: MetricDefinition[] = [
   },
 ];
 
-const NAVY = COLORS.text;
-const YELLOW = COLORS.warning;
-const LIGHT_YELLOW = COLORS.warningLight;
+const NAVY = '#202544';
+const YELLOW = '#FFDA35';
+const LIGHT_YELLOW = '#FFF8DC';
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') {
@@ -699,7 +698,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 21,
     fontWeight: '900',
-    color: COLORS.text,
+    color: NAVY,
   },
 
   pageSubtitle: {
@@ -709,7 +708,7 @@ const styles = StyleSheet.create({
   },
 
   sharedBadge: {
-    backgroundColor: COLORS.warningLight,
+    backgroundColor: '#FFF5C2',
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -718,11 +717,11 @@ const styles = StyleSheet.create({
   sharedBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: NAVY,
   },
 
   heroCard: {
-    backgroundColor: '#111111',
+    backgroundColor: NAVY,
     borderRadius: 24,
     padding: 26,
     marginBottom: 28,
@@ -730,7 +729,7 @@ const styles = StyleSheet.create({
 
   heroEyebrow: {
     fontSize: 12,
-    color: '#ABABAB',
+    color: '#B5B9CB',
     marginBottom: 14,
   },
 
@@ -743,7 +742,7 @@ const styles = StyleSheet.create({
   heroBusiness: {
     marginTop: 12,
     fontSize: 15,
-    color: '#F1F1F1',
+    color: '#D5D9E5',
   },
 
   heroPointInfo: {
@@ -761,7 +760,7 @@ const styles = StyleSheet.create({
 
   scoreLabel: {
     fontSize: 12,
-    color: '#B5B5B5',
+    color: '#B5B9CB',
   },
 
   scoreNumber: {
@@ -772,7 +771,7 @@ const styles = StyleSheet.create({
 
   scoreTotal: {
     fontSize: 12,
-    color: '#B5B5B5',
+    color: '#B5B9CB',
   },
 
   heroProgressTrack: {
@@ -792,7 +791,7 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 20,
     fontWeight: '900',
-    color: COLORS.text,
+    color: NAVY,
     marginBottom: 14,
   },
 
@@ -835,6 +834,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18,
     fontWeight: '900',
+    color: NAVY,
   },
 
   sectionCard: {
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 21,
     fontWeight: '900',
-    color: COLORS.text,
+    color: NAVY,
     marginBottom: 8,
   },
 
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   metricTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: COLORS.text,
+    color: NAVY,
   },
 
   metricDescription: {
@@ -952,7 +952,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 13,
     fontWeight: '900',
-    color: COLORS.textSecondary,
+    color: NAVY,
   },
 
   aiText: {
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
   riskIcon: {
     fontSize: 17,
     fontWeight: '900',
-    color: YELLOW,
+    color: NAVY,
   },
 
   aiNeutralBox: {

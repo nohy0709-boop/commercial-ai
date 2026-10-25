@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants/colors';
+import { useResponsive } from '@/hooks/useResponsive';
 
 import {
   AnalysisHistoryItem,
@@ -178,7 +179,7 @@ function getChecklistPlace(text: string) {
 }
 
 export default function MyScreen() {
-
+  const { frameMaxWidth, horizontalPadding } = useResponsive();
   const router = useRouter();
 
   const [histories, setHistories] = useState<AnalysisHistoryItem[]>([]);
@@ -627,15 +628,18 @@ export default function MyScreen() {
   }
 
   return (
-
     <ScrollView
-
       style={styles.screen}
-
-      contentContainerStyle={styles.container}
-
+      contentContainerStyle={[
+        styles.container,
+        {
+          width: '100%',
+          maxWidth: frameMaxWidth,
+          alignSelf: 'center',
+          paddingHorizontal: horizontalPadding,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
-
     >
 
       <View style={styles.profileHeader}>
@@ -1304,14 +1308,10 @@ export default function MyScreen() {
 
             <View style={styles.cardHeader}>
 
-              <View style={styles.typeBadge}>
-
+              <View style={[styles.typeBadge, { backgroundColor: '#FFF5C2' }]}>
                 <Text style={styles.typeBadgeText}>
-
                   {getTypeLabel(history.type)}
-
                 </Text>
-
               </View>
 
               <Text style={styles.date}>{formatDate(history.createdAt)}</Text>
@@ -1350,13 +1350,13 @@ export default function MyScreen() {
 
               <TouchableOpacity
 
-                style={styles.viewButton}
+                style={[styles.viewButton, { backgroundColor: '#202544' }]}
 
                 onPress={() => handleView(history)}
 
               >
 
-                <Text style={styles.viewButtonText}>다시 보기 →</Text>
+                <Text style={[styles.viewButtonText, { color: '#FFFFFF' }]}>다시 보기 →</Text>
 
               </TouchableOpacity>
 

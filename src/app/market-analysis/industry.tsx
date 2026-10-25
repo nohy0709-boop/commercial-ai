@@ -10,6 +10,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useState } from 'react';
 
+import { useResponsive } from '@/hooks/useResponsive';
+
 import {
   ScrollView,
 
@@ -25,6 +27,14 @@ import {
 
 
 export default function IndustrySelectionScreen() {
+
+  const {
+    frameMaxWidth,
+    horizontalPadding,
+    isMobile,
+    isTablet,
+    fontSize,
+  } = useResponsive();
 
   const router = useRouter();
 
@@ -140,153 +150,77 @@ export default function IndustrySelectionScreen() {
 
         style={styles.scroll}
 
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          {
+            maxWidth: frameMaxWidth,
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
 
         showsVerticalScrollIndicator={false}
 
       >
+        <View style={styles.contentFrame}>
 
-        <Text style={styles.heading}>
-
-          어떤 업종으로 창업을 준비 중인가요?
-
-        </Text>
-
-        <Text style={styles.subheading}>
-
-          복수 선택 가능 · 대분류를 눌러 세부 업종을 확인하세요
-
-        </Text>
-
-
-
-        {/* 대분류 칩 */}
-
-        <View style={styles.categoryRow}>
-
-          {businessCategories.map(category => {
-
-            const isActive = activeCategory === category.categoryName;
-
-            const count = getCategorySelectedCount(category.categoryName);
-
-
-
-            return (
-
-              <TouchableOpacity
-
-                key={category.categoryName}
-
-                style={[
-
-                  styles.categoryChip,
-
-                  isActive && styles.categoryChipActive,
-
-                ]}
-
-                activeOpacity={0.8}
-
-                onPress={() => handleCategoryPress(category.categoryName)}
-
-              >
-
-                <Text
-
-                  style={[
-
-                    styles.categoryChipText,
-
-                    isActive && styles.categoryChipTextActive,
-
-                  ]}
-
-                >
-
-                  {category.categoryName}
-
-                </Text>
-
-                {count > 0 && (
-
-                  <View
-
-                    style={[
-
-                      styles.categoryCountBadge,
-
-                      isActive && styles.categoryCountBadgeActive,
-
-                    ]}
-
-                  >
-
-                    <Text
-
-                      style={[
-
-                        styles.categoryCountText,
-
-                        isActive && styles.categoryCountTextActive,
-
-                      ]}
-
-                    >
-
-                      {count}
-
-                    </Text>
-
-                  </View>
-
-                )}
-
-              </TouchableOpacity>
-
-            );
-
-          })}
-
-        </View>
-
-
-
-        {/* 세부 업종 패널 */}
-
-        {activeCategoryData && (
-
-          <View style={styles.subPanel}>
-
-            <Text style={styles.subPanelTitle}>
-
-              {activeCategoryData.categoryName} 세부 업종
-
+          <View style={styles.titleFrame}>
+            <Text
+              style={[
+                styles.heading,
+                {
+                  fontSize: isMobile ? 26 : isTablet ? 34 : 42,
+                  lineHeight: isMobile ? 34 : isTablet ? 44 : 54,
+                  fontWeight: '900',
+                  flexShrink: 1,
+                },
+              ]}
+            >
+              어떤 업종으로 창업을 준비 중인가요?
             </Text>
 
-            <View style={styles.subChipRow}>
+            <Text
+              style={[
+                styles.subheading,
+                {
+                  fontSize: isMobile ? 15 : isTablet ? 18 : 21,
+                  lineHeight: isMobile ? 23 : isTablet ? 27 : 32,
+                },
+              ]}
+            >
+              복수 선택 가능 · 대분류를 눌러 세부 업종을 확인하세요
+            </Text>
 
-              {activeCategoryData.businesses.map(business => {
 
-                const selected = selectedBusinesses.includes(business.name);
+
+            {/* 대분류 칩 */}
+
+            <View style={styles.categoryRow}>
+
+              {businessCategories.map(category => {
+
+                const isActive = activeCategory === category.categoryName;
+
+                const count = getCategorySelectedCount(category.categoryName);
+
+
 
                 return (
 
                   <TouchableOpacity
 
-                    key={business.name}
+                    key={category.categoryName}
 
                     style={[
 
-                      styles.subChip,
+                      styles.categoryChip,
 
-                      selected && styles.subChipSelected,
+                      isActive && styles.categoryChipActive,
 
                     ]}
 
                     activeOpacity={0.8}
 
-                    onPress={() => toggleBusiness(business.name)}
+                    onPress={() => handleCategoryPress(category.categoryName)}
 
                   >
 
@@ -294,19 +228,51 @@ export default function IndustrySelectionScreen() {
 
                       style={[
 
-                        styles.subChipText,
+                        styles.categoryChipText,
 
-                        selected && styles.subChipTextSelected,
+                        isActive && styles.categoryChipTextActive,
 
                       ]}
 
                     >
 
-                      {selected ? '✓ ' : ''}
-
-                      {business.name}
+                      {category.categoryName}
 
                     </Text>
+
+                    {count > 0 && (
+
+                      <View
+
+                        style={[
+
+                          styles.categoryCountBadge,
+
+                          isActive && styles.categoryCountBadgeActive,
+
+                        ]}
+
+                      >
+
+                        <Text
+
+                          style={[
+
+                            styles.categoryCountText,
+
+                            isActive && styles.categoryCountTextActive,
+
+                          ]}
+
+                        >
+
+                          {count}
+
+                        </Text>
+
+                      </View>
+
+                    )}
 
                   </TouchableOpacity>
 
@@ -315,55 +281,122 @@ export default function IndustrySelectionScreen() {
               })}
 
             </View>
-
           </View>
 
-        )}
 
 
+          {/* 세부 업종 패널 */}
 
-        {/* 선택한 업종 요약 */}
+          {activeCategoryData && (
 
-        {selectedBusinesses.length > 0 && (
+            <View style={styles.subPanel}>
 
-          <View style={styles.selectedSection}>
+              <Text style={styles.subPanelTitle}>
 
-            <Text style={styles.selectedLabel}>
+                {activeCategoryData.categoryName} 세부 업종
 
-              선택한 업종 ({selectedBusinesses.length}개)
+              </Text>
 
-            </Text>
+              <View style={styles.subChipRow}>
 
-            <View style={styles.selectedChipRow}>
+                {activeCategoryData.businesses.map(business => {
 
-              {selectedBusinesses.map(name => (
+                  const selected = selectedBusinesses.includes(business.name);
 
-                <TouchableOpacity
+                  return (
 
-                  key={name}
+                    <TouchableOpacity
 
-                  style={styles.selectedChip}
+                      key={business.name}
 
-                  activeOpacity={0.8}
+                      style={[
 
-                  onPress={() => toggleBusiness(name)}
+                        styles.subChip,
 
-                >
+                        selected && styles.subChipSelected,
 
-                  <Text style={styles.selectedChipText}>{name}</Text>
+                      ]}
 
-                  <Text style={styles.selectedChipRemove}>×</Text>
+                      activeOpacity={0.8}
 
-                </TouchableOpacity>
+                      onPress={() => toggleBusiness(business.name)}
 
-              ))}
+                    >
+
+                      <Text
+
+                        style={[
+
+                          styles.subChipText,
+
+                          selected && styles.subChipTextSelected,
+
+                        ]}
+
+                      >
+
+                        {selected ? '✓ ' : ''}
+
+                        {business.name}
+
+                      </Text>
+
+                    </TouchableOpacity>
+
+                  );
+
+                })}
+
+              </View>
 
             </View>
 
-          </View>
+          )}
 
-        )}
 
+
+          {/* 선택한 업종 요약 */}
+
+          {selectedBusinesses.length > 0 && (
+
+            <View style={styles.selectedSection}>
+
+              <Text style={styles.selectedLabel}>
+
+                선택한 업종 ({selectedBusinesses.length}개)
+
+              </Text>
+
+              <View style={styles.selectedChipRow}>
+
+                {selectedBusinesses.map(name => (
+
+                  <TouchableOpacity
+
+                    key={name}
+
+                    style={styles.selectedChip}
+
+                    activeOpacity={0.8}
+
+                    onPress={() => toggleBusiness(name)}
+
+                  >
+
+                    <Text style={styles.selectedChipText}>{name}</Text>
+
+                    <Text style={styles.selectedChipRemove}>×</Text>
+
+                  </TouchableOpacity>
+
+                ))}
+
+              </View>
+
+            </View>
+
+          )}
+        </View>
       </ScrollView>
 
 
@@ -427,6 +460,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.background },
 
 
+  contentFrame: {
+    width: '100%',
+  },
 
   appBar: {
 
@@ -496,44 +532,41 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
 
-  container: { padding: 20, paddingBottom: 24 },
+  container: {
+    width: '100%',
+    alignSelf: 'center',
+    paddingBottom: 24,
+  },
 
-
+  titleFrame: {
+    width: '100%',
+    backgroundColor: '#202544',
+    borderRadius: 22,
+    padding: 28,
+    marginBottom: 24,
+  },
 
   heading: {
-
-    fontSize: 17,
-
+    fontSize: 28,
     fontWeight: '800',
-
-    color: COLORS.text,
-
-    marginBottom: 4,
-
+    color: '#FFFFFF',
+    marginBottom: 10,
   },
 
   subheading: {
-
-    fontSize: 13,
-
-    color: COLORS.textSecondary,
-
-    marginBottom: 18,
-
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#C8CCDA',
+    marginBottom: 0,
   },
 
 
-
   categoryRow: {
-
     flexDirection: 'row',
-
     flexWrap: 'wrap',
-
-    gap: 8,
-
-    marginBottom: 16,
-
+    gap: 12,
+    marginTop: 30,
+    marginBottom: 0,
   },
 
   categoryChip: {

@@ -1,13 +1,13 @@
 import { COLORS } from '@/constants/colors';
+import { useResponsive } from '@/hooks/useResponsive';
 import { Link, useRouter } from 'expo-router';
 import {
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -44,6 +44,7 @@ const FEATURES: Feature[] = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { isMobile, isTablet } = useResponsive();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -71,15 +72,34 @@ export default function HomeScreen() {
             <Text style={styles.heroBadgeText}>공공데이터 기반 AI 상권 분석</Text>
           </View>
 
-          <Text style={styles.heroTitle}>
-            내 가게, 어디에{'\n'}차리면 좋을까?
+          <Text
+            style={[
+              styles.heroTitle,
+              {
+                fontSize: isMobile ? 26 : isTablet ? 36 : 44,
+                flexShrink: 1,
+              },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
+            내 가게, 어디에 차리면 좋을까?
           </Text>
 
-          <Text style={styles.heroSubtitle}>
-            데이터와 AI로 후보 상권을 비교해보세요.{'\n'}
-            창업 성공을 보장하지는 않지만, 더 나은 선택을 도와드릴게요.
-          </Text>
-
+          <View style={{ gap: 6 }}>
+            <Text
+              style={[
+                styles.heroSubtitle,
+                { fontSize: isMobile ? 16 : isTablet ? 18 : 20 },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              데이터와 AI로 후보 상권을 비교해보세요.
+            </Text>
+          </View>
 
           <Link href="/market-analysis/industry" asChild>
             <TouchableOpacity
@@ -107,7 +127,6 @@ export default function HomeScreen() {
 
                 <View style={styles.featureTopRow}>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureIndex}>{index + 1}</Text>
                 </View>
 
                 <Text style={styles.featureDescription}>
@@ -280,7 +299,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 40,
-    maxWidth: Platform.OS === 'web' ? 720 : undefined,
+    maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
   },
@@ -538,15 +557,15 @@ const styles = StyleSheet.create({
   heroButton: {
     backgroundColor: '#EF302B',
     alignSelf: 'flex-start',
-    paddingHorizontal: 24,
-    paddingVertical: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 12,
     marginTop: 24,
   },
 
   heroButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '800',
   },
 });

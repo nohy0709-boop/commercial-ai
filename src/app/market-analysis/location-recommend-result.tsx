@@ -1,3 +1,5 @@
+import { Image } from 'react-native';
+
 import {
   businessCategories,
 } from "@/constants/businessTypes";
@@ -1217,7 +1219,11 @@ export default function LocationRecommendResultScreen() {
                   }}
                 >
                   <View style={styles.chatIcon}>
-                    <Text style={styles.chatIconText}>AI</Text>
+                    <Image
+                      source={require('../../../assets/images/location-question-icon-red.png')}
+                      style={{ width: 48, height: 48 }}
+                      resizeMode="contain"
+                    />
                   </View>
 
                   <View style={styles.chatButtonContent}>

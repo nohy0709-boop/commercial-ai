@@ -84,12 +84,8 @@ interface ChartSeries {
  * =====================================================
  */
 
-const CURRENT_COLOR =
-  '#16A34A';
-
-const AVERAGE_COLOR =
-  '#0EA5E9';
-
+const CURRENT_COLOR = '#202544';
+const AVERAGE_COLOR = '#E0AA12';
 /**
  * =====================================================
  * FORMAT

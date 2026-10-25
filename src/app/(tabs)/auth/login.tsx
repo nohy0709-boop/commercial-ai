@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: '#1D2545',
   },
 
   disabledButton: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   signupRow: {
