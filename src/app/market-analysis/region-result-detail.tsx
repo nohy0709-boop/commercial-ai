@@ -1788,7 +1788,11 @@ export default function RegionResultDetailScreen() {
 
             disabled={pdfAction !== null}
 
-            onPress={handleSharePdf}
+            onPress={() => {
+              console.log('[공유하기] 버튼 클릭됨');
+              Alert.alert('확인', '공유하기 버튼이 눌렸습니다.');
+              handleSharePdf();
+            }}
 
           >
 
