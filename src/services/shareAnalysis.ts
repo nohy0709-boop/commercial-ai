@@ -26,59 +26,30 @@ const TABLE_NAME = 'shared_analyses';
  * 전달되는지 로그로 확인한다.
  */
 function getPublicAppOrigin(): string {
-  const envUrl =
-    process.env.EXPO_PUBLIC_APP_URL?.trim();
+  const envUrl = process.env.EXPO_PUBLIC_APP_URL?.trim();
 
-  console.log(
-    '[공유 URL 확인]',
-    envUrl ?? 'undefined',
-  );
+  // 공개 공유 링크 주소
+  const fallbackUrl = 'https://commercial-ai-psi.vercel.app';
 
-  console.log(
-    '[공유 플랫폼 확인]',
-    Platform.OS,
-  );
+  // 설정된 환경변수가 있으면 우선 사용
+  const candidateUrl = envUrl || fallbackUrl;
 
-  if (!envUrl) {
-    console.error(
-      '[공유 URL 오류] EXPO_PUBLIC_APP_URL이 없습니다.',
-    );
-
-    throw new Error(
-      '공유 사이트 주소가 설정되지 않았습니다. EXPO_PUBLIC_APP_URL을 확인해주세요.',
-    );
-  }
+  console.log('[공유 URL] 플랫폼:', Platform.OS);
+  console.log('[공유 URL] 환경변수:', envUrl ?? '설정되지 않음');
+  console.log('[공유 URL] 최종 주소:', candidateUrl);
 
   try {
-    const parsedUrl = new URL(envUrl);
+    const parsedUrl = new URL(candidateUrl);
 
-    if (
-      parsedUrl.protocol !== 'https:' ||
-      parsedUrl.hostname === 'localhost' ||
-      parsedUrl.hostname === '127.0.0.1' ||
-      parsedUrl.username ||
-      parsedUrl.password ||
-      parsedUrl.search ||
-      parsedUrl.hash
-    ) {
-      throw new Error('잘못된 공개 사이트 주소');
+    if (parsedUrl.protocol !== 'https:') {
+      throw new Error('HTTPS 주소가 아닙니다.');
     }
-
-    console.log(
-      '[공유 URL 정상]',
-      parsedUrl.origin,
-    );
 
     return parsedUrl.origin;
   } catch (error) {
-    console.error(
-      '[공유 URL 형식 오류]',
-      error,
-    );
+    console.error('[공유 URL 오류]', error);
 
-    throw new Error(
-      '공유 사이트 주소는 외부에서 접속 가능한 HTTPS 주소여야 합니다.',
-    );
+    throw new Error('공유 사이트 주소가 올바르지 않습니다.');
   }
 }
 
