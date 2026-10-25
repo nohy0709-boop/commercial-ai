@@ -1463,7 +1463,7 @@ export default function RegionResultDetailScreen() {
 
       ================================================= */}
 
-        <View style={styles.headerCardonPress}>
+        <View style={styles.headerCard}>
 
           <View style={styles.headerTopRow}>
 
