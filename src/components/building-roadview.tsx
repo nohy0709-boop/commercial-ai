@@ -19,7 +19,7 @@ type Props = {
   address?: string;
   kakaoJsKey?: string;
   height?: number;
-  onClose: () => void;
+  onClose?: () => void;
 };
 
 export default function BuildingRoadview({
@@ -113,7 +113,7 @@ export default function BuildingRoadview({
 <body>
   <div id="roadview"></div>
   <div id="message">
-    濡쒕뱶酉곕? 遺덈윭?ㅻ뒗 以묒엯?덈떎.
+    로드뷰를 불러오는 중입니다.
   </div>
 
   <script>
@@ -171,7 +171,7 @@ export default function BuildingRoadview({
           !window.kakao.maps
         ) {
           showMessage(
-            '移댁뭅??吏??SDK瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??'
+            '카카오 지도 SDK를 불러오지 못했습니다.'
           );
 
           sendMessage(
@@ -209,7 +209,7 @@ export default function BuildingRoadview({
               !panoId
             ) {
               showMessage(
-                '???꾩튂 二쇰??먮뒗 ?댁슜 媛?ν븳 濡쒕뱶酉곌? ?놁뒿?덈떎.'
+                '현재 위치 주변에는 이용 가능한 로드뷰가 없습니다.'
               );
 
               sendMessage(
@@ -245,7 +245,7 @@ export default function BuildingRoadview({
             : String(error);
 
         showMessage(
-          '濡쒕뱶酉곕? 遺덈윭?ㅻ뒗 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+          '로드뷰를 불러오는 중 오류가 발생했습니다.'
         );
 
         sendMessage(
@@ -269,7 +269,7 @@ export default function BuildingRoadview({
           : String(error);
 
       showMessage(
-        '移댁뭅??吏??SDK 珥덇린?붿뿉 ?ㅽ뙣?덉뒿?덈떎.'
+        '카카오 지도 SDK 초기화에 실패했습니다.'
       );
 
       sendMessage(
@@ -306,7 +306,7 @@ export default function BuildingRoadview({
             styles.errorTitle
           }
         >
-          移댁뭅??吏???ㅺ? ?놁뒿?덈떎.
+          카카오 지도 키가 없습니다.
         </Text>
 
         <Text
@@ -314,7 +314,7 @@ export default function BuildingRoadview({
             styles.errorText
           }
         >
-          .env??EXPO_PUBLIC_KAKAO_JS_KEY瑜??뺤씤?댁＜?몄슂.
+          .env의 EXPO_PUBLIC_KAKAO_JS_KEY를 확인해주세요.
         </Text>
       </View>
     );
@@ -334,8 +334,8 @@ export default function BuildingRoadview({
           html,
 
           /**
-           * Kakao JavaScript SDK???꾨찓??寃???뚮Ц??
-           * baseUrl??吏??
+           * Kakao JavaScript SDK의 도메인 정책을 고려하여
+           * baseUrl을 지정합니다.
            */
           baseUrl:
             'https://localhost',
@@ -382,7 +382,7 @@ export default function BuildingRoadview({
             const description =
               event.nativeEvent
                 .description ||
-              'WebView ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.';
+              'WebView 오류가 발생했습니다.';
 
             console.error(
               'Roadview WebView error:',
@@ -430,7 +430,7 @@ export default function BuildingRoadview({
                 );
 
                 console.log(
-                  '????濡쒕뱶酉?濡쒕뱶 ?꾨즺',
+                  '카카오 로드뷰 로드 완료',
                   message.payload,
                 );
               }
@@ -444,7 +444,7 @@ export default function BuildingRoadview({
                 );
 
                 setError(
-                  '???꾩튂 二쇰??먮뒗 ?댁슜 媛?ν븳 濡쒕뱶酉곌? ?놁뒿?덈떎.',
+                  '현재 위치 주변에는 이용 가능한 로드뷰가 없습니다.',
                 );
               }
 
@@ -460,11 +460,11 @@ export default function BuildingRoadview({
                   typeof message.payload ===
                     'string'
                     ? message.payload
-                    : '濡쒕뱶酉곕? 遺덈윭?ㅼ? 紐삵뻽?듬땲??',
+                    : '로드뷰를 불러오지 못했습니다.',
                 );
 
                 console.error(
-                  '濡쒕뱶酉??대? ?ㅻ쪟:',
+                  '로드뷰 내부 오류:',
                   message.payload,
                 );
               }
@@ -500,7 +500,7 @@ export default function BuildingRoadview({
               styles.loadingText
             }
           >
-            濡쒕뱶酉곕? 遺덈윭?ㅻ뒗 以?..
+            로드뷰를 불러오는 중...
           </Text>
         </View>
       )}
@@ -518,7 +518,7 @@ export default function BuildingRoadview({
               styles.errorTitle
             }
           >
-            濡쒕뱶酉곕? ?쒖떆?????놁뼱??
+            로드뷰를 표시할 수 없어요.
           </Text>
 
           <Text
