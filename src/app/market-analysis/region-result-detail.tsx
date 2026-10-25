@@ -974,11 +974,18 @@ export default function RegionResultDetailScreen() {
         Alert.alert('공유 불가', '현재 환경에서는 공유 기능을 지원하지 않습니다.');
       }
     } catch (error) {
-      console.error('공유 실패:', error);
-      Alert.alert(
-        '공유 실패',
-        error instanceof Error ? error.message : '분석 결과를 공유하지 못했습니다.',
-      );
+      console.error('[공유하기] 오류:', error);
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : '분석 결과를 공유하지 못했습니다.';
+
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(`공유 실패: ${message}`);
+      } else {
+        Alert.alert('공유 실패', message);
+      }
     } finally {
       setPdfAction(null);
     }
@@ -1456,7 +1463,7 @@ export default function RegionResultDetailScreen() {
 
       ================================================= */}
 
-        <View style={styles.headerCard}>
+        <View style={styles.headerCardonPress}>
 
           <View style={styles.headerTopRow}>
 
@@ -1789,9 +1796,8 @@ export default function RegionResultDetailScreen() {
             disabled={pdfAction !== null}
 
             onPress={() => {
-              console.log('[공유하기] 버튼 클릭됨');
-              Alert.alert('확인', '공유하기 버튼이 눌렸습니다.');
-              handleSharePdf();
+              console.log('[모바일 공유] 버튼 클릭됨');
+              void handleSharePdf();
             }}
 
           >
