@@ -2718,7 +2718,7 @@ export default function ChatScreen() {
 
             >
 
-              <ActivityIndicator size="small" color="#EF302B" />
+              <ActivityIndicator size="small" color="#1F2444" />
 
               <Text
 
@@ -3944,7 +3944,7 @@ const styles = StyleSheet.create({
 
   markdownKeyword: {
     fontWeight: '900',
-    color: '#EF302B',
+    color: '#1F2444',
   },
 
 

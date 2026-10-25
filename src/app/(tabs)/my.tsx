@@ -1217,14 +1217,10 @@ export default function MyScreen() {
 
             <View style={styles.cardHeader}>
 
-              <View style={styles.typeBadge}>
-
+              <View style={[styles.typeBadge, { backgroundColor: '#FFF5C2' }]}>
                 <Text style={styles.typeBadgeText}>
-
                   {getTypeLabel(history.type)}
-
                 </Text>
-
               </View>
 
               <Text style={styles.date}>{formatDate(history.createdAt)}</Text>
@@ -1263,13 +1259,13 @@ export default function MyScreen() {
 
               <TouchableOpacity
 
-                style={styles.viewButton}
+                style={[styles.viewButton, { backgroundColor: '#202544' }]}
 
                 onPress={() => handleView(history)}
 
               >
 
-                <Text style={styles.viewButtonText}>다시 보기 →</Text>
+                <Text style={[styles.viewButtonText, { color: '#FFFFFF' }]}>다시 보기 →</Text>
 
               </TouchableOpacity>
 

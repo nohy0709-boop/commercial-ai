@@ -1,16 +1,16 @@
 import { COLORS } from '@/constants/colors';
 import {
-    getSharedAnalysis,
-    type SharedAnalysisRecord,
+  getSharedAnalysis,
+  type SharedAnalysisRecord,
 } from '@/services/shareAnalysis';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 function formatNumber(value: number) {
@@ -518,6 +518,7 @@ function CompareMetric({
   );
 }
 
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -563,26 +564,26 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 18,
     fontWeight: '900',
-    color: COLORS.text,
+    color: '#202544',
   },
   sharedBadge: {
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: '#EAF7ED',
+    backgroundColor: '#FFF5C2',
     fontSize: 10,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: '#202544',
   },
   hero: {
     padding: 24,
     marginBottom: 22,
     borderRadius: 22,
-    backgroundColor: '#111111',
+    backgroundColor: '#202544',
   },
   heroEyebrow: {
     fontSize: 11,
-    color: '#AEB4AF',
+    color: '#B5B9CB',
   },
   heroTitle: {
     marginTop: 10,
@@ -593,7 +594,7 @@ const styles = StyleSheet.create({
   heroBusiness: {
     marginTop: 5,
     fontSize: 13,
-    color: '#D5D9D6',
+    color: '#D5D9E5',
   },
   scoreRow: {
     marginTop: 20,
@@ -604,24 +605,24 @@ const styles = StyleSheet.create({
   scoreLabel: {
     marginBottom: 4,
     fontSize: 11,
-    color: '#AEB4AF',
+    color: '#B5B9CB',
   },
   score: {
     fontSize: 31,
     lineHeight: 33,
     fontWeight: '900',
-    color: COLORS.neonLime,
+    color: '#FFDA35',
   },
   scoreUnit: {
     marginBottom: 4,
     fontSize: 12,
-    color: '#AEB4AF',
+    color: '#B5B9CB',
   },
   sectionTitle: {
     marginBottom: 10,
     fontSize: 17,
     fontWeight: '900',
-    color: COLORS.text,
+    color: '#202544',
   },
   metricGrid: {
     marginBottom: 18,
@@ -647,7 +648,7 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 15,
     fontWeight: '900',
-    color: COLORS.text,
+    color: '#202544',
   },
   sectionCard: {
     padding: 17,
@@ -661,7 +662,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 15,
     fontWeight: '900',
-    color: COLORS.text,
+    color: '#202544',
   },
   detailRow: {
     paddingVertical: 10,
@@ -684,26 +685,26 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 12,
     fontWeight: '800',
-    color: COLORS.text,
+    color: '#202544',
   },
   aiSubTitle: {
     marginTop: 14,
     marginBottom: 6,
     fontSize: 11,
     fontWeight: '900',
-    color: COLORS.textSecondary,
+    color: '#202544',
   },
   aiReason: {
     padding: 12,
     borderRadius: 10,
-    backgroundColor: '#F5FBF6',
+    backgroundColor: '#FFF8DC',
     fontSize: 12,
     lineHeight: 19,
-    color: COLORS.text,
+    color: '#202544',
   },
   aiStrong: {
     fontWeight: '900',
-    color: COLORS.primary,
+    color: '#202544',
   },
   aiList: {
     gap: 8,
@@ -713,44 +714,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     borderRadius: 10,
-    backgroundColor: '#F1FFF5',
+    backgroundColor: '#FFF9E5',
   },
   goodIcon: {
     fontWeight: '900',
-    color: '#1B9C4F',
+    color: '#202544',
   },
   goodText: {
     flex: 1,
     fontSize: 11,
     lineHeight: 17,
-    color: '#1B4332',
+    color: '#202544',
   },
   riskItem: {
     padding: 10,
     flexDirection: 'row',
     gap: 8,
     borderRadius: 10,
-    backgroundColor: '#FFF8E8',
+    backgroundColor: '#FFF0ED',
   },
   riskIcon: {
     fontWeight: '900',
-    color: '#B45309',
+    color: '#EF302B',
   },
   riskText: {
     flex: 1,
     fontSize: 11,
     lineHeight: 17,
-    color: '#7C4A03',
+    color: '#B73530',
   },
   aiDetailBlock: {
     padding: 12,
     borderRadius: 10,
-    backgroundColor: '#F7F9F7',
+    backgroundColor: '#F6F7FC',
   },
   aiDetailText: {
     fontSize: 11,
     lineHeight: 18,
-    color: COLORS.text,
+    color: '#202544',
   },
   compareCard: {
     paddingVertical: 12,
@@ -766,12 +767,12 @@ const styles = StyleSheet.create({
   compareArea: {
     fontSize: 13,
     fontWeight: '900',
-    color: COLORS.text,
+    color: '#202544',
   },
   compareRank: {
     fontSize: 11,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: '#EF302B',
   },
   compareMetrics: {
     flexDirection: 'row',
@@ -784,7 +785,7 @@ const styles = StyleSheet.create({
     minWidth: 110,
     padding: 9,
     borderRadius: 9,
-    backgroundColor: '#F6F9F7',
+    backgroundColor: '#F6F7FC',
   },
   compareMetricLabel: {
     marginBottom: 3,
@@ -794,7 +795,7 @@ const styles = StyleSheet.create({
   compareMetricValue: {
     fontSize: 11,
     fontWeight: '900',
-    color: COLORS.text,
+    color: '#202544',
   },
   storeRow: {
     paddingVertical: 10,
@@ -804,7 +805,7 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 12,
     fontWeight: '800',
-    color: COLORS.text,
+    color: '#202544',
   },
   storeAddress: {
     marginTop: 3,
