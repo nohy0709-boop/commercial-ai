@@ -1,13 +1,13 @@
 import { COLORS } from '@/constants/colors';
 import { Link, useRouter } from 'expo-router';
 import {
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -183,6 +183,46 @@ export default function HomeScreen() {
           </View>
 
           <Link href={'/community' as any} asChild>
+            <TouchableOpacity style={styles.shortTermButton} activeOpacity={0.8}>
+              <Text style={styles.shortTermButtonText}>들어가기</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        {/* 팀 후보지 (협업) */}
+        <View style={styles.shortTermCard}>
+          <View
+            style={[
+              styles.shortTermIconBox,
+              { backgroundColor: COLORS.primaryLight },
+            ]}
+          >
+            <Text style={styles.shortTermIcon}>👥</Text>
+          </View>
+
+          <View style={styles.shortTermTextBox}>
+            <View style={styles.shortTermTitleRow}>
+              <Text style={styles.shortTermTitle}>팀 후보지</Text>
+              <View
+                style={[
+                  styles.shortTermTag,
+                  { backgroundColor: COLORS.primaryLight },
+                ]}
+              >
+                <Text
+                  style={[styles.shortTermTagText, { color: COLORS.primary }]}
+                >
+                  협업
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.shortTermDescription}>
+              팀원과 후보지를 모아 투표하고 메모로 의견을 나눠요.
+            </Text>
+          </View>
+
+          <Link href={'/team' as any} asChild>
             <TouchableOpacity style={styles.shortTermButton} activeOpacity={0.8}>
               <Text style={styles.shortTermButtonText}>들어가기</Text>
             </TouchableOpacity>
