@@ -99,94 +99,99 @@ export default function MarketAnalysisMainScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#F7F9F7',
+    backgroundColor: '#F8FAFF',
   },
 
   fullWidthHeader: {
     marginHorizontal: -20,
     marginTop: -20,
     marginBottom: 20,
+    backgroundColor: '#FFFFFF',
   },
 
   headerBackground: {
     marginHorizontal: -20,
     marginTop: -20,
     paddingTop: 38,
-    paddingHorizontal: 20,
-    paddingBottom: 28,
-    marginBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    marginBottom: 28,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#EDF2FA',
   },
 
   header: {
-    fontSize: 27,
+    fontSize: 29,
     fontWeight: '900',
-    color: '#111111',
+    color: '#17233B',
     marginTop: 12,
-    marginBottom: 6,
+    marginBottom: 10,
+    lineHeight: 39,
+    letterSpacing: -0.5,
   },
 
   subHeader: {
     fontSize: 14,
-    lineHeight: 20,
-    color: '#6B7280',
+    lineHeight: 23,
+    color: '#7E8BA3',
   },
 
   headerAccent: {
-    width: 42,
+    width: 48,
     height: 5,
-    marginTop: 18,
+    marginTop: 22,
     borderRadius: 10,
-    backgroundColor: '#12A84F',
+    backgroundColor: '#80A9FA',
   },
 
   card: {
-    marginBottom: 14,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
-    borderRadius: 18,
+    borderColor: '#E5ECF8',
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
     elevation: 2,
-    boxShadow: '0px 2px 6px rgba(0,0,0,0.04)',
+    boxShadow: '0px 4px 14px rgba(90,130,200,0.06)',
   },
 
   cardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 18,
+    paddingVertical: 25,
+    paddingHorizontal: 22,
   },
 
   cardTextArea: {
     flex: 1,
-    paddingRight: 12,
+    paddingRight: 14,
   },
 
   cardTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#111111',
-    marginBottom: 7,
+    color: '#17233B',
+    marginBottom: 9,
+    letterSpacing: -0.3,
   },
 
   cardDescription: {
     fontSize: 13,
-    lineHeight: 19,
-    color: '#6B7280',
+    lineHeight: 21,
+    color: '#7E8BA3',
   },
 
   arrow: {
-    fontSize: 28,
+    fontSize: 29,
     fontWeight: '400',
-    color: '#12A84F',
+    color: '#6C99F2',
   },
 });

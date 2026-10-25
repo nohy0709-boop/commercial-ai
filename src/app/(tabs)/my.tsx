@@ -969,214 +969,214 @@ export default function MyScreen() {
 
                 {expandedChecklistIds[checklist.id] && (
                   <>
-                                    <View style={styles.checklistViewToggle}>
-                                      <TouchableOpacity
-                                        style={[
-                                          styles.checklistViewToggleButton,
-                                          checklistViewMode === 'category' &&
-                                            styles.checklistViewToggleButtonActive,
-                                        ]}
-                                        activeOpacity={0.8}
-                                        onPress={() => setChecklistViewMode('category')}
-                                      >
-                                        <Text
-                                          style={[
-                                            styles.checklistViewToggleText,
-                                            checklistViewMode === 'category' &&
-                                              styles.checklistViewToggleTextActive,
-                                          ]}
-                                        >
-                                          단계별 보기
-                                        </Text>
-                                      </TouchableOpacity>
+                    <View style={styles.checklistViewToggle}>
+                      <TouchableOpacity
+                        style={[
+                          styles.checklistViewToggleButton,
+                          checklistViewMode === 'category' &&
+                          styles.checklistViewToggleButtonActive,
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => setChecklistViewMode('category')}
+                      >
+                        <Text
+                          style={[
+                            styles.checklistViewToggleText,
+                            checklistViewMode === 'category' &&
+                            styles.checklistViewToggleTextActive,
+                          ]}
+                        >
+                          단계별 보기
+                        </Text>
+                      </TouchableOpacity>
 
-                                      <TouchableOpacity
-                                        style={[
-                                          styles.checklistViewToggleButton,
-                                          checklistViewMode === 'place' &&
-                                            styles.checklistViewToggleButtonActive,
-                                        ]}
-                                        activeOpacity={0.8}
-                                        onPress={() => setChecklistViewMode('place')}
-                                      >
-                                        <Text
-                                          style={[
-                                            styles.checklistViewToggleText,
-                                            checklistViewMode === 'place' &&
-                                              styles.checklistViewToggleTextActive,
-                                          ]}
-                                        >
-                                          장소별 보기
-                                        </Text>
-                                      </TouchableOpacity>
-                                    </View>
+                      <TouchableOpacity
+                        style={[
+                          styles.checklistViewToggleButton,
+                          checklistViewMode === 'place' &&
+                          styles.checklistViewToggleButtonActive,
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => setChecklistViewMode('place')}
+                      >
+                        <Text
+                          style={[
+                            styles.checklistViewToggleText,
+                            checklistViewMode === 'place' &&
+                            styles.checklistViewToggleTextActive,
+                          ]}
+                        >
+                          장소별 보기
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
 
-                                    {checklistViewMode === 'category' ? (
-                                      <View style={styles.checklistGroups}>
-                                        {getGroupedChecklistItems(checklist).map(group => {
-                                          const completedCount = group.items.filter(
-                                            item => item.checked,
-                                          ).length;
+                    {checklistViewMode === 'category' ? (
+                      <View style={styles.checklistGroups}>
+                        {getGroupedChecklistItems(checklist).map(group => {
+                          const completedCount = group.items.filter(
+                            item => item.checked,
+                          ).length;
 
-                                          return (
-                                            <View key={group.category} style={styles.checklistGroup}>
-                                              <View style={styles.checklistGroupHeader}>
-                                                <Text style={styles.checklistGroupTitle}>
-                                                  {group.category}
-                                                </Text>
-                                                <Text style={styles.checklistGroupCount}>
-                                                  {completedCount}/{group.items.length}
-                                                </Text>
-                                              </View>
+                          return (
+                            <View key={group.category} style={styles.checklistGroup}>
+                              <View style={styles.checklistGroupHeader}>
+                                <Text style={styles.checklistGroupTitle}>
+                                  {group.category}
+                                </Text>
+                                <Text style={styles.checklistGroupCount}>
+                                  {completedCount}/{group.items.length}
+                                </Text>
+                              </View>
 
-                                              <View style={styles.checklistItems}>
-                                                {group.items.map(item => {
-                                                  const parsed = splitChecklistText(item.text);
+                              <View style={styles.checklistItems}>
+                                {group.items.map(item => {
+                                  const parsed = splitChecklistText(item.text);
 
-                                                  return (
-                                                    <TouchableOpacity
-                                                      key={item.id}
-                                                      style={[
-                                                        styles.checklistItem,
-                                                        item.parentId && styles.checklistChildItem,
-                                                      ]}
-                                                      activeOpacity={0.7}
-                                                      onPress={() =>
-                                                        handleToggleChecklistItem(
-                                                          checklist.id,
-                                                          item.id,
-                                                        )
-                                                      }
-                                                    >
-                                                      <View
-                                                        style={[
-                                                          styles.checkBox,
-                                                          item.checked && styles.checkBoxChecked,
-                                                        ]}
-                                                      >
-                                                        {item.checked && (
-                                                          <Text style={styles.checkMark}>✓</Text>
-                                                        )}
-                                                      </View>
-
-                                                      <View style={styles.checklistItemContent}>
-                                                        <Text
-                                                          style={[
-                                                            styles.checklistItemTitle,
-                                                            item.checked &&
-                                                              styles.checklistItemTextChecked,
-                                                          ]}
-                                                        >
-                                                          {parsed.title}
-                                                        </Text>
-
-                                                        {!!parsed.description && (
-                                                          <Text
-                                                            style={[
-                                                              styles.checklistItemDescription,
-                                                              item.checked &&
-                                                                styles.checklistItemDescriptionChecked,
-                                                            ]}
-                                                          >
-                                                            {parsed.description}
-                                                          </Text>
-                                                        )}
-                                                      </View>
-                                                    </TouchableOpacity>
-                                                  );
-                                                })}
-                                              </View>
-                                            </View>
-                                          );
-                                        })}
-                                      </View>
-                                    ) : (
-                                      <View style={styles.checklistGroups}>
-                                        {getPlaceGroupedChecklistItems(checklist).map(group => {
-                                          const completedCount = group.items.filter(
-                                            item => item.checked,
-                                          ).length;
-
-                                          return (
-                                            <View key={group.place} style={styles.checklistGroup}>
-                                              <View style={styles.checklistGroupHeader}>
-                                                <Text style={styles.checklistGroupTitle}>
-                                                  {group.place}
-                                                </Text>
-                                                <Text style={styles.checklistGroupCount}>
-                                                  {completedCount}/{group.items.length}
-                                                </Text>
-                                              </View>
-
-                                              <View style={styles.checklistItems}>
-                                                {group.items.map(item => {
-                                                  const parsed = splitChecklistText(item.text);
-
-                                                  return (
-                                                    <TouchableOpacity
-                                                      key={`${group.place}-${item.id}`}
-                                                      style={styles.checklistItem}
-                                                      activeOpacity={0.7}
-                                                      onPress={() =>
-                                                        handleToggleChecklistItem(
-                                                          checklist.id,
-                                                          item.id,
-                                                        )
-                                                      }
-                                                    >
-                                                      <View
-                                                        style={[
-                                                          styles.checkBox,
-                                                          item.checked && styles.checkBoxChecked,
-                                                        ]}
-                                                      >
-                                                        {item.checked && (
-                                                          <Text style={styles.checkMark}>✓</Text>
-                                                        )}
-                                                      </View>
-
-                                                      <View style={styles.checklistItemContent}>
-                                                        <Text
-                                                          style={[
-                                                            styles.checklistItemTitle,
-                                                            item.checked &&
-                                                              styles.checklistItemTextChecked,
-                                                          ]}
-                                                        >
-                                                          {parsed.title}
-                                                        </Text>
-
-                                                        {!!parsed.description && (
-                                                          <Text
-                                                            style={[
-                                                              styles.checklistItemDescription,
-                                                              item.checked &&
-                                                                styles.checklistItemDescriptionChecked,
-                                                            ]}
-                                                          >
-                                                            {parsed.description}
-                                                          </Text>
-                                                        )}
-                                                      </View>
-                                                    </TouchableOpacity>
-                                                  );
-                                                })}
-                                              </View>
-                                            </View>
-                                          );
-                                        })}
-                                      </View>
-                                    )}
-
+                                  return (
                                     <TouchableOpacity
-                                      style={styles.continueChatButton}
-                                      onPress={() => handleChecklistChat(checklist)}
+                                      key={item.id}
+                                      style={[
+                                        styles.checklistItem,
+                                        item.parentId && styles.checklistChildItem,
+                                      ]}
+                                      activeOpacity={0.7}
+                                      onPress={() =>
+                                        handleToggleChecklistItem(
+                                          checklist.id,
+                                          item.id,
+                                        )
+                                      }
                                     >
-                                      <Text style={styles.continueChatButtonText}>
-                                        이 체크리스트로 AI에게 이어서 질문하기
-                                      </Text>
-                                      <Text style={styles.continueChatArrow}>›</Text>
+                                      <View
+                                        style={[
+                                          styles.checkBox,
+                                          item.checked && styles.checkBoxChecked,
+                                        ]}
+                                      >
+                                        {item.checked && (
+                                          <Text style={styles.checkMark}>✓</Text>
+                                        )}
+                                      </View>
+
+                                      <View style={styles.checklistItemContent}>
+                                        <Text
+                                          style={[
+                                            styles.checklistItemTitle,
+                                            item.checked &&
+                                            styles.checklistItemTextChecked,
+                                          ]}
+                                        >
+                                          {parsed.title}
+                                        </Text>
+
+                                        {!!parsed.description && (
+                                          <Text
+                                            style={[
+                                              styles.checklistItemDescription,
+                                              item.checked &&
+                                              styles.checklistItemDescriptionChecked,
+                                            ]}
+                                          >
+                                            {parsed.description}
+                                          </Text>
+                                        )}
+                                      </View>
                                     </TouchableOpacity>
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ) : (
+                      <View style={styles.checklistGroups}>
+                        {getPlaceGroupedChecklistItems(checklist).map(group => {
+                          const completedCount = group.items.filter(
+                            item => item.checked,
+                          ).length;
+
+                          return (
+                            <View key={group.place} style={styles.checklistGroup}>
+                              <View style={styles.checklistGroupHeader}>
+                                <Text style={styles.checklistGroupTitle}>
+                                  {group.place}
+                                </Text>
+                                <Text style={styles.checklistGroupCount}>
+                                  {completedCount}/{group.items.length}
+                                </Text>
+                              </View>
+
+                              <View style={styles.checklistItems}>
+                                {group.items.map(item => {
+                                  const parsed = splitChecklistText(item.text);
+
+                                  return (
+                                    <TouchableOpacity
+                                      key={`${group.place}-${item.id}`}
+                                      style={styles.checklistItem}
+                                      activeOpacity={0.7}
+                                      onPress={() =>
+                                        handleToggleChecklistItem(
+                                          checklist.id,
+                                          item.id,
+                                        )
+                                      }
+                                    >
+                                      <View
+                                        style={[
+                                          styles.checkBox,
+                                          item.checked && styles.checkBoxChecked,
+                                        ]}
+                                      >
+                                        {item.checked && (
+                                          <Text style={styles.checkMark}>✓</Text>
+                                        )}
+                                      </View>
+
+                                      <View style={styles.checklistItemContent}>
+                                        <Text
+                                          style={[
+                                            styles.checklistItemTitle,
+                                            item.checked &&
+                                            styles.checklistItemTextChecked,
+                                          ]}
+                                        >
+                                          {parsed.title}
+                                        </Text>
+
+                                        {!!parsed.description && (
+                                          <Text
+                                            style={[
+                                              styles.checklistItemDescription,
+                                              item.checked &&
+                                              styles.checklistItemDescriptionChecked,
+                                            ]}
+                                          >
+                                            {parsed.description}
+                                          </Text>
+                                        )}
+                                      </View>
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.continueChatButton}
+                      onPress={() => handleChecklistChat(checklist)}
+                    >
+                      <Text style={styles.continueChatButtonText}>
+                        이 체크리스트로 AI에게 이어서 질문하기
+                      </Text>
+                      <Text style={styles.continueChatArrow}>›</Text>
+                    </TouchableOpacity>
                   </>
                 )}
               </View>
@@ -1527,21 +1527,16 @@ const styles = StyleSheet.create({
 
   },
 
+
   needCard: {
-
     padding: 20,
-
     borderRadius: 22,
-
     borderWidth: 1,
-
-    borderColor: '#DCEFE0',
-
-    backgroundColor: '#F7FCF8',
-
+    borderColor: '#F0DEA0',
+    backgroundColor: '#FFF4C2',
     marginBottom: 18,
-
   },
+
 
   editButton: {
 
@@ -1749,25 +1744,18 @@ const styles = StyleSheet.create({
 
   },
 
+
   summaryCard: {
-
     flexDirection: 'row',
-
     alignItems: 'center',
-
     paddingVertical: 20,
-
     borderRadius: 20,
-
     borderWidth: 1,
-
-    borderColor: '#DCEFE0',
-
-    backgroundColor: '#F5FCF6',
-
+    borderColor: '#F0DEA0',
+    backgroundColor: '#FFF4C2',
     marginBottom: 18,
-
   },
+
 
   summaryItem: {
 
@@ -1903,15 +1891,17 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
 
+
   aiEmptyCard: {
     alignItems: 'center',
     paddingVertical: 28,
     paddingHorizontal: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DCEFE0',
-    backgroundColor: '#F7FCF8',
+    borderColor: '#F0DEA0',
+    backgroundColor: '#FFF4C2',
   },
+
 
   aiEmptyIcon: {
     width: 42,
@@ -1941,19 +1931,21 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
+
   aiEmptyButton: {
     marginTop: 16,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: '#1D2545',
   },
 
   aiEmptyButtonText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
+
 
   checklistCard: {
     padding: 18,

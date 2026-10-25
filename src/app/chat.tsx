@@ -174,17 +174,17 @@ function createHistoryContext(
 
     item.resultData &&
 
-    typeof item.resultData === 'object' &&
+      typeof item.resultData === 'object' &&
 
-    !Array.isArray(item.resultData)
+      !Array.isArray(item.resultData)
 
       ? item.resultData
 
       : {
 
-          resultData: item.resultData,
+        resultData: item.resultData,
 
-        };
+      };
 
   return {
 
@@ -334,11 +334,11 @@ function ChecklistItem({
 
         compact &&
 
-          styles.checklistRowCompact,
+        styles.checklistRowCompact,
 
         checked &&
 
-          styles.checklistRowChecked,
+        styles.checklistRowChecked,
 
       ]}
 
@@ -356,11 +356,11 @@ function ChecklistItem({
 
           compact &&
 
-            styles.checklistBoxCompact,
+          styles.checklistBoxCompact,
 
           checked &&
 
-            styles.checklistBoxChecked,
+          styles.checklistBoxChecked,
 
         ]}
 
@@ -390,11 +390,11 @@ function ChecklistItem({
 
           compact &&
 
-            styles.checklistTextCompact,
+          styles.checklistTextCompact,
 
           checked &&
 
-            styles.checklistTextChecked,
+          styles.checklistTextChecked,
 
         ]}
 
@@ -618,7 +618,7 @@ function AssistantContent({
 
               checklistInfo.childParent[
 
-                index
+              index
 
               ] !== undefined
 
@@ -851,7 +851,7 @@ function AssistantContent({
 
       checklistInfo.parentChildren[
 
-        parentIndex
+      parentIndex
 
       ] ?? [];
 
@@ -863,7 +863,7 @@ function AssistantContent({
 
           checkedMap[
 
-            childIndex
+          childIndex
 
           ] === true,
 
@@ -886,7 +886,7 @@ function AssistantContent({
   ) => {
     const children =
       checklistInfo.parentChildren[
-        parentIndex
+      parentIndex
       ] ?? [];
 
     const nextChecked =
@@ -926,7 +926,7 @@ function AssistantContent({
 
       const parentIndex =
         checklistInfo.childParent[
-          childIndex
+        childIndex
         ];
 
       if (
@@ -936,8 +936,8 @@ function AssistantContent({
         const siblings =
           checklistInfo
             .parentChildren[
-              parentIndex
-            ] ?? [];
+          parentIndex
+          ] ?? [];
 
         next[parentIndex] =
           siblings.length > 0 &&
@@ -1154,7 +1154,7 @@ function AssistantContent({
 
                     checkedMap[
 
-                      index
+                    index
 
                     ] === true
 
@@ -2398,9 +2398,9 @@ export default function ChatScreen() {
 
                     ? ` · ${selectedHistory.regions.join(
 
-                        ', ',
+                      ', ',
 
-                      )}`
+                    )}`
 
                     : ''}
 
@@ -2622,7 +2622,7 @@ export default function ChatScreen() {
 
                 <Image
 
-                  source={require('../../assets/images/chatbot-question-map.png')}
+                  source={require('../../assets/images/chatbot-question-map-red.png')}
 
                   style={styles.aiAvatar}
 
@@ -2704,7 +2704,7 @@ export default function ChatScreen() {
 
             <Image
 
-              source={require('../../assets/images/chatbot-question-map.png')}
+              source={require('../../assets/images/chatbot-question-map-red.png')}
 
               style={styles.aiAvatar}
 
@@ -2718,7 +2718,7 @@ export default function ChatScreen() {
 
             >
 
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" color="#EF302B" />
 
               <Text
 
@@ -2782,7 +2782,7 @@ export default function ChatScreen() {
 
                 isLoading) &&
 
-                styles.sendButtonDisabled,
+              styles.sendButtonDisabled,
 
             ]}
 
@@ -3026,7 +3026,7 @@ export default function ChatScreen() {
 
                         isSelected &&
 
-                          styles.historyItemSelected,
+                        styles.historyItemSelected,
 
                       ]}
 
@@ -3120,13 +3120,13 @@ export default function ChatScreen() {
 
                         {item.regions.length >
 
-                        0
+                          0
 
                           ? ` · ${item.regions.join(
 
-                              ', ',
+                            ', ',
 
-                            )}`
+                          )}`
 
                           : ''}
 
@@ -3378,9 +3378,9 @@ export default function ChatScreen() {
 
                         ? ` · ${item.regions.join(
 
-                            ', ',
+                          ', ',
 
-                          )}`
+                        )}`
 
                         : ''}
 
@@ -3578,7 +3578,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 12,
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#1D2545',
 
   },
 
@@ -3600,7 +3600,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 12,
 
-    backgroundColor: '#F3FBF5',
+    backgroundColor: '#EEF1F8',
 
     borderWidth: 1,
 
@@ -3636,7 +3636,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 9,
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#1D2545',
 
   },
 
@@ -3798,35 +3798,25 @@ const styles = StyleSheet.create({
 
   },
 
+
+
   suggestedChip: {
-
     maxWidth: '100%',
-
     paddingHorizontal: 12,
-
     paddingVertical: 9,
-
     borderRadius: 999,
-
     borderWidth: 1,
-
-    borderColor: '#CDEED7',
-
-    backgroundColor: '#F3FBF5',
-
+    borderColor: '#F0DEA0',
+    backgroundColor: '#FFF4C2',
   },
 
   suggestedChipText: {
-
     fontSize: 12,
-
     lineHeight: 17,
-
     fontWeight: '700',
-
-    color: '#25824A',
-
+    color: '#1D2545',
   },
+
 
   messageRow: {
 
@@ -3874,25 +3864,19 @@ const styles = StyleSheet.create({
 
   },
 
+
   userBubble: {
-
-    backgroundColor: '#25824A',
-
+    backgroundColor: '#1D2545',
     borderBottomRightRadius: 5,
-
   },
 
   assistantBubble: {
-
     backgroundColor: '#FFFFFF',
-
     borderWidth: 1,
-
-    borderColor: '#DFE8E2',
-
+    borderColor: '#D8DFED',
     borderBottomLeftRadius: 5,
-
   },
+
 
   messageText: {
 
@@ -3956,13 +3940,13 @@ const styles = StyleSheet.create({
 
   },
 
+
+
   markdownKeyword: {
-
     fontWeight: '900',
-
-    color: '#25824A',
-
+    color: '#EF302B',
   },
+
 
   checklistRow: {
 
@@ -4322,7 +4306,7 @@ const styles = StyleSheet.create({
 
     justifyContent: 'center',
 
-    backgroundColor: '#25824A',
+    backgroundColor: '#1D2545',
 
   },
 
@@ -4516,7 +4500,7 @@ const styles = StyleSheet.create({
 
     borderColor: '#25824A',
 
-    backgroundColor: '#F3FBF5',
+    backgroundColor: '#EEF1F8',
 
   },
 

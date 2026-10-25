@@ -249,21 +249,21 @@ export default function RegionSelectionScreen() {
     value: Radius;
     label: string;
   }[] = [
-    {
-      value: 300,
-      label: '300m',
-    },
+      {
+        value: 300,
+        label: '300m',
+      },
 
-    {
-      value: 500,
-      label: '500m',
-    },
+      {
+        value: 500,
+        label: '500m',
+      },
 
-    {
-      value: 1000,
-      label: '1km',
-    },
-  ];
+      {
+        value: 1000,
+        label: '1km',
+      },
+    ];
 
   /**
    * =====================================================
@@ -373,7 +373,7 @@ export default function RegionSelectionScreen() {
             result.lng,
         });
       } catch (
-        error
+      error
       ) {
         console.error(
           '동 위치 검색 실패:',
@@ -443,13 +443,13 @@ export default function RegionSelectionScreen() {
           }
 
           const point: Coordinates =
-            {
-              lat:
-                latitude,
+          {
+            lat:
+              latitude,
 
-              lng:
-                longitude,
-            };
+            lng:
+              longitude,
+          };
 
           setMapSelectedPoint(
             point,
@@ -469,7 +469,7 @@ export default function RegionSelectionScreen() {
             longitude,
           });
         } catch (
-          error
+        error
         ) {
           console.error(
             '지도 위치 확인 실패:',
@@ -523,13 +523,13 @@ export default function RegionSelectionScreen() {
         );
 
         const point: Coordinates =
-          {
-            lat:
-              current.latitude,
+        {
+          lat:
+            current.latitude,
 
-            lng:
-              current.longitude,
-          };
+          lng:
+            current.longitude,
+        };
 
         /**
          * 지원 여부 검사 전에
@@ -597,7 +597,7 @@ export default function RegionSelectionScreen() {
           sejongAreas.some(
             area =>
               area.name ===
-                dong.dongName,
+              dong.dongName,
           );
 
         if (!supported) {
@@ -626,7 +626,7 @@ export default function RegionSelectionScreen() {
           },
         );
       } catch (
-        error
+      error
       ) {
         console.error(
           '현재 위치 조회 실패:',
@@ -635,9 +635,9 @@ export default function RegionSelectionScreen() {
 
         if (
           error instanceof
-            Error &&
+          Error &&
           error.message ===
-            'LOCATION_PERMISSION_DENIED'
+          'LOCATION_PERMISSION_DENIED'
         ) {
           Alert.alert(
             '위치 권한이 필요해요',
@@ -649,9 +649,9 @@ export default function RegionSelectionScreen() {
 
         if (
           error instanceof
-            Error &&
+          Error &&
           error.message ===
-            'GEOLOCATION_NOT_SUPPORTED'
+          'GEOLOCATION_NOT_SUPPORTED'
         ) {
           Alert.alert(
             '현재 위치를 사용할 수 없어요',
@@ -695,7 +695,7 @@ export default function RegionSelectionScreen() {
         sejongAreas.some(
           area =>
             area.name ===
-              mapSelectedDong,
+            mapSelectedDong,
         );
 
       if (!supported) {
@@ -712,16 +712,16 @@ export default function RegionSelectionScreen() {
           location =>
             Math.abs(
               location.coordinates.lat -
-                mapSelectedPoint.lat,
+              mapSelectedPoint.lat,
             ) <
-              0.000001 &&
+            0.000001 &&
             Math.abs(
               location.coordinates.lng -
-                mapSelectedPoint.lng,
+              mapSelectedPoint.lng,
             ) <
-              0.000001 &&
+            0.000001 &&
             location.radius ===
-              selectedRadius,
+            selectedRadius,
         );
 
       if (exists) {
@@ -900,7 +900,7 @@ export default function RegionSelectionScreen() {
           sejongAreas.some(
             area =>
               area.name ===
-                dong.dongName,
+              dong.dongName,
           );
 
         if (!supported) {
@@ -919,7 +919,7 @@ export default function RegionSelectionScreen() {
           dong.dongName,
         );
       } catch (
-        error
+      error
       ) {
         console.error(
           '위치 검색 실패:',
@@ -961,9 +961,9 @@ export default function RegionSelectionScreen() {
         detailedLocations.some(
           location =>
             location.label ===
-              label &&
+            label &&
             location.radius ===
-              selectedRadius,
+            selectedRadius,
         );
 
       if (exists) {
@@ -1118,10 +1118,10 @@ export default function RegionSelectionScreen() {
     mapSelectedLabel
       ? mapSelectedLabel
       : selectedAreas.length >
-          0
+        0
         ? `선택한 동: ${selectedAreas.join(
-            ', ',
-          )}`
+          ', ',
+        )}`
         : '동을 선택하거나 지도에서 원하는 지점을 선택하세요';
 
   return (
@@ -1265,8 +1265,8 @@ export default function RegionSelectionScreen() {
                   styles.modeButton,
 
                   selectMode ===
-                    'map' &&
-                    styles.modeButtonActive,
+                  'map' &&
+                  styles.modeButtonActive,
                 ]}
                 activeOpacity={
                   0.8
@@ -1295,8 +1295,8 @@ export default function RegionSelectionScreen() {
                       styles.modeTitle,
 
                       selectMode ===
-                        'map' &&
-                        styles.modeTitleActive,
+                      'map' &&
+                      styles.modeTitleActive,
                     ]}
                   >
                     지도에서 선택
@@ -1319,8 +1319,8 @@ export default function RegionSelectionScreen() {
                   styles.modeButton,
 
                   selectMode ===
-                    'current' &&
-                    styles.modeButtonActive,
+                  'current' &&
+                  styles.modeButtonActive,
                 ]}
                 activeOpacity={
                   0.8
@@ -1366,8 +1366,8 @@ export default function RegionSelectionScreen() {
                       styles.modeTitle,
 
                       selectMode ===
-                        'current' &&
-                        styles.modeTitleActive,
+                      'current' &&
+                      styles.modeTitleActive,
                     ]}
                   >
                     내 현재 위치
@@ -1390,8 +1390,8 @@ export default function RegionSelectionScreen() {
                   styles.modeButton,
 
                   selectMode ===
-                    'direct' &&
-                    styles.modeButtonActive,
+                  'direct' &&
+                  styles.modeButtonActive,
                 ]}
                 activeOpacity={
                   0.8
@@ -1420,8 +1420,8 @@ export default function RegionSelectionScreen() {
                       styles.modeTitle,
 
                       selectMode ===
-                        'direct' &&
-                        styles.modeTitleActive,
+                      'direct' &&
+                      styles.modeTitleActive,
                     ]}
                   >
                     직접 위치 검색
@@ -1489,7 +1489,7 @@ export default function RegionSelectionScreen() {
                     }
                   >
                     {selectMode ===
-                    'direct'
+                      'direct'
                       ? '주소나 건물명을 검색하세요'
                       : mapSelectedLabel
                         ? '선택한 세부 위치와 분석 범위를 확인하세요'
@@ -1500,7 +1500,7 @@ export default function RegionSelectionScreen() {
             </View>
 
             {selectMode !==
-            'direct' ? (
+              'direct' ? (
               <>
                 {/* 지도 */}
 
@@ -1532,9 +1532,9 @@ export default function RegionSelectionScreen() {
                           styles.mapDescription,
 
                           selectedAreas.length >
-                            0 &&
-                            !mapSelectedLabel &&
-                            styles.mapDescriptionSelected,
+                          0 &&
+                          !mapSelectedLabel &&
+                          styles.mapDescriptionSelected,
                         ]}
                       >
                         {
@@ -1583,12 +1583,12 @@ export default function RegionSelectionScreen() {
                       selectedPoint={
                         mapSelectedPoint
                           ? {
-                              latitude:
-                                mapSelectedPoint.lat,
+                            latitude:
+                              mapSelectedPoint.lat,
 
-                              longitude:
-                                mapSelectedPoint.lng,
-                            }
+                            longitude:
+                              mapSelectedPoint.lng,
+                          }
                           : null
                       }
 
@@ -1730,18 +1730,18 @@ export default function RegionSelectionScreen() {
 
                     {currentLocationAccuracy !==
                       null && (
-                      <Text
-                        style={
-                          styles.accuracyText
-                        }
-                      >
-                        GPS 위치 정확도 약{' '}
-                        {Math.round(
-                          currentLocationAccuracy,
-                        )}
-                        m
-                      </Text>
-                    )}
+                        <Text
+                          style={
+                            styles.accuracyText
+                          }
+                        >
+                          GPS 위치 정확도 약{' '}
+                          {Math.round(
+                            currentLocationAccuracy,
+                          )}
+                          m
+                        </Text>
+                      )}
 
                     {!mapSelectedDong ? (
                       <Text
@@ -1789,7 +1789,7 @@ export default function RegionSelectionScreen() {
                                 styles.radiusButton,
 
                                 active &&
-                                  styles.radiusButtonActive,
+                                styles.radiusButtonActive,
                               ]}
                               activeOpacity={
                                 0.8
@@ -1805,7 +1805,7 @@ export default function RegionSelectionScreen() {
                                   styles.radiusText,
 
                                   active &&
-                                    styles.radiusTextActive,
+                                  styles.radiusTextActive,
                                 ]}
                               >
                                 {
@@ -1829,10 +1829,10 @@ export default function RegionSelectionScreen() {
                         }
                       >
                         {selectedRadius ===
-                        300
+                          300
                           ? '점포 주변의 매우 가까운 상권을 분석합니다.'
                           : selectedRadius ===
-                              500
+                            500
                             ? '일반적인 도보 생활권 범위를 분석합니다.'
                             : '넓은 생활권과 주변 상권까지 함께 분석합니다.'}
                       </Text>
@@ -1868,7 +1868,7 @@ export default function RegionSelectionScreen() {
                           styles.addButton,
 
                           !mapSelectedDong &&
-                            styles.addButtonDisabled,
+                          styles.addButtonDisabled,
                         ]}
                         activeOpacity={
                           0.8
@@ -1885,7 +1885,7 @@ export default function RegionSelectionScreen() {
                             styles.addButtonText,
 
                             !mapSelectedDong &&
-                              styles.addButtonTextDisabled,
+                            styles.addButtonTextDisabled,
                           ]}
                         >
                           분석 위치로 추가
@@ -1938,7 +1938,7 @@ export default function RegionSelectionScreen() {
                             styles.regionChip,
 
                             selected &&
-                              styles.regionChipSelected,
+                            styles.regionChipSelected,
                           ]}
                           activeOpacity={
                             0.7
@@ -1957,7 +1957,7 @@ export default function RegionSelectionScreen() {
                               styles.regionText,
 
                               selected &&
-                                styles.regionTextSelected,
+                              styles.regionTextSelected,
                             ]}
                           >
                             {
@@ -2156,7 +2156,7 @@ export default function RegionSelectionScreen() {
                                 styles.radiusButton,
 
                                 active &&
-                                  styles.radiusButtonActive,
+                                styles.radiusButtonActive,
                               ]}
                               activeOpacity={
                                 0.8
@@ -2172,7 +2172,7 @@ export default function RegionSelectionScreen() {
                                   styles.radiusText,
 
                                   active &&
-                                    styles.radiusTextActive,
+                                  styles.radiusTextActive,
                                 ]}
                               >
                                 {
@@ -2196,10 +2196,10 @@ export default function RegionSelectionScreen() {
                         }
                       >
                         {selectedRadius ===
-                        300
+                          300
                           ? '점포 주변의 매우 가까운 상권을 분석합니다.'
                           : selectedRadius ===
-                              500
+                            500
                             ? '일반적인 도보 생활권 범위를 분석합니다.'
                             : '넓은 생활권과 주변 상권까지 함께 분석합니다.'}
                       </Text>
@@ -2234,157 +2234,157 @@ export default function RegionSelectionScreen() {
 
           {totalSelected >
             0 && (
-            <View
-              style={
-                styles.summarySection
-              }
-            >
               <View
                 style={
-                  styles.summaryHeader
+                  styles.summarySection
                 }
               >
                 <View
                   style={
-                    styles.sectionTitleArea
+                    styles.summaryHeader
                   }
                 >
                   <View
                     style={
-                      styles.stepBadge
+                      styles.sectionTitleArea
                     }
                   >
-                    <Text
+                    <View
                       style={
-                        styles.stepBadgeText
+                        styles.stepBadge
                       }
                     >
-                      3
-                    </Text>
+                      <Text
+                        style={
+                          styles.stepBadgeText
+                        }
+                      >
+                        3
+                      </Text>
+                    </View>
+
+                    <View
+                      style={
+                        styles.sectionTextArea
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.summaryTitle
+                        }
+                      >
+                        선택한 지역
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.sectionDescription
+                        }
+                      >
+                        분석할 위치를 확인해주세요
+                      </Text>
+                    </View>
                   </View>
 
-                  <View
+                  <Text
                     style={
-                      styles.sectionTextArea
+                      styles.selectedCount
                     }
                   >
-                    <Text
-                      style={
-                        styles.summaryTitle
-                      }
-                    >
-                      선택한 지역
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.sectionDescription
-                      }
-                    >
-                      분석할 위치를 확인해주세요
-                    </Text>
-                  </View>
+                    총 {totalSelected}개
+                  </Text>
                 </View>
 
-                <Text
+                <View
                   style={
-                    styles.selectedCount
+                    styles.summaryChipRow
                   }
                 >
-                  총 {totalSelected}개
-                </Text>
+                  {selectedAreas.map(
+                    area => (
+                      <TouchableOpacity
+                        key={
+                          area
+                        }
+                        style={
+                          styles.summaryChip
+                        }
+                        activeOpacity={
+                          0.7
+                        }
+                        onPress={() =>
+                          removeArea(
+                            area,
+                          )
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.summaryChipText
+                          }
+                        >
+                          📍 {area} 전체
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.removeText
+                          }
+                        >
+                          ×
+                        </Text>
+                      </TouchableOpacity>
+                    ),
+                  )}
+
+                  {detailedLocations.map(
+                    (
+                      location,
+                      index,
+                    ) => (
+                      <TouchableOpacity
+                        key={`${location.label}-${index}`}
+                        style={
+                          styles.summaryChip
+                        }
+                        activeOpacity={
+                          0.7
+                        }
+                        onPress={() =>
+                          removeDetailedLocation(
+                            index,
+                          )
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.summaryChipText
+                          }
+                        >
+                          📍{' '}
+                          {
+                            location.label
+                          }
+                          {' · '}
+                          {location.radius ===
+                            1000
+                            ? '1km'
+                            : `${location.radius}m`}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.removeText
+                          }
+                        >
+                          ×
+                        </Text>
+                      </TouchableOpacity>
+                    ),
+                  )}
+                </View>
               </View>
-
-              <View
-                style={
-                  styles.summaryChipRow
-                }
-              >
-                {selectedAreas.map(
-                  area => (
-                    <TouchableOpacity
-                      key={
-                        area
-                      }
-                      style={
-                        styles.summaryChip
-                      }
-                      activeOpacity={
-                        0.7
-                      }
-                      onPress={() =>
-                        removeArea(
-                          area,
-                        )
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.summaryChipText
-                        }
-                      >
-                        📍 {area} 전체
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.removeText
-                        }
-                      >
-                        ×
-                      </Text>
-                    </TouchableOpacity>
-                  ),
-                )}
-
-                {detailedLocations.map(
-                  (
-                    location,
-                    index,
-                  ) => (
-                    <TouchableOpacity
-                      key={`${location.label}-${index}`}
-                      style={
-                        styles.summaryChip
-                      }
-                      activeOpacity={
-                        0.7
-                      }
-                      onPress={() =>
-                        removeDetailedLocation(
-                          index,
-                        )
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.summaryChipText
-                        }
-                      >
-                        📍{' '}
-                        {
-                          location.label
-                        }
-                        {' · '}
-                        {location.radius ===
-                        1000
-                          ? '1km'
-                          : `${location.radius}m`}
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.removeText
-                        }
-                      >
-                        ×
-                      </Text>
-                    </TouchableOpacity>
-                  ),
-                )}
-              </View>
-            </View>
-          )}
+            )}
 
           {/* 분석 버튼 */}
 
@@ -2393,8 +2393,8 @@ export default function RegionSelectionScreen() {
               styles.analyzeButton,
 
               totalSelected ===
-                0 &&
-                styles.analyzeButtonDisabled,
+              0 &&
+              styles.analyzeButtonDisabled,
             ]}
             activeOpacity={
               0.8
@@ -2412,12 +2412,12 @@ export default function RegionSelectionScreen() {
                 styles.analyzeButtonText,
 
                 totalSelected ===
-                  0 &&
-                  styles.analyzeButtonTextDisabled,
+                0 &&
+                styles.analyzeButtonTextDisabled,
               ]}
             >
               {totalSelected ===
-              0
+                0
                 ? '지역을 선택해주세요'
                 : `선택한 ${totalSelected}개 지역 분석하기 →`}
             </Text>
@@ -2865,24 +2865,13 @@ const styles =
     },
 
     currentLocationButton: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
+      flexDirection: 'row',
+      alignItems: 'center',
       padding: 14,
-
       borderRadius: 14,
-
       borderWidth: 1,
-
-      borderColor:
-        COLORS.border,
-
-      backgroundColor:
-        COLORS.primaryLight,
-
+      borderColor: '#F0DEA0',
+      backgroundColor: '#FFF4C2',
       marginBottom: 16,
     },
 
@@ -2947,13 +2936,12 @@ const styles =
       borderWidth: 1,
 
       borderColor:
-        COLORS.border,
+       '#F0DEA0',
 
       borderRadius: 16,
 
       backgroundColor:
-        COLORS.primaryLight,
-
+        '#FFF4C2',
       padding: 17,
 
       marginBottom: 18,
@@ -3025,7 +3013,7 @@ const styles =
       fontSize: 11,
 
       color:
-        COLORS.warning,
+        '#1D2545',
 
       fontWeight:
         '700',
@@ -3065,10 +3053,10 @@ const styles =
       borderWidth: 1,
 
       borderColor:
-        COLORS.border,
+        '#1D2545',
 
       backgroundColor:
-        COLORS.surface,
+        '#FFF4C2',
     },
 
     radiusButtonActive: {
@@ -3091,7 +3079,7 @@ const styles =
 
     radiusTextActive: {
       color:
-        COLORS.primary,
+        '#1D2545',
 
       fontWeight:
         '900',
@@ -3263,10 +3251,10 @@ const styles =
 
     regionChipSelected: {
       borderColor:
-        COLORS.primary,
+        '#1D2545',
 
       backgroundColor:
-        COLORS.primaryLight,
+        '#FFF4C2',
     },
 
     regionText: {
@@ -3387,7 +3375,7 @@ const styles =
         COLORS.border,
 
       backgroundColor:
-        COLORS.primaryLight,
+        '#FFF4C2',
 
       marginBottom: 16,
     },

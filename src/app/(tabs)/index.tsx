@@ -51,7 +51,7 @@ export default function HomeScreen() {
       <View style={styles.appBar}>
         <View style={styles.logoRow}>
           <Image
-            source={require('../../../assets/images/location-question-icon.png')}
+            source={require('../../../assets/images/location-question-icon-red.png')}
             style={styles.logoImage}
             resizeMode="cover"
           />
@@ -79,6 +79,19 @@ export default function HomeScreen() {
             데이터와 AI로 후보 상권을 비교해보세요.{'\n'}
             창업 성공을 보장하지는 않지만, 더 나은 선택을 도와드릴게요.
           </Text>
+
+
+          <Link href="/market-analysis/industry" asChild>
+            <TouchableOpacity
+              style={styles.heroButton}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.heroButtonText}>
+                분석 시작하기 →
+              </Text>
+            </TouchableOpacity>
+          </Link>
+
         </View>
 
         {/* 핵심 분석 기능 */}
@@ -247,7 +260,7 @@ export default function HomeScreen() {
         accessibilityLabel="AI 챗봇 열기"
       >
         <Image
-          source={require('../../../assets/images/chatbot-question-map.png')}
+          source={require('../../../assets/images/chatbot-question-map-red.png')}
           style={styles.chatFloatingImage}
           resizeMode="cover"
         />
@@ -295,41 +308,51 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.text,
   },
+
   hero: {
-    paddingTop: 24,
-    paddingBottom: 20,
+    backgroundColor: '#1D2545',
+    borderRadius: 22,
+    paddingHorizontal: 26,
+    paddingTop: 30,
+    paddingBottom: 30,
+    marginTop: 16,
+    marginBottom: 24,
   },
+
+
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    marginBottom: 20,
   },
+
   heroBadgeIcon: {
-    fontSize: 11,
+    fontSize: 13,
   },
+
   heroBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFD52A',
   },
+
   heroTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: COLORS.text,
-    lineHeight: 36,
+    color: '#FFFFFF',
+    lineHeight: 38,
     marginBottom: 12,
+    letterSpacing: -0.5,
   },
+
   heroSubtitle: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
+    fontSize: 14,
+    color: '#CFD5E3',
+    lineHeight: 23,
   },
+
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -344,17 +367,18 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   featureCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 18,
-    padding: 18,
+    borderColor: '#E1E4EC',
+    borderRadius: 16,
+    padding: 20,
   },
+
   featureIconBox: {
-    width: 42,
-    height: 42,
+    width: 46,
+    height: 46,
     borderRadius: 12,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#FFF3BD',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -395,13 +419,14 @@ const styles = StyleSheet.create({
   },
   featureCtaText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontWeight: '800',
+    color: '#EF302B',
   },
+
   featureCtaArrow: {
     fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontWeight: '800',
+    color: '#EF302B',
   },
   shortTermCard: {
     backgroundColor: COLORS.surface,
@@ -504,8 +529,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     zIndex: 20,
   },
+
   chatFloatingImage: {
     width: 56,
     height: 56,
+  },
+
+  heroButton: {
+    backgroundColor: '#EF302B',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 24,
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginTop: 24,
+  },
+
+  heroButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

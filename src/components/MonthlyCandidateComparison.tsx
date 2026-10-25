@@ -1,27 +1,27 @@
 import {
-    useMemo,
-    useState,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import Svg, {
-    Circle,
-    G,
-    Line,
-    Polyline,
-    Rect,
-    Text as SvgText,
+  Circle,
+  G,
+  Line,
+  Polyline,
+  Rect,
+  Text as SvgText,
 } from 'react-native-svg';
 
 import {
-    sejongMonthlyMarketData,
+  sejongMonthlyMarketData,
 } from '@/data/sejongMonthlyMarketData';
 
 /**
@@ -35,17 +35,17 @@ type CompareItem = {
   rank: number;
 
   competitionScore?:
-    | number
-    | string;
+  | number
+  | string;
 
   accessibilityScore?:
-    | number
-    | string;
+  | number
+  | string;
 
   [key: string]:
-    | number
-    | string
-    | undefined;
+  | number
+  | string
+  | undefined;
 };
 
 type MainTab =
@@ -154,13 +154,12 @@ function formatPercent(
     return '-';
   }
 
-  return `${
-    value > 0
+  return `${value > 0
       ? '+'
       : ''
-  }${value.toFixed(
-    1,
-  )}%`;
+    }${value.toFixed(
+      1,
+    )}%`;
 }
 
 /**
@@ -274,7 +273,7 @@ export default function MonthlyCandidateComparison({
    */
   const valueKey =
     activeTab ===
-    'sales'
+      'sales'
       ? 'cardSales'
       : populationMetric;
 
@@ -286,8 +285,8 @@ export default function MonthlyCandidateComparison({
       () =>
         selectedAreaName
           ? sejongMonthlyMarketData[
-              selectedAreaName
-            ] ?? []
+          selectedAreaName
+          ] ?? []
           : [],
       [
         selectedAreaName,
@@ -331,7 +330,7 @@ export default function MonthlyCandidateComparison({
           .filter(
             row =>
               row[
-                valueKey
+              valueKey
               ] !==
               null,
           )
@@ -373,7 +372,7 @@ export default function MonthlyCandidateComparison({
               rowMap.get(
                 period,
               )?.[
-                valueKey
+              valueKey
               ];
 
             return typeof value ===
@@ -408,7 +407,7 @@ export default function MonthlyCandidateComparison({
               areaName => {
                 const rows =
                   sejongMonthlyMarketData[
-                    areaName
+                  areaName
                   ] ?? [];
 
                 const row =
@@ -420,12 +419,12 @@ export default function MonthlyCandidateComparison({
 
                 const value =
                   row?.[
-                    valueKey
+                  valueKey
                   ];
 
                 if (
                   typeof value ===
-                    'number' &&
+                  'number' &&
                   Number.isFinite(
                     value,
                   )
@@ -540,7 +539,7 @@ export default function MonthlyCandidateComparison({
           Math.max(
             ...values,
           ) *
-            1.1,
+          1.1,
         );
       },
       [
@@ -582,9 +581,9 @@ export default function MonthlyCandidateComparison({
                   item =>
                     Number(
                       item[
-                        key
+                      key
                       ] ??
-                        0,
+                      0,
                     ),
                 )
                 .filter(
@@ -623,7 +622,7 @@ export default function MonthlyCandidateComparison({
             selectedValue:
               Number(
                 selected?.competitionScore ??
-                  0,
+                0,
               ),
 
             averageValue:
@@ -639,7 +638,7 @@ export default function MonthlyCandidateComparison({
             selectedValue:
               Number(
                 selected?.accessibilityScore ??
-                  0,
+                0,
               ),
 
             averageValue:
@@ -742,81 +741,81 @@ export default function MonthlyCandidateComparison({
 
       {activeTab ===
         'population' && (
-        <View
-          style={
-            styles.subTabRow
-          }
-        >
-          <TouchableOpacity
-            style={[
-              styles.subTab,
+          <View
+            style={
+              styles.subTabRow
+            }
+          >
+            <TouchableOpacity
+              style={[
+                styles.subTab,
 
-              populationMetric ===
+                populationMetric ===
                 'floatingPopulation' &&
                 styles.subTabActive,
-            ]}
-            onPress={() => {
-              setPopulationMetric(
-                'floatingPopulation',
-              );
+              ]}
+              onPress={() => {
+                setPopulationMetric(
+                  'floatingPopulation',
+                );
 
-              setTableOpen(
-                false,
-              );
-            }}
-          >
-            <Text
-              style={[
-                styles.subTabText,
+                setTableOpen(
+                  false,
+                );
+              }}
+            >
+              <Text
+                style={[
+                  styles.subTabText,
 
-                populationMetric ===
+                  populationMetric ===
                   'floatingPopulation' &&
                   styles.subTabTextActive,
-              ]}
-            >
-              유동인구
-            </Text>
-          </TouchableOpacity>
+                ]}
+              >
+                유동인구
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.subTab,
-
-              populationMetric ===
-                'inflowPopulation' &&
-                styles.subTabActive,
-            ]}
-            onPress={() => {
-              setPopulationMetric(
-                'inflowPopulation',
-              );
-
-              setTableOpen(
-                false,
-              );
-            }}
-          >
-            <Text
+            <TouchableOpacity
               style={[
-                styles.subTabText,
+                styles.subTab,
 
                 populationMetric ===
+                'inflowPopulation' &&
+                styles.subTabActive,
+              ]}
+              onPress={() => {
+                setPopulationMetric(
+                  'inflowPopulation',
+                );
+
+                setTableOpen(
+                  false,
+                );
+              }}
+            >
+              <Text
+                style={[
+                  styles.subTabText,
+
+                  populationMetric ===
                   'inflowPopulation' &&
                   styles.subTabTextActive,
-              ]}
-            >
-              유입인구
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+                ]}
+              >
+                유입인구
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       {/* LINE CHART */}
 
       {activeTab !==
         'environment' &&
         periods.length >
-          0 && (
+        0 && (
           <>
             <View
               style={
@@ -949,7 +948,7 @@ export default function MonthlyCandidateComparison({
                   styles.switchTrack,
 
                   tableOpen &&
-                    styles.switchTrackActive,
+                  styles.switchTrackActive,
                 ]}
               >
                 <View
@@ -957,7 +956,7 @@ export default function MonthlyCandidateComparison({
                     styles.switchCircle,
 
                     tableOpen &&
-                      styles.switchCircleActive,
+                    styles.switchCircleActive,
                   ]}
                 />
               </View>
@@ -997,55 +996,55 @@ export default function MonthlyCandidateComparison({
 
       {activeTab ===
         'environment' && (
-        <View
-          style={
-            styles.environmentBox
-          }
-        >
-          {environmentRows.map(
-            row => (
-              <View
-                key={
-                  row.label
-                }
-                style={
-                  styles.environmentGroup
-                }
-              >
-                <Text
+          <View
+            style={
+              styles.environmentBox
+            }
+          >
+            {environmentRows.map(
+              row => (
+                <View
+                  key={
+                    row.label
+                  }
                   style={
-                    styles.environmentTitle
+                    styles.environmentGroup
                   }
                 >
-                  {row.label}
-                </Text>
+                  <Text
+                    style={
+                      styles.environmentTitle
+                    }
+                  >
+                    {row.label}
+                  </Text>
 
-                <EnvironmentRow
-                  label={
-                    selectedAreaName
-                  }
-                  value={
-                    row.selectedValue
-                  }
-                  color={
-                    CURRENT_COLOR
-                  }
-                />
+                  <EnvironmentRow
+                    label={
+                      selectedAreaName
+                    }
+                    value={
+                      row.selectedValue
+                    }
+                    color={
+                      CURRENT_COLOR
+                    }
+                  />
 
-                <EnvironmentRow
-                  label="다른 지역 평균"
-                  value={
-                    row.averageValue
-                  }
-                  color={
-                    AVERAGE_COLOR
-                  }
-                />
-              </View>
-            ),
-          )}
-        </View>
-      )}
+                  <EnvironmentRow
+                    label="다른 지역 평균"
+                    value={
+                      row.averageValue
+                    }
+                    color={
+                      AVERAGE_COLOR
+                    }
+                  />
+                </View>
+              ),
+            )}
+          </View>
+        )}
 
       {/* SOURCE */}
 
@@ -1060,10 +1059,10 @@ export default function MonthlyCandidateComparison({
           }
         >
           {activeTab ===
-          'sales'
+            'sales'
             ? '출처: 세종특별자치시 행정동별 카드소비 현황'
             : activeTab ===
-                'population'
+              'population'
               ? populationMetric ===
                 'floatingPopulation'
                 ? '출처: 세종특별자치시 행정동별 유동인구 현황'
@@ -1096,7 +1095,7 @@ function TabButton({
         styles.tabButton,
 
         active &&
-          styles.tabButtonActive,
+        styles.tabButtonActive,
       ]}
       onPress={
         onPress
@@ -1107,7 +1106,7 @@ function TabButton({
           styles.tabText,
 
           active &&
-            styles.tabTextActive,
+          styles.tabTextActive,
         ]}
       >
         {label}
@@ -1175,10 +1174,10 @@ function ComparisonLineChart({
     (index /
       Math.max(
         periods.length -
-          1,
+        1,
         1,
       )) *
-      plotWidth;
+    plotWidth;
 
   const yFor = (
     value: number,
@@ -1190,7 +1189,7 @@ function ComparisonLineChart({
         yMax,
         1,
       )) *
-      plotHeight;
+    plotHeight;
 
   const yTicks =
     Array.from(
@@ -1212,40 +1211,40 @@ function ComparisonLineChart({
     hoverIndex === null
       ? 0
       : Math.min(
-          xFor(
-            hoverIndex,
-          ) + 14,
-          W -
-            tooltipWidth -
-            8,
-        );
+        xFor(
+          hoverIndex,
+        ) + 14,
+        W -
+        tooltipWidth -
+        8,
+      );
 
   const tooltipY = 15;
 
   const selectedValue =
     hoverIndex !== null
       ? series[0].values[
-          hoverIndex
-        ]
+      hoverIndex
+      ]
       : null;
 
   const averageValue =
     hoverIndex !== null
       ? series[1].values[
-          hoverIndex
-        ]
+      hoverIndex
+      ]
       : null;
 
   const differenceRate =
     selectedValue !==
       null &&
-    averageValue !==
+      averageValue !==
       null &&
-    averageValue !== 0
+      averageValue !== 0
       ? ((selectedValue -
-          averageValue) /
-          averageValue) *
-        100
+        averageValue) /
+        averageValue) *
+      100
       : null;
 
   return (
@@ -1357,13 +1356,13 @@ function ComparisonLineChart({
                   index,
                 ) =>
                   value ===
-                  null
+                    null
                     ? null
                     : `${xFor(
-                        index,
-                      )},${yFor(
-                        value,
-                      )}`,
+                      index,
+                    )},${yFor(
+                      value,
+                    )}`,
               )
               .filter(
                 (
@@ -1385,9 +1384,7 @@ function ComparisonLineChart({
                 points
               }
               fill="none"
-              stroke={
-                item.color
-              }
+              stroke={item.dashed ? '#1D2545' : '#E5AF00'}
               strokeWidth={
                 item.dashed
                   ? 2
@@ -1414,7 +1411,7 @@ function ComparisonLineChart({
               index,
             ) =>
               value ===
-              null
+                null
                 ? null
                 : (
                   <Circle
@@ -1431,13 +1428,11 @@ function ComparisonLineChart({
                     }
                     r={
                       hoverIndex ===
-                      index
+                        index
                         ? 4
                         : 3
                     }
-                    fill={
-                      item.color
-                    }
+                    fill={item.dashed ? '#1D2545' : '#E5AF00'}
                     stroke="#FFFFFF"
                     strokeWidth={1}
                   />
@@ -1449,149 +1444,147 @@ function ComparisonLineChart({
 
       {hoverIndex !==
         null && (
-        <Line
-          x1={
-            xFor(
-              hoverIndex,
-            )
-          }
-          x2={
-            xFor(
-              hoverIndex,
-            )
-          }
-          y1={top}
-          y2={
-            top +
-            plotHeight
-          }
-          stroke="#98A2B3"
-          strokeDasharray="3 3"
-        />
-      )}
+          <Line
+            x1={
+              xFor(
+                hoverIndex,
+              )
+            }
+            x2={
+              xFor(
+                hoverIndex,
+              )
+            }
+            y1={top}
+            y2={
+              top +
+              plotHeight
+            }
+            stroke="#98A2B3"
+            strokeDasharray="3 3"
+          />
+        )}
 
       {/* TOOLTIP */}
 
       {hoverIndex !==
         null && (
-        <G>
-          <Rect
-            x={
-              tooltipX
-            }
-            y={
-              tooltipY
-            }
-            width={
-              tooltipWidth
-            }
-            height={
-              tooltipHeight
-            }
-            rx={10}
-            fill="#FFFFFF"
-            stroke="#D0D5DD"
-          />
+          <G>
+            <Rect
+              x={
+                tooltipX
+              }
+              y={
+                tooltipY
+              }
+              width={
+                tooltipWidth
+              }
+              height={
+                tooltipHeight
+              }
+              rx={10}
+              fill="#FFFFFF"
+              stroke="#D0D5DD"
+            />
 
-          <SvgText
-            x={
-              tooltipX +
-              12
-            }
-            y={
-              tooltipY +
-              21
-            }
-            fontSize="12"
-            fontWeight="700"
-            fill="#344054"
-          >
-            {formatMonth(
-              periods[
+            <SvgText
+              x={
+                tooltipX +
+                12
+              }
+              y={
+                tooltipY +
+                21
+              }
+              fontSize="12"
+              fontWeight="700"
+              fill="#344054"
+            >
+              {formatMonth(
+                periods[
                 hoverIndex
-              ],
-            )}
-          </SvgText>
+                ],
+              )}
+            </SvgText>
 
-          <SvgText
-            x={
-              tooltipX +
-              12
-            }
-            y={
-              tooltipY +
-              45
-            }
-            fontSize="11"
-            fill={
-              CURRENT_COLOR
-            }
-          >
-            {`${series[0].name}: ${
-              selectedValue ===
-              null
-                ? '-'
-                : formatTableValue(
+            <SvgText
+              x={
+                tooltipX +
+                12
+              }
+              y={
+                tooltipY +
+                45
+              }
+              fontSize="11"
+              fill={
+                CURRENT_COLOR
+              }
+            >
+              {`${series[0].name}: ${selectedValue ===
+                  null
+                  ? '-'
+                  : formatTableValue(
                     selectedValue,
                     activeTab,
                   )
-            }`}
-          </SvgText>
+                }`}
+            </SvgText>
 
-          <SvgText
-            x={
-              tooltipX +
-              12
-            }
-            y={
-              tooltipY +
-              66
-            }
-            fontSize="11"
-            fill={
-              AVERAGE_COLOR
-            }
-          >
-            {`다른 지역 평균: ${
-              averageValue ===
-              null
-                ? '-'
-                : formatTableValue(
+            <SvgText
+              x={
+                tooltipX +
+                12
+              }
+              y={
+                tooltipY +
+                66
+              }
+              fontSize="11"
+              fill={
+                AVERAGE_COLOR
+              }
+            >
+              {`다른 지역 평균: ${averageValue ===
+                  null
+                  ? '-'
+                  : formatTableValue(
                     averageValue,
                     activeTab,
                   )
-            }`}
-          </SvgText>
+                }`}
+            </SvgText>
 
-          <SvgText
-            x={
-              tooltipX +
-              12
-            }
-            y={
-              tooltipY +
-              89
-            }
-            fontSize="11"
-            fontWeight="700"
-            fill={
-              differenceRate !==
-                null &&
-              differenceRate >=
-                0
-                ? '#16A34A'
-                : '#EF4444'
-            }
-          >
-            {differenceRate ===
-            null
-              ? '평균 대비 -'
-              : `평균 대비 ${formatPercent(
+            <SvgText
+              x={
+                tooltipX +
+                12
+              }
+              y={
+                tooltipY +
+                89
+              }
+              fontSize="11"
+              fontWeight="700"
+              fill={
+                differenceRate !==
+                  null &&
+                  differenceRate >=
+                  0
+                  ? '#16A34A'
+                  : '#EF4444'
+              }
+            >
+              {differenceRate ===
+                null
+                ? '평균 대비 -'
+                : `평균 대비 ${formatPercent(
                   differenceRate,
                 )}`}
-          </SvgText>
-        </G>
-      )}
+            </SvgText>
+          </G>
+        )}
 
       {/* HOVER AREAS */}
 
@@ -1609,37 +1602,37 @@ function ComparisonLineChart({
             index === 0
               ? left
               : xFor(
-                  index -
-                    1,
-                );
+                index -
+                1,
+              );
 
           const nextX =
             index ===
-            periods.length -
+              periods.length -
               1
               ? W -
-                right
+              right
               : xFor(
-                  index +
-                    1,
-                );
+                index +
+                1,
+              );
 
           const areaLeft =
             index === 0
               ? left
               : (previousX +
-                  currentX) /
-                2;
+                currentX) /
+              2;
 
           const areaRight =
             index ===
-            periods.length -
+              periods.length -
               1
               ? W -
-                right
+              right
               : (currentX +
-                  nextX) /
-                2;
+                nextX) /
+              2;
 
           return (
             <Rect
@@ -1764,7 +1757,7 @@ function ValueTable({
             >
               {formatTableValue(
                 selectedValues[
-                  index
+                index
                 ],
                 activeTab,
               )}
@@ -1777,7 +1770,7 @@ function ValueTable({
             >
               {formatTableValue(
                 averageValues[
-                  index
+                index
                 ],
                 activeTab,
               )}
@@ -1986,7 +1979,8 @@ const styles =
 
     subTabActive: {
       backgroundColor:
-        '#E8F7EB',
+        '#FFF4C2',
+      borderColor: '#F0DEA0'
     },
 
     subTabText: {
@@ -2000,8 +1994,7 @@ const styles =
     },
 
     subTabTextActive: {
-      color:
-        CURRENT_COLOR,
+      color: '#1D2545',
     },
 
     chartWrap: {
