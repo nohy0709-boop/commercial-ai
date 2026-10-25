@@ -1,5 +1,4 @@
 import { COLORS } from '@/constants/colors';
-import { useResponsive } from '@/hooks/useResponsive';
 
 import {
   AnalysisHistoryItem,
@@ -18,6 +17,8 @@ import {
 } from '@/services/checklistStorage';
 
 import { getCurrentUser, signOut } from '@/services/auth';
+
+import { CostPlan, getCostPlans } from '@/services/startupCostPlans';
 
 import {
   getStartupNeeds,
@@ -179,7 +180,7 @@ function getChecklistPlace(text: string) {
 }
 
 export default function MyScreen() {
-  const { frameMaxWidth, horizontalPadding } = useResponsive();
+
   const router = useRouter();
 
   const [histories, setHistories] = useState<AnalysisHistoryItem[]>([]);
@@ -190,6 +191,8 @@ export default function MyScreen() {
     useState<Record<string, boolean>>({});
 
   const [startupNeed, setStartupNeed] = useState<StartupNeeds | null>(null);
+
+  const [costPlans, setCostPlans] = useState<CostPlan[]>([]);
 
   const [nickname, setNickname] = useState('');
 
@@ -229,11 +232,15 @@ export default function MyScreen() {
 
       setNickname(user.user_metadata?.nickname ?? '사용자');
 
-      const [historyData, needsData, checklistData] = await Promise.all([
-        getAnalysisHistory(),
-        getStartupNeeds(),
-        getChecklists(),
-      ]);
+      const [historyData, needsData, checklistData, costPlanData] =
+        await Promise.all([
+          getAnalysisHistory(),
+          getStartupNeeds(),
+          getChecklists(),
+          getCostPlans(),
+        ]);
+
+      setCostPlans(costPlanData);
 
       setHistories(historyData);
       setStartupNeed(needsData);
@@ -628,18 +635,15 @@ export default function MyScreen() {
   }
 
   return (
+
     <ScrollView
+
       style={styles.screen}
-      contentContainerStyle={[
-        styles.container,
-        {
-          width: '100%',
-          maxWidth: frameMaxWidth,
-          alignSelf: 'center',
-          paddingHorizontal: horizontalPadding,
-        },
-      ]}
+
+      contentContainerStyle={styles.container}
+
       showsVerticalScrollIndicator={false}
+
     >
 
       <View style={styles.profileHeader}>
@@ -837,6 +841,54 @@ export default function MyScreen() {
             </Text>
             <Text style={styles.needCtaArrow}>›</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.needCostButton}
+            onPress={() => router.push('/tools/cost-calculator')}
+          >
+            <Text style={styles.needCostButtonText}>
+              초기 창업 비용 계산해 보기
+            </Text>
+            <Text style={styles.needCostArrow}>›</Text>
+          </TouchableOpacity>
+
+          {costPlans.length > 0 && (
+            <View style={styles.costPlanBox}>
+              <Text style={styles.costPlanTitle}>저장한 비용 계획</Text>
+
+              {costPlans.slice(0, 3).map(plan => (
+                <TouchableOpacity
+                  key={plan.id}
+                  style={styles.costPlanRow}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/tools/cost-calculator',
+                      params: { planId: plan.id },
+                    })
+                  }
+                >
+                  <Text style={styles.costPlanName} numberOfLines={1}>
+                    {plan.title}
+                  </Text>
+                  <Text style={styles.costPlanTotal}>
+                    {plan.totalManwon >= 10000
+                      ? `${(plan.totalManwon / 10000).toFixed(1).replace(/\.0$/, '')}억원`
+                      : `${plan.totalManwon.toLocaleString('ko-KR')}만원`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {costPlans.length > 3 && (
+                <TouchableOpacity
+                  onPress={() => router.push('/tools/cost-calculator')}
+                >
+                  <Text style={styles.costPlanMore}>
+                    전체 {costPlans.length}개 보기 ›
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
         </View>
 
@@ -1308,10 +1360,14 @@ export default function MyScreen() {
 
             <View style={styles.cardHeader}>
 
-              <View style={[styles.typeBadge, { backgroundColor: '#FFF5C2' }]}>
+              <View style={styles.typeBadge}>
+
                 <Text style={styles.typeBadgeText}>
+
                   {getTypeLabel(history.type)}
+
                 </Text>
+
               </View>
 
               <Text style={styles.date}>{formatDate(history.createdAt)}</Text>
@@ -1350,13 +1406,13 @@ export default function MyScreen() {
 
               <TouchableOpacity
 
-                style={[styles.viewButton, { backgroundColor: '#202544' }]}
+                style={styles.viewButton}
 
                 onPress={() => handleView(history)}
 
               >
 
-                <Text style={[styles.viewButtonText, { color: '#FFFFFF' }]}>다시 보기 →</Text>
+                <Text style={styles.viewButtonText}>다시 보기 →</Text>
 
               </TouchableOpacity>
 
@@ -1834,6 +1890,74 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 14,
     backgroundColor: '#1D2545',
+  },
+
+  needCostButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    marginTop: 10,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#1D2545',
+  },
+
+  costPlanBox: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#F3F5FA',
+  },
+
+  costPlanTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#1D2545',
+    marginBottom: 6,
+  },
+
+  costPlanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    gap: 12,
+  },
+
+  costPlanName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+  },
+
+  costPlanTotal: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1D2545',
+  },
+
+  costPlanMore: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    textAlign: 'right',
+  },
+
+  needCostButtonText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1D2545',
+  },
+
+  needCostArrow: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1D2545',
   },
 
   needCtaButtonText: {
