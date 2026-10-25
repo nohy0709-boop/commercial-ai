@@ -12,7 +12,7 @@ export interface ChecklistItem {
 export interface SavedChecklist {
   id: string;
   title: string;
-  source: 'chatbot';
+  source: 'chatbot' | 'analysis';
   sourceMessageId: string;
 
   businessName?: string;
@@ -356,4 +356,100 @@ export function getChecklistProgress(
     completed,
     percent,
   };
+}
+
+export function parseChecklistContent(
+  content: string,
+): ChecklistItem[] {
+  const lines = content
+    .replace(/\r\n/g, '\n')
+    .split('\n');
+
+  const items: ChecklistItem[] = [];
+
+  let currentParentId:
+    | string
+    | undefined;
+
+  const cleanText = (
+    value: string,
+  ) =>
+    value
+      .replace(/\*\*/g, '')
+      .replace(/`/g, '')
+      .trim();
+
+  lines.forEach(
+    (rawLine, index) => {
+      const line =
+        rawLine.trim();
+
+      if (!line) {
+        return;
+      }
+
+      if (
+        /^#{1,6}\s+/.test(
+          line,
+        ) ||
+        /^---+$/.test(line)
+      ) {
+        currentParentId =
+          undefined;
+        return;
+      }
+
+      const checklistMatch =
+        line.match(
+          /^(?:[-*•]\s*)?\[\s*([xX]?)\s*\]\s*(.+)$/,
+        );
+
+      if (checklistMatch) {
+        const id =
+          `line-${index}`;
+
+        items.push({
+          id,
+          text: cleanText(
+            checklistMatch[2],
+          ),
+          checked:
+            checklistMatch[1]
+              .toLowerCase() ===
+            'x',
+        });
+
+        currentParentId = id;
+
+        return;
+      }
+
+      const bulletMatch =
+        line.match(
+          /^(?:[-*•])\s+(.+)$/,
+        );
+
+      if (bulletMatch) {
+        const id =
+          `line-${index}`;
+
+        items.push({
+          id,
+          text: cleanText(
+            bulletMatch[1],
+          ),
+          checked: false,
+          parentId:
+            currentParentId,
+        });
+
+        return;
+      }
+
+      currentParentId =
+        undefined;
+    },
+  );
+
+  return items;
 }

@@ -1,6 +1,7 @@
+
 import { supabase } from '@/lib/supabase';
 import type { AnalysisReportData } from '@/services/pdfExport';
-import { Platform } from 'react-native';
+import { Platform, Share } from 'react-native';
 
 export interface SharedAnalysisRecord {
   id: string;
@@ -10,30 +11,60 @@ export interface SharedAnalysisRecord {
   expires_at: string | null;
 }
 
+export type ShareResult = 'shared' | 'copied' | 'cancelled' | 'unsupported';
+
 const TABLE_NAME = 'shared_analyses';
 
-function getPublicAppOrigin() {
+/**
+ * 공개 공유 사이트 주소를 가져온다.
+ * localhost는 외부 공유 주소로 사용할 수 없다.
+ */
+function getPublicAppOrigin(): string {
   const envUrl = process.env.EXPO_PUBLIC_APP_URL?.trim();
 
-  if (envUrl) {
-    return envUrl.replace(/\/+$/, '');
+  if (!envUrl) {
+    throw new Error(
+      '공유 사이트 주소가 설정되지 않았습니다. EXPO_PUBLIC_APP_URL을 확인해주세요.',
+    );
   }
 
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return window.location.origin;
-  }
+  try {
+    const parsedUrl = new URL(envUrl);
 
-  return '';
+    if (
+      parsedUrl.protocol !== 'https:' ||
+      parsedUrl.hostname === 'localhost' ||
+      parsedUrl.hostname === '127.0.0.1' ||
+      parsedUrl.username ||
+      parsedUrl.password ||
+      parsedUrl.search ||
+      parsedUrl.hash
+    ) {
+      throw new Error('Invalid URL');
+    }
+
+    return parsedUrl.origin;
+  } catch {
+    throw new Error(
+      '공유 사이트 주소는 외부에서 접속 가능한 HTTPS 주소여야 합니다.',
+    );
+  }
 }
 
+/**
+ * Supabase에 분석 결과를 저장하고 공개 공유 URL 생성
+ */
 export async function createSharedAnalysis(
   payload: AnalysisReportData,
 ): Promise<{ id: string; url: string }> {
+  const origin = getPublicAppOrigin();
+
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     throw new Error('공유 링크를 만들려면 로그인이 필요합니다.');
   }
 
@@ -51,23 +82,26 @@ export async function createSharedAnalysis(
     throw new Error('공유 링크를 만들지 못했습니다.');
   }
 
-  const origin = getPublicAppOrigin();
-
-  if (!origin) {
-    throw new Error(
-      '공개 앱 주소가 설정되지 않았습니다. EXPO_PUBLIC_APP_URL을 설정해주세요.',
-    );
+  if (!data?.id) {
+    throw new Error('공유 링크 ID를 생성하지 못했습니다.');
   }
 
   return {
     id: data.id,
-    url: `${origin}/share/${data.id}`,
+    url: `${origin}/share/${encodeURIComponent(data.id)}`,
   };
 }
 
+/**
+ * 공유된 분석 데이터 조회
+ */
 export async function getSharedAnalysis(
   id: string,
 ): Promise<SharedAnalysisRecord | null> {
+  if (!id?.trim()) {
+    throw new Error('유효하지 않은 공유 링크입니다.');
+  }
+
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .select('id, owner_id, payload, created_at, expires_at')
@@ -79,34 +113,84 @@ export async function getSharedAnalysis(
     throw new Error('공유된 분석 결과를 불러오지 못했습니다.');
   }
 
-  return data as SharedAnalysisRecord | null;
+  if (!data) {
+    return null;
+  }
+
+  if (
+    data.expires_at &&
+    new Date(data.expires_at).getTime() <= Date.now()
+  ) {
+    return null;
+  }
+
+  return data as SharedAnalysisRecord;
 }
 
+/**
+ * 웹: 브라우저 기본 공유 또는 링크 복사
+ * iOS/Android: 시스템 기본 공유 창
+ */
 export async function sharePublicAnalysisLink(
   url: string,
   title: string,
   text: string,
-) {
-  if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
-    if (navigator.share) {
-      await navigator.share({
-        title,
-        text,
-        url,
-      });
+): Promise<ShareResult> {
+  if (Platform.OS === 'web') {
+    if (typeof navigator === 'undefined') {
+      return 'unsupported';
+    }
 
-      return 'shared' as const;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+        return 'shared';
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.name === 'AbortError'
+        ) {
+          return 'cancelled';
+        }
+        throw error;
+      }
     }
 
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
-      return 'copied' as const;
+      return 'copied';
     }
 
-    throw new Error(
-      '이 브라우저에서는 공유 기능을 지원하지 않습니다.',
-    );
+    return 'unsupported';
   }
 
-  return 'unsupported' as const;
+  const result = await Share.share(
+    Platform.OS === 'ios'
+      ? {
+          title,
+          message: text,
+          url,
+        }
+      : {
+          title,
+          message: `${text}\n\n${url}`,
+        },
+    {
+      dialogTitle: title,
+    },
+  );
+
+  if (result.action === Share.dismissedAction) {
+    return 'cancelled';
+  }
+
+  if (result.action === Share.sharedAction) {
+    return 'shared';
+  }
+
+  return 'unsupported';
 }

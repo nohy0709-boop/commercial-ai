@@ -1,13 +1,13 @@
 import {
-    useMemo,
-    useState,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 import { WebView } from 'react-native-webview';
@@ -15,14 +15,11 @@ import { WebView } from 'react-native-webview';
 type Props = {
   latitude: number;
   longitude: number;
-
-  /**
-   * 카카오 JS SDK 키
-   * .env의 EXPO_PUBLIC_KAKAO_JS_KEY 사용
-   */
+  buildingName?: string;
+  address?: string;
   kakaoJsKey?: string;
-
   height?: number;
+  onClose?: () => void;
 };
 
 export default function BuildingRoadview({
@@ -212,7 +209,7 @@ export default function BuildingRoadview({
               !panoId
             ) {
               showMessage(
-                '이 위치 주변에는 이용 가능한 로드뷰가 없습니다.'
+                '현재 위치 주변에는 이용 가능한 로드뷰가 없습니다.'
               );
 
               sendMessage(
@@ -337,8 +334,8 @@ export default function BuildingRoadview({
           html,
 
           /**
-           * Kakao JavaScript SDK의 도메인 검사 때문에
-           * baseUrl을 지정
+           * Kakao JavaScript SDK의 도메인 정책을 고려하여
+           * baseUrl을 지정합니다.
            */
           baseUrl:
             'https://localhost',
@@ -433,7 +430,7 @@ export default function BuildingRoadview({
                 );
 
                 console.log(
-                  '✅ 앱 로드뷰 로드 완료',
+                  '카카오 로드뷰 로드 완료',
                   message.payload,
                 );
               }
@@ -447,7 +444,7 @@ export default function BuildingRoadview({
                 );
 
                 setError(
-                  '이 위치 주변에는 이용 가능한 로드뷰가 없습니다.',
+                  '현재 위치 주변에는 이용 가능한 로드뷰가 없습니다.',
                 );
               }
 
@@ -521,7 +518,7 @@ export default function BuildingRoadview({
               styles.errorTitle
             }
           >
-            로드뷰를 표시할 수 없어요
+            로드뷰를 표시할 수 없어요.
           </Text>
 
           <Text
@@ -560,7 +557,7 @@ const styles =
     },
 
     loadingOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
 
       alignItems:
         'center',
@@ -585,7 +582,7 @@ const styles =
     },
 
     errorOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
 
       alignItems:
         'center',

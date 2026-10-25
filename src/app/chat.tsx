@@ -1350,7 +1350,7 @@ export default function ChatScreen() {
 
   const router = useRouter();
 
-  const params = useLocalSearchParams<ChatParams>();
+  const params = useLocalSearchParams() as ChatParams;
 
   const scrollRef = useRef<ScrollView>(null);
 

@@ -3,7 +3,7 @@ import {
   getSharedAnalysis,
   type SharedAnalysisRecord,
 } from '@/services/shareAnalysis';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,814 +13,1016 @@ import {
   View,
 } from 'react-native';
 
-function formatNumber(value: number) {
-  return Number.isFinite(value)
-    ? Math.round(value).toLocaleString('ko-KR')
-    : '-';
-}
+type Report = SharedAnalysisRecord['payload'];
 
-function formatChange(value: number) {
-  if (!Number.isFinite(value)) {
-    return '-';
-  }
+type MetricKey =
+  | 'floatingPopulation'
+  | 'livingPopulation'
+  | 'storeCount'
+  | 'competitionDensity'
+  | 'salesAmount'
+  | 'averageSalesPerStore'
+  | 'busStopCount'
+  | 'livingPopulationChangeRate'
+  | 'floatingPopulationChangeRate';
 
-  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
-}
+type MetricType = 'people' | 'count' | 'decimal' | 'money' | 'percent';
 
-function renderMarkdownText(text?: string) {
-  if (!text) {
+type MetricDefinition = {
+  key: MetricKey;
+  label: string;
+  type: MetricType;
+  description: string;
+};
+
+const METRICS: MetricDefinition[] = [
+  {
+    key: 'floatingPopulation',
+    label: '유동인구',
+    type: 'people',
+    description: '지역을 이동하거나 방문하는 인구 규모',
+  },
+  {
+    key: 'livingPopulation',
+    label: '생활인구',
+    type: 'people',
+    description: '지역에서 생활하거나 체류하는 인구 규모',
+  },
+  {
+    key: 'storeCount',
+    label: '동종 업종 점포 수',
+    type: 'count',
+    description: '해당 지역에 위치한 동일 업종 점포 수',
+  },
+  {
+    key: 'competitionDensity',
+    label: '경쟁 밀도',
+    type: 'decimal',
+    description: '해당 지역의 동종 업종 경쟁 수준',
+  },
+  {
+    key: 'salesAmount',
+    label: '전체 카드소비',
+    type: 'money',
+    description: '해당 지역의 전체 카드소비 규모',
+  },
+  {
+    key: 'averageSalesPerStore',
+    label: '점포당 카드소비',
+    type: 'money',
+    description: '점포 한 곳당 평균 카드소비 규모',
+  },
+  {
+    key: 'busStopCount',
+    label: '버스정류장 수',
+    type: 'count',
+    description: '해당 지역의 버스정류장 수',
+  },
+  {
+    key: 'livingPopulationChangeRate',
+    label: '생활인구 증감률',
+    type: 'percent',
+    description: '생활인구의 증가 또는 감소 비율',
+  },
+  {
+    key: 'floatingPopulationChangeRate',
+    label: '유동인구 증감률',
+    type: 'percent',
+    description: '유동인구의 증가 또는 감소 비율',
+  },
+];
+
+const NAVY = '#202544';
+const YELLOW = '#FFDA35';
+const LIGHT_YELLOW = '#FFF8DC';
+
+function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
     return null;
   }
 
-  return text.split(/(\*\*.*?\*\*)/g).map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <Text key={index} style={styles.aiStrong}>
-          {part.slice(2, -2)}
-        </Text>
-      );
-    }
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
 
-    return part;
-  });
+function formatMoney(value: number): string {
+  if (Math.abs(value) >= 100000000) {
+    const amount = value / 100000000;
+    return `${Number(amount.toFixed(2)).toLocaleString('ko-KR')}억 원`;
+  }
+
+  if (Math.abs(value) >= 10000) {
+    const amount = value / 10000;
+    return `${Number(amount.toFixed(2)).toLocaleString('ko-KR')}만 원`;
+  }
+
+  return `${value.toLocaleString('ko-KR')}원`;
+}
+
+function formatMetric(
+  value: unknown,
+  type: MetricType,
+): string {
+  const number = toNumber(value);
+
+  if (number === null) {
+    return '데이터 없음';
+  }
+
+  switch (type) {
+    case 'people':
+      return `${number.toLocaleString('ko-KR')}명`;
+
+    case 'count':
+      return `${number.toLocaleString('ko-KR')}개`;
+
+    case 'decimal':
+      return number.toFixed(3);
+
+    case 'money':
+      return formatMoney(number);
+
+    case 'percent':
+      return `${number > 0 ? '+' : ''}${number.toFixed(2)}%`;
+
+    default:
+      return String(number);
+  }
+}
+
+function getMetricColor(
+  index: number,
+  value: unknown,
+): string {
+  if (toNumber(value) === null) {
+    return COLORS.textSecondary;
+  }
+
+  return index % 2 === 0 ? NAVY : YELLOW;
+}
+
+function getReportValue(
+  report: Report,
+  key: MetricKey,
+): unknown {
+  // 기존 PDF 리포트와 같은 필드명을 사용
+  const values = report as unknown as Record<string, unknown>;
+  return values[key];
+}
+
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <View style={styles.centerScreen}>
+      <Text style={styles.errorIcon}>!</Text>
+      <Text style={styles.errorTitle}>
+        공유된 분석을 불러올 수 없어요
+      </Text>
+      <Text style={styles.errorDescription}>
+        {message}
+      </Text>
+    </View>
+  );
 }
 
 export default function SharedAnalysisScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
 
-  const [record, setRecord] =
+  const [sharedAnalysis, setSharedAnalysis] =
     useState<SharedAnalysisRecord | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const shareId = Array.isArray(id) ? id[0] : id;
 
   useEffect(() => {
-    const load = async () => {
-      if (!id) {
-        setErrorMessage('잘못된 공유 링크입니다.');
-        setLoading(false);
-        return;
-      }
+    let active = true;
 
+    async function load() {
       try {
         setLoading(true);
-        setErrorMessage('');
+        setError('');
 
-        const result = await getSharedAnalysis(id);
-
-        if (!result) {
-          setErrorMessage(
-            '공유된 분석 결과가 없거나 만료된 링크입니다.',
-          );
-          return;
+        if (!shareId) {
+          throw new Error('공유 링크가 올바르지 않습니다.');
         }
 
-        setRecord(result);
-      } catch (error) {
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : '분석 결과를 불러오지 못했습니다.',
+        const result = await getSharedAnalysis(shareId);
+
+        if (!active) return;
+
+        if (!result) {
+          throw new Error(
+            '공유된 분석이 없거나 공유 기간이 만료되었습니다.',
+          );
+        }
+
+        setSharedAnalysis(result);
+      } catch (err) {
+        if (!active) return;
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : '공유 결과를 불러오지 못했습니다.',
         );
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
-    };
+    }
 
     load();
-  }, [id]);
 
-  return (
-    <View style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false }} />
+    return () => {
+      active = false;
+    };
+  }, [shareId]);
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator
-            size="large"
-            color={COLORS.primary}
-          />
-          <Text style={styles.loadingText}>
-            공유된 분석 결과를 불러오는 중...
-          </Text>
-        </View>
-      ) : errorMessage ? (
-        <View style={styles.center}>
-          <Text style={styles.errorTitle}>
-            분석 결과를 열 수 없어요
-          </Text>
-          <Text style={styles.errorText}>
-            {errorMessage}
-          </Text>
-        </View>
-      ) : record ? (
-        <SharedAnalysisContent record={record} />
-      ) : null}
-    </View>
+  if (loading) {
+    return (
+      <View style={styles.centerScreen}>
+        <ActivityIndicator
+          size="large"
+          color={COLORS.primary}
+        />
+        <Text style={styles.loadingText}>
+          공유된 상권 분석을 불러오는 중...
+        </Text>
+      </View>
+    );
+  }
+
+  if (error || !sharedAnalysis) {
+    return (
+      <ErrorScreen
+        message={error || '공유 결과가 없습니다.'}
+      />
+    );
+  }
+
+  const report = sharedAnalysis.payload;
+
+  const businessName = report.businessName || '업종 정보 없음';
+  const areaName = report.areaName || '지역 정보 없음';
+
+  const suitabilityScore = toNumber(
+    report.suitabilityScore,
   );
-}
 
-function SharedAnalysisContent({
-  record,
-}: {
-  record: SharedAnalysisRecord;
-}) {
-  const data = record.payload;
+  const rank = toNumber(report.rank);
+  const totalCount = toNumber(report.totalCount);
+
+  const scorePercent =
+    suitabilityScore === null
+      ? 0
+      : Math.max(0, Math.min(100, suitabilityScore));
+
+  const explanation = report.explanation;
+
+  const summaryMetrics: MetricKey[] = [
+    'floatingPopulation',
+    'storeCount',
+    'competitionDensity',
+    'averageSalesPerStore',
+  ];
+
+  const formatSummary = (key: MetricKey) => {
+    const definition = METRICS.find(metric => metric.key === key);
+
+    if (!definition) return '데이터 없음';
+
+    return formatMetric(
+      getReportValue(report, key),
+      definition.type,
+    );
+  };
 
   return (
     <ScrollView
-      style={styles.scroll}
+      style={styles.screen}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.brandRow}>
-        <Text style={styles.brand}>어디 차리지?</Text>
-        <Text style={styles.sharedBadge}>
-          공유된 분석 결과
-        </Text>
+      {/* 상단 브랜드 */}
+      <View style={styles.pageHeader}>
+        <View>
+          <Text style={styles.brandTitle}>
+            어디 차리지?
+          </Text>
+          <Text style={styles.pageSubtitle}>
+            공유된 상권 분석 결과
+          </Text>
+        </View>
+
+        <View style={styles.sharedBadge}>
+          <Text style={styles.sharedBadgeText}>
+            공유된 분석 결과
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.hero}>
+      {/* 상권 분석 요약 */}
+      <View style={styles.heroCard}>
         <Text style={styles.heroEyebrow}>
-          {data.rank}위 · 후보 {data.totalCount}곳 중
+          {rank !== null && totalCount !== null
+            ? `${rank}위 · 후보 ${totalCount}곳 중`
+            : '상권 분석 결과'}
         </Text>
 
         <Text style={styles.heroTitle}>
-          {data.areaName} 일대
+          {areaName} 일대
         </Text>
 
         <Text style={styles.heroBusiness}>
-          {data.businessName}
+          {businessName}
         </Text>
 
-        <View style={styles.scoreRow}>
+        {report.isPointAnalysis && (
+          <Text style={styles.heroPointInfo}>
+            위치 기반 분석
+            {report.radius != null
+              ? ` · 반경 ${report.radius}m`
+              : ''}
+          </Text>
+        )}
+
+        <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>
             종합 적합도
           </Text>
-          <Text style={styles.score}>
-            {data.suitabilityScore}
+
+          <Text style={styles.scoreNumber}>
+            {suitabilityScore === null
+              ? '—'
+              : Number(suitabilityScore.toFixed(1))}
           </Text>
-          <Text style={styles.scoreUnit}>/ 100</Text>
+
+          <Text style={styles.scoreTotal}>
+            / 100
+          </Text>
+        </View>
+
+        <View style={styles.heroProgressTrack}>
+          <View
+            style={[
+              styles.heroProgressFill,
+              { width: `${scorePercent}%` },
+            ]}
+          />
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>
+      {/* 핵심 지표 */}
+      <Text style={styles.sectionHeading}>
         핵심 지표
       </Text>
 
-      <View style={styles.metricGrid}>
-        <Metric
-          label={
-            data.isPointAnalysis
-              ? '추정 유동인구'
-              : '유동인구'
-          }
-          value={`${formatNumber(
-            data.floatingPopulation,
-          )}명`}
-        />
-        <Metric
-          label={`${data.businessName} 수`}
-          value={`${formatNumber(data.storeCount)}개`}
-        />
-        <Metric
-          label="경쟁밀도"
-          value={
-            Number.isFinite(data.competitionDensity)
-              ? data.competitionDensity.toFixed(3)
-              : '-'
-          }
-        />
-        <Metric
-          label="점포당 카드소비"
-          value={`${formatNumber(
-            data.averageSalesPerStore,
-          )}원`}
-        />
-      </View>
+      <View style={styles.summaryGrid}>
+        {summaryMetrics.map((key, index) => {
+          const definition = METRICS.find(
+            metric => metric.key === key,
+          );
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionCardTitle}>
-          전체 지표
-        </Text>
-
-        <DetailRow
-          label="후보 순위"
-          value={`${data.rank}위 / ${data.totalCount}곳`}
-        />
-        <DetailRow
-          label="종합 적합도"
-          value={`${data.suitabilityScore} / 100`}
-        />
-        <DetailRow
-          label="유동인구"
-          value={`${formatNumber(
-            data.floatingPopulation,
-          )}명`}
-        />
-        <DetailRow
-          label="생활인구"
-          value={`${formatNumber(
-            data.livingPopulation,
-          )}명`}
-        />
-        <DetailRow
-          label="점포 수"
-          value={`${formatNumber(data.storeCount)}개`}
-        />
-        <DetailRow
-          label="경쟁밀도"
-          value={
-            Number.isFinite(data.competitionDensity)
-              ? data.competitionDensity.toFixed(3)
-              : '-'
-          }
-        />
-        <DetailRow
-          label="전체 카드소비"
-          value={`${formatNumber(data.salesAmount)}원`}
-        />
-        <DetailRow
-          label="점포당 카드소비"
-          value={`${formatNumber(
-            data.averageSalesPerStore,
-          )}원`}
-        />
-        <DetailRow
-          label="생활인구 증감률"
-          value={formatChange(
-            data.livingPopulationChangeRate,
-          )}
-        />
-        <DetailRow
-          label="유동인구 증감률"
-          value={formatChange(
-            data.floatingPopulationChangeRate,
-          )}
-        />
-        <DetailRow
-          label="버스정류장"
-          value={`${formatNumber(
-            data.busStopCount,
-          )}개`}
-          last
-        />
-      </View>
-
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionCardTitle}>
-          AI 분석 전체 내용
-        </Text>
-
-        {data.explanation ? (
-          <>
-            <Text style={styles.aiSubTitle}>
-              추천 이유
-            </Text>
-            <Text style={styles.aiReason}>
-              {renderMarkdownText(
-                data.explanation.recommendationReason,
-              )}
-            </Text>
-
-            <Text style={styles.aiSubTitle}>
-              장점
-            </Text>
-            <View style={styles.aiList}>
-              {data.explanation.advantages?.length ? (
-                data.explanation.advantages.map(
-                  (item, index) => (
-                    <View
-                      key={`good-${index}`}
-                      style={styles.goodItem}
-                    >
-                      <Text style={styles.goodIcon}>
-                        ✓
-                      </Text>
-                      <Text style={styles.goodText}>
-                        {renderMarkdownText(item)}
-                      </Text>
-                    </View>
-                  ),
-                )
-              ) : (
-                <Text style={styles.muted}>
-                  표시할 내용이 없습니다.
-                </Text>
-              )}
-            </View>
-
-            <Text style={styles.aiSubTitle}>
-              주의할 점
-            </Text>
-            <View style={styles.aiList}>
-              {data.explanation.risks?.length ? (
-                data.explanation.risks.map(
-                  (item, index) => (
-                    <View
-                      key={`risk-${index}`}
-                      style={styles.riskItem}
-                    >
-                      <Text style={styles.riskIcon}>
-                        !
-                      </Text>
-                      <Text style={styles.riskText}>
-                        {renderMarkdownText(item)}
-                      </Text>
-                    </View>
-                  ),
-                )
-              ) : (
-                <Text style={styles.muted}>
-                  표시할 내용이 없습니다.
-                </Text>
-              )}
-            </View>
-
-            <Text style={styles.aiSubTitle}>
-              주요 특징
-            </Text>
-            <View style={styles.aiDetailBlock}>
-              <Text style={styles.aiDetailText}>
-                {data.explanation.keyFeatures
-                  ? renderMarkdownText(
-                      data.explanation.keyFeatures,
-                    )
-                  : '표시할 내용이 없습니다.'}
-              </Text>
-            </View>
-
-            <Text style={styles.aiSubTitle}>
-              고려사항
-            </Text>
-            <View style={styles.aiDetailBlock}>
-              <Text style={styles.aiDetailText}>
-                {data.explanation.considerations
-                  ? renderMarkdownText(
-                      data.explanation.considerations,
-                    )
-                  : '표시할 내용이 없습니다.'}
-              </Text>
-            </View>
-          </>
-        ) : (
-          <Text style={styles.muted}>
-            공유 시점에 AI 분석 결과가
-            준비되지 않았습니다.
-          </Text>
-        )}
-      </View>
-
-      {!!data.compareItems?.length && (
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>
-            다른 후보와 비교
-          </Text>
-
-          {data.compareItems.map((item, index) => (
+          return (
             <View
-              key={`${item.areaName}-${index}`}
-              style={styles.compareCard}
+              key={key}
+              style={styles.summaryCard}
             >
-              <View style={styles.compareHeader}>
-                <Text style={styles.compareArea}>
-                  {item.areaName}
-                </Text>
-                <Text style={styles.compareRank}>
-                  {item.rank}위
+              <View style={styles.summaryTop}>
+                <View
+                  style={[
+                    styles.summaryDot,
+                    {
+                      backgroundColor:
+                        index % 2 === 0 ? NAVY : YELLOW,
+                    },
+                  ]}
+                />
+                <Text style={styles.summaryLabel}>
+                  {definition?.label ?? key}
                 </Text>
               </View>
 
-              <View style={styles.compareMetrics}>
-                <CompareMetric
-                  label="유동인구"
-                  value={item.floatingPopulationScore}
-                />
-                <CompareMetric
-                  label="생활인구"
-                  value={item.livingPopulationScore}
-                />
-                <CompareMetric
-                  label="전체 소비"
-                  value={item.salesScore}
-                />
-                <CompareMetric
-                  label="점포당 소비"
-                  value={item.averageSalesScore}
-                />
-                <CompareMetric
-                  label="경쟁 여유도"
-                  value={item.competitionScore}
-                />
-                <CompareMetric
-                  label="교통 접근성"
-                  value={item.accessibilityScore}
-                />
-              </View>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  {
+                    color:
+                      index % 2 === 0 ? NAVY : YELLOW,
+                  },
+                ]}
+              >
+                {formatSummary(key)}
+              </Text>
             </View>
-          ))}
-        </View>
-      )}
+          );
+        })}
+      </View>
 
-      {!!data.nearbyStores?.length && (
+      {/* 세부 지표 */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>
+          세부 지표 비교
+        </Text>
+
+        <Text style={styles.sectionDescription}>
+          저장된 상권 분석 지표를 항목별로 확인할 수 있어요.
+        </Text>
+
+        <View style={styles.metricList}>
+          {METRICS.map((metric, index) => {
+            const value = getReportValue(report, metric.key);
+            const displayValue = formatMetric(
+              value,
+              metric.type,
+            );
+
+            const color = getMetricColor(index, value);
+
+            const isPositiveRate =
+              metric.type === 'percent' &&
+              (toNumber(value) ?? 0) > 0;
+
+            const isNegativeRate =
+              metric.type === 'percent' &&
+              (toNumber(value) ?? 0) < 0;
+
+            return (
+              <View
+                key={metric.key}
+                style={styles.metricCard}
+              >
+                <View style={styles.metricHeader}>
+                  <View style={styles.metricHeadingRow}>
+                    <View
+                      style={[
+                        styles.metricAccent,
+                        { backgroundColor: color },
+                      ]}
+                    />
+
+                    <Text style={styles.metricTitle}>
+                      {metric.label}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.metricDescription}>
+                  {metric.description}
+                </Text>
+
+                <View style={styles.metricValueRow}>
+                  <Text
+                    style={[
+                      styles.metricValue,
+                      { color },
+                    ]}
+                  >
+                    {displayValue}
+                  </Text>
+
+                  {isPositiveRate && (
+                    <Text style={styles.rateInfo}>
+                      증가
+                    </Text>
+                  )}
+
+                  {isNegativeRate && (
+                    <Text style={styles.rateInfo}>
+                      감소
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.metricBottomLine}>
+                  <View
+                    style={[
+                      styles.metricBottomAccent,
+                      { backgroundColor: color },
+                    ]}
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        <Text style={styles.dataNotice}>
+          ※ 각 지표는 분석 시점에 저장된 데이터입니다.
+          서로 단위가 달라 단순한 수치 비교만으로
+          창업 적합성을 판단할 수 없습니다.
+        </Text>
+      </View>
+
+      {/* AI 분석 */}
+      {explanation && (
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>
-            주변 실제 {data.businessName} 매장
+          <Text style={styles.sectionTitle}>
+            AI 분석 전체 내용
           </Text>
 
-          {data.nearbyStores.map((store, index) => (
-            <View
-              key={`${store.name}-${index}`}
-              style={styles.storeRow}
-            >
-              <Text style={styles.storeName}>
-                {store.name}
+          <Text style={styles.sectionDescription}>
+            상권 데이터를 바탕으로 분석한 추천 이유와 고려사항입니다.
+          </Text>
+
+          {explanation.recommendationReason && (
+            <View style={styles.aiBlock}>
+              <Text style={styles.aiLabel}>
+                추천 이유
               </Text>
-              <Text style={styles.storeAddress}>
-                {store.address || '-'}
-              </Text>
+
+              <View style={styles.reasonBox}>
+                <Text style={styles.aiText}>
+                  {explanation.recommendationReason}
+                </Text>
+              </View>
             </View>
-          ))}
+          )}
+
+          {Array.isArray(explanation.advantages) &&
+            explanation.advantages.length > 0 && (
+              <View style={styles.aiBlock}>
+                <Text style={styles.aiLabel}>
+                  장점
+                </Text>
+
+                {explanation.advantages.map((item, index) => (
+                  <View
+                    key={`advantage-${index}`}
+                    style={styles.advantageBox}
+                  >
+                    <Text style={styles.advantageIcon}>
+                      ✓
+                    </Text>
+
+                    <Text style={styles.aiText}>
+                      {item}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+          {Array.isArray(explanation.risks) &&
+            explanation.risks.length > 0 && (
+              <View style={styles.aiBlock}>
+                <Text style={styles.aiLabel}>
+                  주의할 점
+                </Text>
+
+                {explanation.risks.map((item, index) => (
+                  <View
+                    key={`risk-${index}`}
+                    style={styles.riskBox}
+                  >
+                    <Text style={styles.riskIcon}>
+                      !
+                    </Text>
+
+                    <Text style={styles.aiText}>
+                      {item}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+          {explanation.keyFeatures && (
+            <View style={styles.aiBlock}>
+              <Text style={styles.aiLabel}>
+                주요 특징
+              </Text>
+
+              <View style={styles.aiNeutralBox}>
+                <Text style={styles.aiText}>
+                  {explanation.keyFeatures}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {explanation.considerations && (
+            <View style={styles.aiBlock}>
+              <Text style={styles.aiLabel}>
+                고려사항
+              </Text>
+
+              <View style={styles.aiNeutralBox}>
+                <Text style={styles.aiText}>
+                  {explanation.considerations}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       )}
 
-      <Text style={styles.footer}>
-        이 페이지는 어디 차리지?에서 공유된
-        상권 분석 결과입니다.
-      </Text>
+      {/* 공유 안내 */}
+      <View style={styles.footer}>
+        <Text style={styles.footerTitle}>
+          어디 차리지?
+        </Text>
+
+        <Text style={styles.footerText}>
+          이 화면은 공유 시점의 분석 결과를 보여줍니다.
+        </Text>
+
+        <Text style={styles.footerText}>
+          상권 정보는 실제 창업 결정 시 현장 조사와 함께
+          참고해주세요.
+        </Text>
+      </View>
     </ScrollView>
   );
 }
-
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>
-        {label}
-      </Text>
-      <Text style={styles.metricValue}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  last?: boolean;
-}) {
-  return (
-    <View
-      style={[
-        styles.detailRow,
-        last && styles.detailRowLast,
-      ]}
-    >
-      <Text style={styles.detailLabel}>
-        {label}
-      </Text>
-      <Text style={styles.detailValue}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function CompareMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value?: number;
-}) {
-  return (
-    <View style={styles.compareMetric}>
-      <Text style={styles.compareMetricLabel}>
-        {label}
-      </Text>
-      <Text style={styles.compareMetricValue}>
-        {typeof value === 'number' &&
-        Number.isFinite(value)
-          ? value.toFixed(1)
-          : '-'}
-      </Text>
-    </View>
-  );
-}
-
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scroll: {
-    flex: 1,
-  },
+
   container: {
     width: '100%',
-    maxWidth: 900,
+    maxWidth: 1000,
     alignSelf: 'center',
     padding: 20,
-    paddingBottom: 60,
+    paddingBottom: 70,
   },
-  center: {
+
+  centerScreen: {
     flex: 1,
+    minHeight: 400,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 28,
+    padding: 24,
+    backgroundColor: COLORS.background,
   },
+
   loadingText: {
-    marginTop: 12,
-    fontSize: 12,
+    marginTop: 14,
+    fontSize: 14,
     color: COLORS.textSecondary,
   },
+
+  errorIcon: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+
   errorTitle: {
-    fontSize: 18,
+    marginTop: 12,
+    fontSize: 20,
     fontWeight: '900',
     color: COLORS.text,
   },
-  errorText: {
-    marginTop: 8,
+
+  errorDescription: {
+    marginTop: 10,
+    fontSize: 14,
     textAlign: 'center',
     color: COLORS.textSecondary,
   },
-  brandRow: {
-    marginBottom: 14,
+
+  pageHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 18,
+    gap: 12,
   },
-  brand: {
-    fontSize: 18,
+
+  brandTitle: {
+    fontSize: 21,
     fontWeight: '900',
-    color: '#202544',
+    color: NAVY,
   },
+
+  pageSubtitle: {
+    marginTop: 5,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+
   sharedBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
     backgroundColor: '#FFF5C2',
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#202544',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
-  hero: {
-    padding: 24,
-    marginBottom: 22,
-    borderRadius: 22,
-    backgroundColor: '#202544',
-  },
-  heroEyebrow: {
+
+  sharedBadgeText: {
     fontSize: 11,
-    color: '#B5B9CB',
+    fontWeight: '800',
+    color: NAVY,
   },
+
+  heroCard: {
+    backgroundColor: NAVY,
+    borderRadius: 24,
+    padding: 26,
+    marginBottom: 28,
+  },
+
+  heroEyebrow: {
+    fontSize: 12,
+    color: '#B5B9CB',
+    marginBottom: 14,
+  },
+
   heroTitle: {
-    marginTop: 10,
-    fontSize: 27,
+    fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
   },
+
   heroBusiness: {
-    marginTop: 5,
-    fontSize: 13,
+    marginTop: 12,
+    fontSize: 15,
     color: '#D5D9E5',
   },
-  scoreRow: {
-    marginTop: 20,
+
+  heroPointInfo: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#D1D5DB',
+  },
+
+  scoreSection: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 6,
+    alignItems: 'baseline',
+    marginTop: 28,
+    gap: 7,
   },
+
   scoreLabel: {
-    marginBottom: 4,
-    fontSize: 11,
-    color: '#B5B9CB',
-  },
-  score: {
-    fontSize: 31,
-    lineHeight: 33,
-    fontWeight: '900',
-    color: '#FFDA35',
-  },
-  scoreUnit: {
-    marginBottom: 4,
     fontSize: 12,
     color: '#B5B9CB',
   },
-  sectionTitle: {
-    marginBottom: 10,
-    fontSize: 17,
+
+  scoreNumber: {
+    fontSize: 36,
     fontWeight: '900',
-    color: '#202544',
+    color: YELLOW,
   },
-  metricGrid: {
-    marginBottom: 18,
+
+  scoreTotal: {
+    fontSize: 12,
+    color: '#B5B9CB',
+  },
+
+  heroProgressTrack: {
+    marginTop: 14,
+    height: 9,
+    backgroundColor: '#394154',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+
+  heroProgressFill: {
+    height: '100%',
+    backgroundColor: YELLOW,
+    borderRadius: 999,
+  },
+
+  sectionHeading: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: NAVY,
+    marginBottom: 14,
+  },
+
+  summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
+    marginBottom: 24,
   },
-  metric: {
+
+  summaryCard: {
     flexGrow: 1,
-    flexBasis: '47%',
-    minWidth: 220,
-    padding: 15,
+    flexBasis: '45%',
+    minWidth: 145,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    padding: 17,
+  },
+
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 12,
+  },
+
+  summaryDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+
+  summaryLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: NAVY,
+  },
+
+  sectionCard: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 22,
+  },
+
+  sectionTitle: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: NAVY,
+    marginBottom: 8,
+  },
+
+  sectionDescription: {
+    fontSize: 12,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+    marginBottom: 18,
+  },
+
+  metricList: {
+    gap: 12,
+  },
+
+  metricCard: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 15,
-    backgroundColor: '#FFFFFF',
+    padding: 16,
   },
-  metricLabel: {
-    marginBottom: 6,
-    fontSize: 10,
-    color: COLORS.textSecondary,
-  },
-  metricValue: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#202544',
-  },
-  sectionCard: {
-    padding: 17,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-  },
-  sectionCardTitle: {
-    marginBottom: 10,
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#202544',
-  },
-  detailRow: {
-    paddingVertical: 10,
+
+  metricHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
-  detailRowLast: {
-    borderBottomWidth: 0,
+
+  metricHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
   },
-  detailLabel: {
-    fontSize: 12,
+
+  metricAccent: {
+    width: 5,
+    height: 19,
+    borderRadius: 3,
+  },
+
+  metricTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: NAVY,
+  },
+
+  metricDescription: {
+    marginTop: 9,
+    fontSize: 11,
+    lineHeight: 17,
     color: COLORS.textSecondary,
   },
-  detailValue: {
-    flexShrink: 1,
-    textAlign: 'right',
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#202544',
-  },
-  aiSubTitle: {
+
+  metricValueRow: {
     marginTop: 14,
-    marginBottom: 6,
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#202544',
-  },
-  aiReason: {
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#FFF8DC',
-    fontSize: 12,
-    lineHeight: 19,
-    color: '#202544',
-  },
-  aiStrong: {
-    fontWeight: '900',
-    color: '#202544',
-  },
-  aiList: {
-    gap: 8,
-  },
-  goodItem: {
-    padding: 10,
     flexDirection: 'row',
-    gap: 8,
-    borderRadius: 10,
-    backgroundColor: '#FFF9E5',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
   },
-  goodIcon: {
+
+  metricValue: {
+    fontSize: 24,
     fontWeight: '900',
-    color: '#202544',
   },
-  goodText: {
-    flex: 1,
+
+  rateInfo: {
     fontSize: 11,
-    lineHeight: 17,
-    color: '#202544',
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
-  riskItem: {
-    padding: 10,
-    flexDirection: 'row',
-    gap: 8,
-    borderRadius: 10,
-    backgroundColor: '#FFF0ED',
+
+  metricBottomLine: {
+    marginTop: 15,
+    height: 4,
+    width: '100%',
+    borderRadius: 999,
+    backgroundColor: COLORS.lightGray,
+    overflow: 'hidden',
   },
-  riskIcon: {
-    fontWeight: '900',
-    color: '#EF302B',
+
+  metricBottomAccent: {
+    height: '100%',
+    width: '32%',
+    borderRadius: 999,
   },
-  riskText: {
-    flex: 1,
-    fontSize: 11,
-    lineHeight: 17,
-    color: '#B73530',
-  },
-  aiDetailBlock: {
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#F6F7FC',
-  },
-  aiDetailText: {
+
+  dataNotice: {
     fontSize: 11,
     lineHeight: 18,
-    color: '#202544',
+    color: COLORS.textSecondary,
+    marginTop: 18,
   },
-  compareCard: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+
+  aiBlock: {
+    marginBottom: 17,
   },
-  compareHeader: {
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  compareArea: {
+
+  aiLabel: {
+    marginBottom: 8,
     fontSize: 13,
     fontWeight: '900',
-    color: '#202544',
+    color: NAVY,
   },
-  compareRank: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#EF302B',
+
+  aiText: {
+    fontSize: 13,
+    lineHeight: 21,
+    color: COLORS.text,
+    flexShrink: 1,
   },
-  compareMetrics: {
+
+  reasonBox: {
+    padding: 15,
+    backgroundColor: LIGHT_YELLOW,
+    borderRadius: 13,
+  },
+
+  advantageBox: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 14,
+    marginBottom: 7,
+    borderRadius: 12,
+    backgroundColor: '#F1FBF3',
   },
-  compareMetric: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    minWidth: 110,
-    padding: 9,
-    borderRadius: 9,
-    backgroundColor: '#F6F7FC',
-  },
-  compareMetricLabel: {
-    marginBottom: 3,
-    fontSize: 9,
-    color: COLORS.textSecondary,
-  },
-  compareMetricValue: {
-    fontSize: 11,
+
+  advantageIcon: {
+    fontSize: 17,
     fontWeight: '900',
-    color: '#202544',
+    color: '#278848',
   },
-  storeRow: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+
+  riskBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 14,
+    marginBottom: 7,
+    borderRadius: 12,
+    backgroundColor: LIGHT_YELLOW,
   },
-  storeName: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#202544',
+
+  riskIcon: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: NAVY,
   },
-  storeAddress: {
-    marginTop: 3,
-    fontSize: 10,
-    lineHeight: 15,
-    color: COLORS.textSecondary,
+
+  aiNeutralBox: {
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.lightGray,
   },
-  muted: {
+
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 25,
+    paddingHorizontal: 12,
+  },
+
+  footerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+
+  footerText: {
     fontSize: 11,
     color: COLORS.textSecondary,
-  },
-  footer: {
-    marginTop: 8,
     textAlign: 'center',
-    fontSize: 10,
-    color: COLORS.textSecondary,
+    lineHeight: 19,
   },
 });
