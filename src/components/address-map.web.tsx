@@ -680,7 +680,7 @@ export default function AddressMap({
           'rotate(-45deg)';
 
         pinHead.style.background =
-          '#43A652';
+          '#202544';
 
         pinHead.style.border =
           '3px solid #FFFFFF';
@@ -688,41 +688,23 @@ export default function AddressMap({
         pinHead.style.boxShadow =
           '0 3px 7px rgba(0,0,0,0.22)';
 
-        const pinDot =
-          document.createElement(
-            'div',
-          );
+        const pinDot = document.createElement('div');
 
-        pinDot.style.position =
-          'absolute';
+        pinDot.style.position = 'absolute';
+        pinDot.style.width = '9px';
+        pinDot.style.height = '9px';
+        pinDot.style.left = '50%';
+        pinDot.style.top = '50%';
+        pinDot.style.transform = 'translate(-50%, -50%)';
+        pinDot.style.borderRadius = '50%';
+        pinDot.style.backgroundColor = '#FFFFFF';
+        pinDot.style.zIndex = '10';
+        pinDot.style.pointerEvents = 'none';
 
-        pinDot.style.width =
-          '7px';
+        pinHead.style.position = 'relative';
+        pinHead.style.overflow = 'visible';
 
-        pinDot.style.height =
-          '7px';
-
-        pinDot.style.left =
-          '50%';
-
-        pinDot.style.top =
-          '50%';
-
-        pinDot.style.transform =
-          'translate(-50%, -50%)';
-
-        pinDot.style.borderRadius =
-          '50%';
-
-        pinDot.style.background =
-          '#FFFFFF';
-
-        pinHead.style.position =
-          'relative';
-
-        pinHead.appendChild(
-          pinDot,
-        );
+        pinHead.appendChild(pinDot);
 
         pin.appendChild(
           pinHead,
@@ -1063,22 +1045,30 @@ export default function AddressMap({
       'rotate(-45deg)';
 
 
-    pin.style.background = '#1D2545';
+    pin.style.background = '#202544';
 
-
-    pin.style.border =
-      '4px solid #FFFFFF';
+    pin.style.border = '4px solid #FFFFFF';
 
     pin.style.boxShadow =
       '0 3px 8px rgba(0,0,0,0.25)';
 
-    root.appendChild(
-      label,
-    );
+    pin.style.position = 'relative';
 
-    root.appendChild(
-      pin,
-    );
+    const selectedPinDot = document.createElement('div');
+
+    selectedPinDot.style.position = 'absolute';
+    selectedPinDot.style.width = '9px';
+    selectedPinDot.style.height = '9px';
+    selectedPinDot.style.left = '50%';
+    selectedPinDot.style.top = '50%';
+    selectedPinDot.style.transform = 'translate(-50%, -50%)';
+    selectedPinDot.style.borderRadius = '50%';
+    selectedPinDot.style.backgroundColor = '#FFFFFF';
+
+    pin.appendChild(selectedPinDot);
+
+    root.appendChild(label);
+    root.appendChild(pin);
 
     const overlay =
       new window.kakao.maps.CustomOverlay({

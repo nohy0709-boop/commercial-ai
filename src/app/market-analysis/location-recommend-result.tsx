@@ -1956,10 +1956,8 @@ export default function LocationRecommendResultScreen() {
 
                 )}
 
-                {aiError && !aiLoading && (
-
+                {Boolean(aiError) && !aiLoading && (
                   <Text style={styles.aiError}>{aiError}</Text>
-
                 )}
 
                 {explanation && (
@@ -1968,13 +1966,12 @@ export default function LocationRecommendResultScreen() {
 
                     <Text style={styles.aiLabel}>AI 추천 이유</Text>
 
-                    {renderEmphasizedText(
-
-                      explanation.recommendationReason,
-
-                      styles.aiText,
-
-                    )}
+                    <Text style={styles.aiText}>
+                      {renderEmphasizedText(
+                        explanation.recommendationReason,
+                        styles.aiText,
+                      )}
+                    </Text>
 
                     <TouchableOpacity
 
@@ -2002,13 +1999,12 @@ export default function LocationRecommendResultScreen() {
 
                         <Text style={styles.aiLabel}>주요 특징</Text>
 
-                        {renderEmphasizedText(
-
-                          explanation.keyFeatures,
-
-                          styles.aiText,
-
-                        )}
+                        <Text style={styles.aiText}>
+                          {renderEmphasizedText(
+                            explanation.keyFeatures,
+                            styles.aiText,
+                          )}
+                        </Text>
 
                         <Text style={styles.aiLabel}>장점</Text>
 
@@ -2621,7 +2617,7 @@ const styles =
 
       backgroundColor:
 
-        "#F1FFF5",
+        '#FFF6CC',
 
       borderRadius: 14,
 
@@ -2633,7 +2629,7 @@ const styles =
 
       borderColor:
 
-        "#D8F5E2",
+        '#F0DEA0',
 
     },
 

@@ -168,12 +168,15 @@ export default function IndustrySelectionScreen() {
               style={[
                 styles.heading,
                 {
-                  fontSize: isMobile ? 26 : isTablet ? 34 : 42,
-                  lineHeight: isMobile ? 34 : isTablet ? 44 : 54,
+                  fontSize: isMobile ? 18 : isTablet ? 28 : 36,
+                  lineHeight: isMobile ? 26 : isTablet ? 36 : 46,
                   fontWeight: '900',
                   flexShrink: 1,
                 },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.65}
             >
               어떤 업종으로 창업을 준비 중인가요?
             </Text>

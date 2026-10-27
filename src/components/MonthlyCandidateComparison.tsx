@@ -141,8 +141,8 @@ function formatPercent(
   }
 
   return `${value > 0
-      ? '+'
-      : ''
+    ? '+'
+    : ''
     }${value.toFixed(
       1,
     )}%`;
@@ -1318,12 +1318,12 @@ function ComparisonLineChart({
               }
             >
               {`${series[0].name}: ${selectedValue ===
-                  null
-                  ? '-'
-                  : formatTableValue(
-                    selectedValue,
-                    activeTab,
-                  )
+                null
+                ? '-'
+                : formatTableValue(
+                  selectedValue,
+                  activeTab,
+                )
                 }`}
             </SvgText>
 
@@ -1342,12 +1342,12 @@ function ComparisonLineChart({
               }
             >
               {`다른 지역 평균: ${averageValue ===
-                  null
-                  ? '-'
-                  : formatTableValue(
-                    averageValue,
-                    activeTab,
-                  )
+                null
+                ? '-'
+                : formatTableValue(
+                  averageValue,
+                  activeTab,
+                )
                 }`}
             </SvgText>
 
@@ -1879,8 +1879,7 @@ const styles =
     },
 
     tableHeader: {
-      backgroundColor:
-        '#F7F9F8',
+      backgroundColor: '#FFFBEA',
     },
 
     monthCell: {

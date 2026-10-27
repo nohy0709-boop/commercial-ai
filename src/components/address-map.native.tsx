@@ -92,6 +92,7 @@ export default function AddressMap({
     >
       {markers.map(marker => (
         <Marker
+          pinColor="#202544"
           key={`${marker.name}-${marker.latitude}-${marker.longitude}`}
           title={marker.name}
           coordinate={{
@@ -106,16 +107,18 @@ export default function AddressMap({
 
       {selectedPoint && (
         <>
-          <Marker
-            title="선택한 위치"
-            coordinate={{
-              latitude:
-                selectedPoint.latitude,
-
-              longitude:
-                selectedPoint.longitude,
-            }}
-          />
+          {selectedPoint && (
+            <>
+              <Marker
+                pinColor="#202544"
+                title="선택한 위치"
+                coordinate={{
+                  latitude: selectedPoint.latitude,
+                  longitude: selectedPoint.longitude,
+                }}
+              />
+            </>
+          )}
 
 
           <Circle
