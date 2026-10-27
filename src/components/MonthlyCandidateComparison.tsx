@@ -34,13 +34,6 @@ type CompareItem = {
   areaName: string;
   rank: number;
 
-  competitionScore?:
-  | number
-  | string;
-
-  accessibilityScore?:
-  | number
-  | string;
 
   [key: string]:
   | number
@@ -48,10 +41,7 @@ type CompareItem = {
   | undefined;
 };
 
-type MainTab =
-  | 'population'
-  | 'sales'
-  | 'environment';
+type MainTab = 'population' | 'sales';
 
 type PopulationMetric =
   | 'floatingPopulation'
@@ -315,13 +305,6 @@ export default function MonthlyCandidateComparison({
   const periods =
     useMemo(
       () => {
-        if (
-          activeTab ===
-          'environment'
-        ) {
-          return [];
-        }
-
         return selectedRows
           .filter(
             row =>
@@ -543,112 +526,6 @@ export default function MonthlyCandidateComparison({
       ],
     );
 
-  /**
-   * 환경 지표
-   *
-   * 현재 지역 vs 후보 평균
-   */
-  const environmentRows =
-    useMemo(
-      () => {
-        const selected =
-          compareItems.find(
-            item =>
-              item.areaName ===
-              selectedAreaName,
-          );
-
-        const others =
-          compareItems.filter(
-            item =>
-              item.areaName !==
-              selectedAreaName,
-          );
-
-        const averageMetric =
-          (
-            key:
-              | 'competitionScore'
-              | 'accessibilityScore',
-          ) => {
-            const values =
-              others
-                .map(
-                  item =>
-                    Number(
-                      item[
-                      key
-                      ] ??
-                      0,
-                    ),
-                )
-                .filter(
-                  value =>
-                    Number.isFinite(
-                      value,
-                    ),
-                );
-
-            if (
-              values.length ===
-              0
-            ) {
-              return 0;
-            }
-
-            return (
-              values.reduce(
-                (
-                  total,
-                  value,
-                ) =>
-                  total +
-                  value,
-                0,
-              ) /
-              values.length
-            );
-          };
-
-        return [
-          {
-            label:
-              '경쟁 여유도',
-
-            selectedValue:
-              Number(
-                selected?.competitionScore ??
-                0,
-              ),
-
-            averageValue:
-              averageMetric(
-                'competitionScore',
-              ),
-          },
-
-          {
-            label:
-              '교통 접근성',
-
-            selectedValue:
-              Number(
-                selected?.accessibilityScore ??
-                0,
-              ),
-
-            averageValue:
-              averageMetric(
-                'accessibilityScore',
-              ),
-          },
-        ];
-      },
-      [
-        compareItems,
-        selectedAreaName,
-      ],
-    );
 
   return (
     <View
@@ -715,22 +592,6 @@ export default function MonthlyCandidateComparison({
           }}
         />
 
-        <TabButton
-          label="환경 지표"
-          active={
-            activeTab ===
-            'environment'
-          }
-          onPress={() => {
-            setActiveTab(
-              'environment',
-            );
-
-            setTableOpen(
-              false,
-            );
-          }}
-        />
       </View>
 
       {/* POPULATION SUB TAB */}
@@ -808,10 +669,7 @@ export default function MonthlyCandidateComparison({
 
       {/* LINE CHART */}
 
-      {activeTab !==
-        'environment' &&
-        periods.length >
-        0 && (
+      {periods.length > 0 && (
           <>
             <View
               style={
@@ -988,60 +846,6 @@ export default function MonthlyCandidateComparison({
           </>
         )}
 
-      {/* ENVIRONMENT */}
-
-      {activeTab ===
-        'environment' && (
-          <View
-            style={
-              styles.environmentBox
-            }
-          >
-            {environmentRows.map(
-              row => (
-                <View
-                  key={
-                    row.label
-                  }
-                  style={
-                    styles.environmentGroup
-                  }
-                >
-                  <Text
-                    style={
-                      styles.environmentTitle
-                    }
-                  >
-                    {row.label}
-                  </Text>
-
-                  <EnvironmentRow
-                    label={
-                      selectedAreaName
-                    }
-                    value={
-                      row.selectedValue
-                    }
-                    color={
-                      CURRENT_COLOR
-                    }
-                  />
-
-                  <EnvironmentRow
-                    label="다른 지역 평균"
-                    value={
-                      row.averageValue
-                    }
-                    color={
-                      AVERAGE_COLOR
-                    }
-                  />
-                </View>
-              ),
-            )}
-          </View>
-        )}
-
       {/* SOURCE */}
 
       <View
@@ -1054,16 +858,11 @@ export default function MonthlyCandidateComparison({
             styles.sourceText
           }
         >
-          {activeTab ===
-            'sales'
+          {activeTab === 'sales'
             ? '출처: 세종특별자치시 행정동별 카드소비 현황'
-            : activeTab ===
-              'population'
-              ? populationMetric ===
-                'floatingPopulation'
-                ? '출처: 세종특별자치시 행정동별 유동인구 현황'
-                : '출처: 세종특별자치시 행정동별 유입인구 현황'
-              : '환경 지표는 현재 상권 분석 결과를 기준으로 비교합니다.'}
+            : populationMetric === 'floatingPopulation'
+              ? '출처: 세종특별자치시 행정동별 유동인구 현황'
+              : '출처: 세종특별자치시 행정동별 유입인구 현황'}
         </Text>
       </View>
     </View>
@@ -1780,78 +1579,6 @@ function ValueTable({
 
 /**
  * =====================================================
- * ENVIRONMENT
- * =====================================================
- */
-
-function EnvironmentRow({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  const safeValue =
-    Math.max(
-      0,
-      Math.min(
-        100,
-        Number(
-          value,
-        ) || 0,
-      ),
-    );
-
-  return (
-    <View
-      style={
-        styles.environmentRow
-      }
-    >
-      <Text
-        style={
-          styles.environmentName
-        }
-      >
-        {label}
-      </Text>
-
-      <View
-        style={
-          styles.environmentTrack
-        }
-      >
-        <View
-          style={[
-            styles.environmentFill,
-            {
-              width:
-                `${safeValue}%`,
-
-              backgroundColor:
-                color,
-            },
-          ]}
-        />
-      </View>
-
-      <Text
-        style={
-          styles.environmentValue
-        }
-      >
-        {Math.round(
-          safeValue,
-        )}
-      </Text>
-    </View>
-  );
-}
-
-/**
- * =====================================================
  * STYLES
  * =====================================================
  */
@@ -2181,80 +1908,6 @@ const styles =
         '#344054',
     },
 
-    environmentBox: {
-      marginTop: 20,
-
-      gap: 24,
-    },
-
-    environmentGroup: {
-      gap: 12,
-    },
-
-    environmentTitle: {
-      fontSize: 11,
-
-      fontWeight:
-        '900',
-
-      color:
-        '#344054',
-    },
-
-    environmentRow: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      gap: 10,
-    },
-
-    environmentName: {
-      width: 90,
-
-      fontSize: 10,
-
-      color:
-        '#667085',
-    },
-
-    environmentTrack: {
-      flex: 1,
-
-      height: 8,
-
-      overflow:
-        'hidden',
-
-      borderRadius: 999,
-
-      backgroundColor:
-        '#EEF1F3',
-    },
-
-    environmentFill: {
-      height:
-        '100%',
-
-      borderRadius: 999,
-    },
-
-    environmentValue: {
-      width: 32,
-
-      textAlign:
-        'right',
-
-      fontSize: 10,
-
-      fontWeight:
-        '800',
-
-      color:
-        '#475467',
-    },
 
     sourceBox: {
       marginTop: 14,
