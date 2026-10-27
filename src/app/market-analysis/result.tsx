@@ -147,9 +147,9 @@ function assignRanksWithTies(
 
         index > 0 &&
 
-        sortedResults[index - 1]
+          sortedResults[index - 1]
 
-          .suitabilityScore ===
+            .suitabilityScore ===
 
           item.suitabilityScore
 
@@ -251,11 +251,9 @@ function formatChangeRate(
   }
 
 
-  return `${
+  return `${value > 0 ? '+' : ''
 
-    value > 0 ? '+' : ''
-
-  }${value.toFixed(2)}%`;
+    }${value.toFixed(2)}%`;
 
 }
 
@@ -312,9 +310,9 @@ function CardMapThumbnail({
 
   coords:
 
-    | Coordinates
+  | Coordinates
 
-    | undefined;
+  | undefined;
 
 }) {
 
@@ -1132,17 +1130,17 @@ export default function ResultScreen() {
 
           errorMessage !== '' && (
 
-          <View style={styles.errorBox}>
+            <View style={styles.errorBox}>
 
-            <Text style={styles.error}>
+              <Text style={styles.error}>
 
-              {errorMessage}
+                {errorMessage}
 
-            </Text>
+              </Text>
 
-          </View>
+            </View>
 
-        )}
+          )}
 
 
         {!loading &&
@@ -1192,7 +1190,7 @@ export default function ResultScreen() {
 
                   isFirst &&
 
-                    styles.firstCard,
+                  styles.firstCard,
 
                 ]}
 
@@ -1214,7 +1212,7 @@ export default function ResultScreen() {
 
                       areaCoordinates[
 
-                        item.areaName
+                      item.areaName
 
                       ]
 
@@ -1231,7 +1229,7 @@ export default function ResultScreen() {
 
                       isFirst &&
 
-                        styles.rankBadgeFirst,
+                      styles.rankBadgeFirst,
 
                     ]}
 
@@ -1245,7 +1243,7 @@ export default function ResultScreen() {
 
                         isFirst &&
 
-                          styles.rankTextFirst,
+                        styles.rankTextFirst,
 
                       ]}
 
@@ -1876,24 +1874,10 @@ export default function ResultScreen() {
                     )}
 
 
-                    {aiError &&
-
-                      !aiLoading && (
-
-                      <Text
-
-                        style={
-
-                          styles.aiError
-
-                        }
-
-                      >
-
+                    {Boolean(aiError) && !aiLoading && (
+                      <Text style={styles.aiError}>
                         {aiError}
-
                       </Text>
-
                     )}
 
 
@@ -2978,7 +2962,7 @@ const styles = StyleSheet.create({
 
     backgroundColor:
 
-      COLORS.aiLight,
+      '#202544',
 
     borderWidth: 1,
 
@@ -3003,21 +2987,12 @@ const styles = StyleSheet.create({
 
 
   aiIconBox: {
-
     width: 24,
-
     height: 24,
-
     borderRadius: 8,
-
-    backgroundColor:
-
-      COLORS.ai,
-
+    backgroundColor: 'transparent',
     alignItems: 'center',
-
     justifyContent: 'center',
-
   },
 
 
@@ -3034,7 +3009,7 @@ const styles = StyleSheet.create({
 
     fontWeight: '800',
 
-    color: COLORS.ai,
+    color: '#FFFFFF',
 
   },
 
@@ -3043,7 +3018,7 @@ const styles = StyleSheet.create({
 
     fontSize: 13,
 
-    color: COLORS.text,
+    color: '#FFFFFF',
 
     lineHeight: 19,
 
@@ -3054,7 +3029,7 @@ const styles = StyleSheet.create({
 
     fontWeight: '900',
 
-    color: COLORS.primary,
+    color: '#FFD84D',
 
   },
 
@@ -3179,7 +3154,7 @@ const styles = StyleSheet.create({
 
     color:
 
-      COLORS.textSecondary,
+      '#FFFFFF',
 
   },
 

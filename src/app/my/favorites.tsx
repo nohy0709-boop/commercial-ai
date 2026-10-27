@@ -53,11 +53,10 @@ function formatMetric(value: unknown, unit: string, digits = 0): string {
 }
 
 const COMPARE_THEMES = [
-  { main: COLORS.text, light: COLORS.lightGray },
+  { main: '#202544', light: '#F3F5FA' },
   { main: COLORS.warning, light: COLORS.warningLight },
   { main: COLORS.textSecondary, light: COLORS.subtle },
 ];
-
 function numericMetric(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -409,14 +408,38 @@ const styles = StyleSheet.create({
   summaryFill: { height: '100%', borderRadius: 5 },
   metricSectionTitle: { fontSize: 17, fontWeight: '900', color: COLORS.text },
   metricSectionHint: { fontSize: 11, color: COLORS.textSecondary, lineHeight: 17, marginTop: 4, marginBottom: 8 },
-  metricSection: { borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingVertical: 16 },
+  metricSection: {
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9EDF5',
+  },
   metricLabel: { fontSize: 14, fontWeight: '900', color: COLORS.text, marginBottom: 10 },
-  metricValuesRow: { flexDirection: 'row', gap: 12 },
-  metricColumn: { flex: 1, minWidth: 0 },
+  metricValuesRow: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 12,
+  },
+  metricColumn: {
+    flex: 1,
+    minWidth: 0,
+  },
   metricCandidate: { fontSize: 10, color: COLORS.textSecondary, fontWeight: '700' },
-  metricValue: { fontSize: 15, fontWeight: '900', marginTop: 5, marginBottom: 9 },
-  metricTrack: { height: 9, borderRadius: 5, backgroundColor: COLORS.border, overflow: 'hidden' },
-  metricFill: { height: '100%', borderRadius: 5 },
+  metricValue: {
+    fontSize: 17,
+    fontWeight: '900',
+    marginBottom: 12,
+  },
+  metricTrack: {
+    height: 10,
+    backgroundColor: '#E6ECF5',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+
+  metricFill: {
+    height: '100%',
+    borderRadius: 10,
+  },
   noticeBox: { backgroundColor: COLORS.warningLight, padding: 13, borderRadius: 12, marginTop: 18 },
   noticeText: { fontSize: 11, lineHeight: 18, color: COLORS.textSecondary },
 });

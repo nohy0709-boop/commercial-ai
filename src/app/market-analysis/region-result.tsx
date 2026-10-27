@@ -3087,7 +3087,7 @@ const styles =
 
       backgroundColor:
 
-        '#F1FFF5',
+       '#FFF6CC',
 
     },
 
@@ -3099,7 +3099,7 @@ const styles =
 
       color:
 
-        COLORS.primary,
+        '#202544'
 
     },
 

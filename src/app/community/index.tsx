@@ -1,26 +1,26 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/constants/colors';
 import { useRequireLogin } from '@/hooks/use-require-login';
 import {
-    CATEGORY_COLORS,
-    CATEGORY_LABELS,
-    formatRelativeDate,
-    getPosts,
-    type Post,
-    type PostCategory,
+  CATEGORY_COLORS,
+  CATEGORY_LABELS,
+  formatRelativeDate,
+  getPosts,
+  type Post,
+  type PostCategory,
 } from '@/services/community';
 
 const CATEGORY_TABS: { key: PostCategory | 'all'; label: string }[] = [
@@ -124,6 +124,39 @@ export default function CommunityScreen() {
         <View style={{ width: 24 }} />
       </View>
 
+      <View style={styles.communityHero}>
+        <Text style={styles.communityHeroBadge}>
+          ✨ 창업자들의 이야기 공간
+        </Text>
+
+        <Text
+          style={styles.communityHeroTitle}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          커뮤니티
+        </Text>
+
+        <Text style={styles.communityHeroDescription}>
+          창업에 대한 궁금증을 나누고,
+          다양한 경험과 정보를 공유해보세요.
+        </Text>
+
+        <Pressable
+          style={styles.communityHeroButton}
+          onPress={() =>
+            requireLogin(() =>
+              router.push('/community/write' as any)
+            )
+          }
+        >
+          <Text style={styles.communityHeroButtonText}>
+            글쓰기 →
+          </Text>
+        </Pressable>
+      </View>
+
       <View style={styles.tabs}>
         {CATEGORY_TABS.map((t) => {
           const active = category === t.key;
@@ -210,20 +243,67 @@ export default function CommunityScreen() {
         />
       )}
 
-      <Pressable
-        style={styles.fab}
-        onPress={() => requireLogin(() => router.push('/community/write' as any))}
-      >
-        <Text style={styles.fabText}>✏️ 글쓰기</Text>
-      </Pressable>
-
       {loginModal}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+
+  communityHero: {
+    backgroundColor: '#202544',
+    borderRadius: 24,
+    padding: 28,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+
+  communityHeroBadge: {
+    color: '#FFDA3D',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 18,
+  },
+
+  communityHeroTitle: {
+    color: '#FFFFFF',
+    fontSize: 38,
+    fontWeight: '900',
+    marginBottom: 12,
+  },
+
+  communityHeroDescription: {
+    color: '#D5D9E5',
+    fontSize: 16,
+    lineHeight: 25,
+    marginBottom: 26,
+  },
+
+  communityHeroButton: {
+    backgroundColor: '#EF302B',
+    paddingHorizontal: 24,
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+  },
+
+  communityHeroButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+
+  safe: {
+    flex: 1,
+    backgroundColor: '#F8FAFF',
+  },
+
+  navyFrame: {
+    flex: 1,
+    backgroundColor: '#F8FAFF',
+  },
+
   appBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -238,9 +318,10 @@ const styles = StyleSheet.create({
   appBarTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    flexWrap: 'wrap',
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
     gap: 8,
   },
   tab: {

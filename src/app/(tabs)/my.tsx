@@ -2092,8 +2092,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DCEFE0',
-    backgroundColor: '#F7FCF8',
+    borderColor: '#E5ECF8',
+    backgroundColor: '#FFFFFF',
   },
 
   checklistTopRow: {
@@ -2112,13 +2112,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 9,
     borderRadius: 999,
-    backgroundColor: '#E9F8EC',
+    backgroundColor: '#FFF6CC',
   },
 
   checklistCompleteBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: '#202544',
   },
 
   checklistExpandButton: {
@@ -2129,20 +2129,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#DCEFE0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#F0DEA0',
+    backgroundColor: '#FFF6CC',
   },
 
   checklistExpandButtonText: {
     fontSize: 10,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: '#202544',
   },
 
   checklistExpandArrow: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: '#202544',
   },
 
   checklistTitleArea: {
@@ -2157,8 +2157,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     fontSize: 9,
     fontWeight: '900',
-    color: COLORS.primary,
-    backgroundColor: '#E9F8EC',
+    color: '#202544',
+    backgroundColor: '#FFF6CC',
   },
 
   checklistTitle: {
@@ -2210,7 +2210,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
     overflow: 'hidden',
     borderRadius: 999,
-    backgroundColor: '#E9EEEA',
+    backgroundColor: '#E5ECF8',
   },
 
   progressFill: {
@@ -2229,7 +2229,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E1EAE3',
+    borderColor: '#E5ECF8',
     backgroundColor: '#FFFFFF',
   },
 
@@ -2258,8 +2258,8 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#DCEFE0',
-    backgroundColor: '#F4F8F5',
+    borderColor: '#E5ECF8',
+    backgroundColor: '#F3F6FC',
   },
 
   checklistViewToggleButton: {
@@ -2273,7 +2273,7 @@ const styles = StyleSheet.create({
   checklistViewToggleButtonActive: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CDE4D2',
+    borderColor: '#202544',
   },
 
   checklistViewToggleText: {
@@ -2295,7 +2295,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E4EEE6',
+    borderColor: '#E5ECF8',
     backgroundColor: '#FFFFFF',
   },
 
@@ -2329,12 +2329,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 11,
     borderRadius: 12,
-    backgroundColor: '#F8FAF8',
+    backgroundColor: '#F8FAFF',
   },
 
   checklistChildItem: {
     marginLeft: 18,
-    backgroundColor: '#FBFCFB',
+    backgroundColor: '#F7F9FF',
   },
 
   checkBox: {
@@ -2346,7 +2346,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: '#BCC8BF',
+    borderColor: '#E5ECF8',
     backgroundColor: '#FFFFFF',
   },
 
@@ -2397,20 +2397,19 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: COLORS.neonLime,
+    backgroundColor: '#202544',
   },
 
   continueChatButtonText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#111111',
+    color: '#FFFFFF',
   },
 
   continueChatArrow: {
     fontSize: 22,
-    color: '#111111',
+    color: '#FFFFFF',
   },
-
   historyCount: {
 
     fontSize: 12,

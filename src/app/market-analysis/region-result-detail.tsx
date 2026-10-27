@@ -312,25 +312,25 @@ export default function RegionResultDetailScreen() {
 
         ? JSON.stringify([
 
-            {
+          {
 
-              label: areaName,
+            label: areaName,
 
-              dongName: actualDongName,
+            dongName: actualDongName,
 
-              coordinates: {
+            coordinates: {
 
-                lat: Number(latitude),
+              lat: Number(latitude),
 
-                lng: Number(longitude),
-
-              },
-
-              radius: Number(radius || 500),
+              lng: Number(longitude),
 
             },
 
-          ])
+            radius: Number(radius || 500),
+
+          },
+
+        ])
 
         : '';
 
@@ -871,17 +871,17 @@ export default function RegionResultDetailScreen() {
 
       ? {
 
-          recommendationReason: explanation.recommendationReason,
+        recommendationReason: explanation.recommendationReason,
 
-          advantages: explanation.advantages,
+        advantages: explanation.advantages,
 
-          risks: explanation.risks,
+        risks: explanation.risks,
 
-          keyFeatures: explanation.keyFeatures,
+        keyFeatures: explanation.keyFeatures,
 
-          considerations: explanation.considerations,
+        considerations: explanation.considerations,
 
-        }
+      }
 
       : undefined,
 
@@ -1592,125 +1592,125 @@ export default function RegionResultDetailScreen() {
 
         <TouchableOpacity
 
-        style={[
+          style={[
 
-          styles.checklistCreateButton,
+            styles.checklistCreateButton,
 
-          checklistCreating &&
+            checklistCreating &&
 
             styles.checklistCreateButtonDisabled,
 
-        ]}
+          ]}
 
-        activeOpacity={0.8}
+          activeOpacity={0.8}
 
-        disabled={checklistCreating}
+          disabled={checklistCreating}
 
-        onPress={handleCreateChecklist}
-
-      >
-
-        <View
-
-          style={styles.checklistCreateIcon}
+          onPress={handleCreateChecklist}
 
         >
 
-          {checklistCreating ? (
+          <View
 
-            <ActivityIndicator
+            style={styles.checklistCreateIcon}
 
-              size="small"
+          >
 
-              color={COLORS.primary}
+            {checklistCreating ? (
 
-            />
+              <ActivityIndicator
 
-          ) : (
+                size="small"
+
+                color={COLORS.primary}
+
+              />
+
+            ) : (
+
+              <Text
+
+                style={
+
+                  styles.checklistCreateIconText
+
+                }
+
+              >
+
+                ✓
+
+              </Text>
+
+            )}
+
+          </View>
+
+          <View
+
+            style={
+
+              styles.checklistCreateContent
+
+            }
+
+          >
 
             <Text
 
               style={
 
-                styles.checklistCreateIconText
+                styles.checklistCreateTitle
 
               }
 
             >
 
-              ✓
+              {checklistCreating
+
+                ? 'AI 체크리스트 만드는 중...'
+
+                : '이 분석으로 체크리스트 만들기'}
+
+            </Text>
+
+            <Text
+
+              style={
+
+                styles.checklistCreateDescription
+
+              }
+
+            >
+
+              현재 분석 결과를 바탕으로 창업 준비 항목을 만들고 MY에 저장해요
+
+            </Text>
+
+          </View>
+
+          {!checklistCreating && (
+
+            <Text
+
+              style={
+
+                styles.checklistCreateArrow
+
+              }
+
+            >
+
+              ›
 
             </Text>
 
           )}
 
-        </View>
+        </TouchableOpacity>
 
-        <View
-
-          style={
-
-            styles.checklistCreateContent
-
-          }
-
-        >
-
-          <Text
-
-            style={
-
-              styles.checklistCreateTitle
-
-            }
-
-          >
-
-            {checklistCreating
-
-              ? 'AI 체크리스트 만드는 중...'
-
-              : '이 분석으로 체크리스트 만들기'}
-
-          </Text>
-
-          <Text
-
-            style={
-
-              styles.checklistCreateDescription
-
-            }
-
-          >
-
-            현재 분석 결과를 바탕으로 창업 준비 항목을 만들고 MY에 저장해요
-
-          </Text>
-
-        </View>
-
-        {!checklistCreating && (
-
-          <Text
-
-            style={
-
-              styles.checklistCreateArrow
-
-            }
-
-          >
-
-            ›
-
-          </Text>
-
-        )}
-
-      </TouchableOpacity>
-
-<TouchableOpacity
+        <TouchableOpacity
 
           style={styles.mapViewButton}
 
@@ -2258,6 +2258,8 @@ function NativeStoreMap({ stores }: { stores: NearbyStore[] }) {
 
           description={store.address}
 
+          pinColor="#202544"
+
         />
 
       ))}
@@ -2400,7 +2402,7 @@ const styles = StyleSheet.create({
 
     fontWeight: '700',
 
-    color: '#A7F3D0',
+    color: '#FFD84D',
 
   },
 
@@ -2634,7 +2636,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 10,
 
-    backgroundColor: '#F5FCF6',
+    backgroundColor: '#FFF6CC',
 
     fontSize: 11,
 
@@ -2872,107 +2874,97 @@ const styles = StyleSheet.create({
 
    */
 
-checklistCreateButton: {
+  checklistCreateButton: {
 
-      width: '100%',
+    width: '100%',
 
-      minHeight: 76,
+    minHeight: 76,
 
-      flexDirection: 'row',
+    flexDirection: 'row',
 
-      alignItems: 'center',
+    alignItems: 'center',
 
-      gap: 12,
+    gap: 12,
 
-      paddingHorizontal: 16,
+    paddingHorizontal: 16,
 
-      paddingVertical: 14,
+    paddingVertical: 14,
 
-      marginBottom: 16,
+    marginBottom: 16,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: '#BFE4C9',
 
-      borderRadius: 16,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9DEE8',
 
-      backgroundColor: '#F7FCF8',
+  },
 
-    },
+  checklistCreateButtonDisabled: {
 
-    checklistCreateButtonDisabled: {
+    opacity: 0.65,
 
-      opacity: 0.65,
+  },
 
-    },
+  checklistCreateIcon: {
 
-    checklistCreateIcon: {
+    width: 42,
 
-      width: 42,
+    height: 42,
 
-      height: 42,
+    alignItems: 'center',
 
-      alignItems: 'center',
+    justifyContent: 'center',
 
-      justifyContent: 'center',
+    borderRadius: 21,
 
-      borderRadius: 21,
+    backgroundColor: '#FFF4C2', 
 
-      backgroundColor: '#E9F8EC',
+  },
 
-    },
+  checklistCreateIconText: {
 
-    checklistCreateIconText: {
+    fontSize: 20,
 
-      fontSize: 20,
+    fontWeight: '900',
 
-      fontWeight: '900',
+    color: COLORS.primary,
 
-      color: COLORS.primary,
+  },
 
-    },
+  checklistCreateContent: {
 
-    checklistCreateContent: {
+    flex: 1,
 
-      flex: 1,
+  },
 
-    },
+  checklistCreateTitle: {
+    marginBottom: 3,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#202544',
+  },
 
-    checklistCreateTitle: {
+  checklistCreateDescription: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#7C8798',
+  },
 
-      marginBottom: 3,
+  checklistCreateArrow: {
 
-      fontSize: 14,
+    marginLeft: 4,
 
-      fontWeight: '900',
+    fontSize: 27,
 
-      color: COLORS.text,
+    fontWeight: '400',
 
-    },
+    color: COLORS.primary,
 
-    checklistCreateDescription: {
+  },
 
-      fontSize: 11,
-
-      lineHeight: 16,
-
-      color: COLORS.textSecondary,
-
-    },
-
-    checklistCreateArrow: {
-
-      marginLeft: 4,
-
-      fontSize: 27,
-
-      fontWeight: '400',
-
-      color: COLORS.primary,
-
-    },
-
-      mapViewButton: {
+  mapViewButton: {
 
     width: '100%',
 
