@@ -178,22 +178,22 @@ export default function SuitabilityRegionScreen() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen
-        options={{
-          title: '지역 선택',
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() =>
-                router.replace('/market-analysis/suitability')
-              }
-              style={styles.headerBackButton}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBackText}>‹</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
+      {/* 화면 자체의 뒤로가기 버튼: Stack 헤더 숨김 여부와 무관하게 표시 */}
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <View style={styles.navigationBar}>
+        <TouchableOpacity
+          onPress={() => router.replace('/market-analysis/suitability')}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="업종 선택 화면으로 돌아가기"
+        >
+          <Text style={styles.backArrow}>‹</Text>
+          <Text style={styles.backLabel}>업종 선택</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* 진행 단계 */}
       <View style={styles.appBar}>
@@ -615,19 +615,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  headerBackButton: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
+  navigationBar: {
+    minHeight: 54,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
     justifyContent: 'center',
-    marginLeft: -6,
-    marginRight: 4,
+    paddingHorizontal: 20,
   },
 
-  headerBackText: {
-    fontSize: 28,
+  backButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+  },
+
+  backArrow: {
+    fontSize: 27,
+    fontWeight: '500',
     color: COLORS.text,
     marginTop: -2,
+  },
+
+  backLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.text,
   },
 
   appBar: {
