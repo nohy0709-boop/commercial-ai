@@ -6,8 +6,23 @@
  * 앱은 Supabase Edge Function(서버)만 호출하고, 실제 AI 키는 서버 쪽 Secret에만 있습니다.
  */
 
+import { getProfileSummaryForAI } from '@/services/profileForAI';
+
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+/**
+ * 사용자 맞춤형 판단.
+ * 서버가 아직 이 값을 만들어 주지 않으면 undefined 이므로 화면에서는 값이 있을 때만 보여준다.
+ */
+export interface PersonalizedAssessment {
+  /** 한 줄 요약: 이 사용자에게 이 지역이 어떤지 */
+  summary: string;
+  /** 사용자 조건(예산, 고객층, 우선순위 등)에 잘 맞는 점 */
+  fits: string[];
+  /** 사용자 조건 기준으로 유의할 점 */
+  cautions: string[];
+}
 
 export interface AIExplanation {
   recommendationReason: string;
@@ -15,6 +30,7 @@ export interface AIExplanation {
   advantages: string[];
   risks: string[];
   considerations: string;
+  personalized?: PersonalizedAssessment;
 }
 
 export async function generateAIExplanation(
@@ -26,6 +42,12 @@ export async function generateAIExplanation(
     );
   }
 
+  /**
+   * 사용자가 "나의 창업 정보"에 입력한 내용을 최신 상태로 읽어서 같이 보낸다.
+   * (입력 전이거나 읽기 실패 시에는 보내지 않아 기존 동작 그대로)
+   */
+  const userProfile = await getProfileSummaryForAI();
+
   const response = await fetch(
     `${SUPABASE_URL}/functions/v1/generate-recommendation`,
     {
@@ -34,7 +56,10 @@ export async function generateAIExplanation(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(analysisData),
+      body: JSON.stringify({
+        ...analysisData,
+        ...(userProfile ? { userProfile } : {}),
+      }),
     },
   );
 

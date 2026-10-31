@@ -1,3 +1,5 @@
+import { getProfileSummaryForAI } from '@/services/profileForAI';
+
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -133,6 +135,13 @@ export async function sendChatMessage(
     history,
   );
 
+  /**
+   * 사용자가 "나의 창업 정보"에 입력한 내용을 최신 상태로 읽어서
+   * 서버(Edge Function)에 같이 보낸다. 사용자가 따로 말하지 않아도
+   * 챗봇이 이미 알고 있는 것처럼 답하게 하기 위함.
+   */
+  const userProfile = await getProfileSummaryForAI();
+
   const response = await fetch(
     `${SUPABASE_URL}/functions/v1/chat-assistant`,
     {
@@ -142,7 +151,11 @@ export async function sendChatMessage(
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         apikey: SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify(body),
+      // 비교 모드 요청(body)에 사용자 창업 정보를 함께 보낸다.
+      body: JSON.stringify({
+        ...body,
+        ...(userProfile ? { userProfile } : {}),
+      }),
     },
   );
 
