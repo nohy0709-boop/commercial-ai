@@ -2617,25 +2617,17 @@ const styles = StyleSheet.create({
   },
 
   typeBadge: {
-
-    paddingVertical: 6,
-
-    paddingHorizontal: 10,
-
+    backgroundColor: '#FFF6CC',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 999,
-
-    backgroundColor: '#E9F8EC',
-
+    alignSelf: 'flex-start',
   },
 
   typeBadgeText: {
-
-    fontSize: 11,
-
+    color: '#202544',
+    fontSize: 13,
     fontWeight: '800',
-
-    color: COLORS.primary,
-
   },
 
   date: {
@@ -2727,29 +2719,17 @@ const styles = StyleSheet.create({
   },
 
   viewButton: {
-
     flex: 1,
-
-    minHeight: 43,
-
-    borderRadius: 12,
-
+    backgroundColor: '#202544',
+    borderRadius: 14,
     alignItems: 'center',
-
     justifyContent: 'center',
-
-    backgroundColor: COLORS.neonLime,
-
+    paddingVertical: 16,
   },
 
   viewButtonText: {
-
-    fontSize: 13,
-
-    fontWeight: '900',
-
-    color: '#111111',
-
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
-
 });
