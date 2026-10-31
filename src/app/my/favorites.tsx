@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants/colors';
+import { createComparisonContext } from '@/services/analysisComparison';
 import {
   AnalysisHistoryItem,
   getFavoriteAnalyses,
@@ -151,6 +152,23 @@ export default function FavoriteAnalysesScreen() {
     } catch (error) {
       console.error('찜 해제 실패:', error);
       Alert.alert('오류', '찜 해제에 실패했습니다.');
+    }
+  };
+
+  const handleComparisonChat = () => {
+    try {
+      // 이동 전에 누락된 상세 결과를 확인합니다. URL에는 선택한 ID만 넣습니다.
+      createComparisonContext(selectedAnalyses, 'favorites');
+      router.push({
+        pathname: '/chat',
+        params: {
+          favoriteCompareIds: JSON.stringify(selectedAnalyses.map(item => item.id)),
+          comparisonSession: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          returnTo: '/my/favorites',
+        },
+      });
+    } catch (error) {
+      Alert.alert('비교 상담 준비', error instanceof Error ? error.message : '비교할 분석을 다시 선택해주세요.');
     }
   };
 
@@ -309,6 +327,17 @@ export default function FavoriteAnalysesScreen() {
             })}
           </View>
 
+          <TouchableOpacity
+            style={styles.chatCompareButton}
+            onPress={handleComparisonChat}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`선택한 ${selectedAnalyses.length}개 분석을 AI와 비교 상담하기`}
+          >
+            <Text style={styles.chatCompareButtonText}>AI에게 비교 상담하기 →</Text>
+            <Text style={styles.chatCompareButtonHint}>현재 후보들의 지표를 바탕으로 계속 질문할 수 있어요.</Text>
+          </TouchableOpacity>
+
           <Text style={styles.metricSectionTitle}>세부 지표 비교</Text>
           <Text style={styles.metricSectionHint}>같은 지표 안에서 막대 길이를 비교해요. 증감률이 음수면 막대는 크기만 표시해요.</Text>
 
@@ -352,6 +381,9 @@ export default function FavoriteAnalysesScreen() {
 }
 
 const styles = StyleSheet.create({
+  chatCompareButton: { backgroundColor: '#202544', padding: 16, borderRadius: 14, marginBottom: 22 },
+  chatCompareButtonText: { color: '#FFF4C2', fontSize: 15, fontWeight: '900' },
+  chatCompareButtonHint: { color: '#FFFFFF', fontSize: 11, lineHeight: 17, marginTop: 5 },
   screen: { flex: 1, backgroundColor: COLORS.background },
   container: { width: '100%', maxWidth: 900, alignSelf: 'center', padding: 20, paddingBottom: 60 },
   header: { marginTop: 10, marginBottom: 20 },
