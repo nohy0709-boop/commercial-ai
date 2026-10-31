@@ -1,32 +1,29 @@
 import { supabase } from '@/lib/supabase';
 
 /**
- * 상권 변화 추이 데이터
- *
- * - 지금은 USE_SAMPLE_DATA = true 라서 "샘플 데이터"가 나옵니다. (화면 확인용)
- * - 실제 데이터를 Supabase 테이블(store_trend_monthly)에 넣은 뒤
- *   USE_SAMPLE_DATA 를 false 로 바꾸면 실제 데이터로 바뀝니다.
+ * 파일명 기준 시점의 실제 상가 목록입니다.
+ * 자료 사이의 월별 값은 생성하지 않습니다.
  */
-export const USE_SAMPLE_DATA = true;
-
-// 샘플 데이터 기간 (실제 데이터 연결 후에는 사용되지 않음)
-const SAMPLE_START = '2023-01';
-const SAMPLE_END = '2025-12';
+export const USE_SAMPLE_DATA = false;
 
 export type Granularity = 'month' | 'quarter' | 'year';
 
-/** DB/샘플의 원본 한 줄 (한 시점의 스냅샷 집계) */
 export type MonthlyRow = {
-  /** 'YYYY-MM' */
   month: string;
-  /** 해당 시점의 점포 수 */
   storeCount: number;
-  /** 직전 데이터 시점 이후 새로 생긴 점포 수 (추정) */
   openCount: number;
-  /** 직전 데이터 시점 이후 사라진 점포 수 (추정) */
   closeCount: number;
-  /** 직전 데이터와의 간격(개월). 월별 데이터면 1, 분기별 데이터면 3 */
   intervalMonths: number;
+  baseMonth: string | null;
+  baseStoreCount: number | null;
+  transferIn: number;
+  transferOut: number;
+};
+
+export type TrendSource = {
+  rows: MonthlyRow[];
+  isSample: boolean;
+  matchedBusiness: string;
 };
 
 export type TrendPoint = {
@@ -35,227 +32,339 @@ export type TrendPoint = {
   storeCount: number;
   openCount: number;
   closeCount: number;
-  /** 개업률(%) = 신규 ÷ 기초 점포 수 */
   openRate: number;
-  /** 폐업률(%) = 사라진 수 ÷ 기초 점포 수 */
   closeRate: number;
-  /** 순증감 = 개업 - 폐업 */
   netChange: number;
+  baseStoreCount: number;
+  fromMonth: string;
+  toMonth: string;
+  transferIn: number;
+  transferOut: number;
+};
+
+export type TrendSummary = {
+  firstCount: number;
+  lastCount: number;
+  diff: number;
+  totalOpen: number;
+  totalClose: number;
+  openRate: number | null;
+  closeRate: number | null;
+  netChange: number;
+  reconciliationDifference: number;
+  fromMonth: string;
+  toMonth: string;
+  coverageComplete: boolean;
+  inferredBase: boolean;
+  transferIn: number;
+  transferOut: number;
 };
 
 /* ---------- 월 계산 도우미 ---------- */
 
-function toIndex(month: string): number {
+function index(month: string): number {
   const [y, m] = month.split('-').map(Number);
-  return y * 12 + (m - 1);
-}
-
-function fromIndex(index: number): string {
-  const y = Math.floor(index / 12);
-  const m = (index % 12) + 1;
-  return `${y}-${String(m).padStart(2, '0')}`;
+  return y * 12 + m - 1;
 }
 
 export function addMonths(month: string, diff: number): string {
-  return fromIndex(toIndex(month) + diff);
+  const n = index(month) + diff;
+  const y = Math.floor(n / 12);
+
+  return `${y}-${String(n - y * 12 + 1).padStart(2, '0')}`;
 }
 
 export function monthText(month: string): string {
+  if (!month) {
+    return '';
+  }
+
   const [y, m] = month.split('-');
   return `${y}년 ${Number(m)}월`;
 }
 
-/* ---------- 샘플 데이터 ---------- */
+const round1 = (n: number): number =>
+  Math.round(n * 10) / 10;
 
-function hashString(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i += 1) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+const sum = (
+  rows: MonthlyRow[],
+  key: 'openCount' | 'closeCount' | 'transferIn' | 'transferOut',
+): number => rows.reduce((n, row) => n + row[key], 0);
 
-function seededRandom(seed: number) {
-  let a = seed;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+/* ---------- 업종명 ---------- */
 
-function makeSampleRows(areaName: string, businessName: string): MonthlyRow[] {
-  const rand = seededRandom(hashString(`${areaName}|${businessName}`));
-
-  let count = 60 + Math.floor(rand() * 140);
-  const drift = (rand() - 0.45) * 0.012;
-
-  const rows: MonthlyRow[] = [];
-  const total = toIndex(SAMPLE_END) - toIndex(SAMPLE_START);
-
-  for (let i = 0; i <= total; i += 1) {
-    const openRate = Math.max(0.005, 0.02 + rand() * 0.025 + drift);
-    const closeRate = Math.max(0.005, 0.02 + rand() * 0.025 - drift);
-
-    const open = Math.round(count * openRate);
-    const close = Math.round(count * closeRate);
-
-    count = Math.max(1, count + open - close);
-
-    rows.push({
-      month: fromIndex(toIndex(SAMPLE_START) + i),
-      storeCount: count,
-      openCount: open,
-      closeCount: close,
-      intervalMonths: 1,
-    });
-  }
-
-  return rows;
-}
+/**
+ * 정확히 일치하는 공식 업종명을 우선합니다.
+ * 애매한 부분 문자열 매칭은 하지 않습니다.
+ */
+const ALIASES: Record<string, string> = {
+  '전체 업종': '전체',
+  양식: '서양식',
+  커피: '카페',
+  커피전문점: '카페',
+  '커피 전문점': '카페',
+  분식: '김밥/만두/분식',
+  제과점: '빵/도넛',
+  베이커리: '빵/도넛',
+};
 
 /* ---------- 데이터 가져오기 ---------- */
-
-export type TrendSource = {
-  rows: MonthlyRow[];
-  isSample: boolean;
-};
 
 export async function fetchMonthlyRows(
   areaName: string,
   businessName: string,
 ): Promise<TrendSource> {
-  if (USE_SAMPLE_DATA) {
-    return { rows: makeSampleRows(areaName, businessName), isSample: true };
+  const input = businessName.trim();
+
+  const candidates = [
+    ...new Set(
+      [input, ALIASES[input]].filter(
+        (s): s is string => !!s,
+      ),
+    ),
+  ];
+
+  for (const name of candidates) {
+    const { data, error } = await supabase
+      .from('store_trend_monthly')
+      .select(
+        'category_level, business_name, month, store_count, open_count, close_count, transfer_in, transfer_out, base_month, base_store_count, interval_months',
+      )
+      .eq('area_name', areaName.trim())
+      .eq('business_name', name)
+      .order('month', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data?.length) {
+      continue;
+    }
+
+    // 동일 이름이 여러 분류 단계에 있으면 가장 구체적인 분류를 사용합니다.
+    const level = ['small', 'middle', 'large', 'all'].find(
+      l => data.some(r => r.category_level === l),
+    );
+
+    const rows: MonthlyRow[] = data
+      .filter(r => r.category_level === level)
+      .map(r => ({
+        month: String(r.month),
+        storeCount: Number(r.store_count),
+        openCount:
+          r.open_count === null
+            ? Number.NaN
+            : Number(r.open_count),
+        closeCount:
+          r.close_count === null
+            ? Number.NaN
+            : Number(r.close_count),
+        transferIn:
+          r.transfer_in === null
+            ? Number.NaN
+            : Number(r.transfer_in),
+        transferOut:
+          r.transfer_out === null
+            ? Number.NaN
+            : Number(r.transfer_out),
+        baseMonth:
+          r.base_month === null
+            ? null
+            : String(r.base_month),
+        baseStoreCount:
+          r.base_store_count === null
+            ? null
+            : Number(r.base_store_count),
+        intervalMonths: Number(r.interval_months),
+      }));
+
+    return {
+      rows,
+      isSample: false,
+      matchedBusiness: name,
+    };
   }
 
-  const { data, error } = await supabase
-    .from('store_trend_monthly')
-    .select('month, store_count, open_count, close_count, interval_months')
-    .eq('area_name', areaName)
-    .eq('business_name', businessName)
-    .order('month', { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  const rows: MonthlyRow[] = (data ?? []).map((r: any) => ({
-    month: String(r.month),
-    storeCount: Number(r.store_count ?? 0),
-    openCount: Number(r.open_count ?? 0),
-    closeCount: Number(r.close_count ?? 0),
-    intervalMonths: Number(r.interval_months ?? 1) || 1,
-  }));
-
-  return { rows, isSample: false };
+  return {
+    rows: [],
+    isSample: false,
+    matchedBusiness: input,
+  };
 }
 
-/* ---------- 집계 ---------- */
+/* ---------- 집계 도우미 ---------- */
 
-/** 데이터가 가장 촘촘한 간격(개월). 1이면 월별, 3이면 분기별 데이터 */
 export function getCadence(rows: MonthlyRow[]): number {
-  if (rows.length === 0) {
-    return 1;
-  }
-  return Math.max(1, Math.min(...rows.map(r => r.intervalMonths)));
+  return rows.reduce(
+    (max, r) => Math.max(max, r.intervalMonths),
+    1,
+  );
 }
 
-export function getMonthRange(rows: MonthlyRow[]): {
+export function getMonthRange(
+  rows: MonthlyRow[],
+): {
   minMonth: string;
   maxMonth: string;
 } | null {
-  if (rows.length === 0) {
-    return null;
-  }
   const months = rows.map(r => r.month).sort();
-  return { minMonth: months[0], maxMonth: months[months.length - 1] };
+
+  return months.length
+    ? {
+        minMonth: months[0],
+        maxMonth: months[months.length - 1],
+      }
+    : null;
 }
 
-function keyOf(month: string, granularity: Granularity): string {
-  const [y, m] = month.split('-').map(Number);
-  if (granularity === 'month') {
-    return month;
-  }
-  if (granularity === 'quarter') {
-    return `${y}-Q${Math.ceil(m / 3)}`;
-  }
-  return String(y);
+export function getSnapshotMonths(
+  rows: MonthlyRow[],
+): string[] {
+  return [...new Set(rows.map(r => r.month))].sort();
 }
 
-function labelOf(key: string, granularity: Granularity): string {
-  if (granularity === 'month') {
-    const [y, m] = key.split('-');
-    return `${y.slice(2)}.${m}`;
-  }
-  if (granularity === 'quarter') {
-    const [y, q] = key.split('-Q');
-    return `${y.slice(2)}.${q}Q`;
-  }
-  return key;
-}
-
-function round1(v: number): number {
-  return Math.round(v * 10) / 10;
-}
+/* ---------- 선택 기간 전체 요약 ---------- */
 
 /**
- * 원본 데이터를 월/분기/연 단위로 묶어서 반환합니다.
- *  - 점포 수: 그 기간 마지막 시점의 점포 수
- *  - 개업/폐업 수: 기간 안의 합계
- *  - 개업률/폐업률: 기간 합계 ÷ 기간 시작 시점(기초) 점포 수 × 100
+ * 시작 스냅샷에서 끝 스냅샷까지 비교합니다.
+ * 시작 행에 기록된 이전 기간의 변화는 합산하지 않습니다.
  */
+export function summarizeTrend(
+  rows: MonthlyRow[],
+  from: string,
+  to: string,
+): TrendSummary | null {
+  const sorted = [...rows].sort(
+    (a, b) => a.month.localeCompare(b.month),
+  );
+
+  const first = sorted.find(r => r.month === from);
+  const last = sorted.find(r => r.month === to);
+
+  if (!first || !last || from >= to) {
+    return null;
+  }
+
+  const selected = sorted.filter(
+    r => r.month > from && r.month <= to,
+  );
+
+  const complete =
+    selected.length > 0 &&
+    selected.every(
+      (r, i) =>
+        r.baseMonth ===
+          (i ? selected[i - 1].month : first.month) &&
+        r.baseStoreCount ===
+          (i
+            ? selected[i - 1].storeCount
+            : first.storeCount) &&
+        [
+          r.openCount,
+          r.closeCount,
+          r.transferIn,
+          r.transferOut,
+        ].every(Number.isFinite),
+    );
+
+  const totalOpen = sum(selected, 'openCount');
+  const totalClose = sum(selected, 'closeCount');
+  const transferIn = sum(selected, 'transferIn');
+  const transferOut = sum(selected, 'transferOut');
+
+  const diff = last.storeCount - first.storeCount;
+  const netChange = totalOpen - totalClose;
+
+  return {
+    firstCount: first.storeCount,
+    lastCount: last.storeCount,
+    diff,
+    totalOpen,
+    totalClose,
+    openRate:
+      complete && first.storeCount > 0
+        ? round1((totalOpen / first.storeCount) * 100)
+        : null,
+    closeRate:
+      complete && first.storeCount > 0
+        ? round1((totalClose / first.storeCount) * 100)
+        : null,
+    netChange,
+    transferIn,
+    transferOut,
+    reconciliationDifference:
+      diff - netChange - transferIn + transferOut,
+    fromMonth: from,
+    toMonth: to,
+    coverageComplete: complete,
+    inferredBase: false,
+  };
+}
+
+/* ---------- 그래프용 집계 ---------- */
+
 export function aggregateTrend(
   rows: MonthlyRow[],
   granularity: Granularity,
-  fromMonth: string,
-  toMonth: string,
+  from: string,
+  to: string,
 ): TrendPoint[] {
-  const sorted = [...rows].sort((a, b) => a.month.localeCompare(b.month));
+  const sorted = [...rows].sort(
+    (a, b) => a.month.localeCompare(b.month),
+  );
 
-  const groups = new Map<string, { rows: MonthlyRow[]; base: number }>();
+  const selected = sorted.filter(
+    r => r.month >= from && r.month <= to,
+  );
 
-  sorted.forEach((row, index) => {
-    if (row.month < fromMonth || row.month > toMonth) {
-      return;
-    }
+  const groups = new Map<string, MonthlyRow[]>();
 
-    const key = keyOf(row.month, granularity);
-    let group = groups.get(key);
+  for (const row of selected) {
+    // 간격이 다른 원본을 분기로 강제 집계하지 않습니다.
+    // 연도별 또는 기준 시점별로 표시합니다.
+    const key =
+      granularity === 'year'
+        ? row.month.slice(0, 4)
+        : row.month;
 
-    if (!group) {
-      const prev = index > 0 ? sorted[index - 1] : null;
-      const base = prev
-        ? prev.storeCount
-        : Math.max(0, row.storeCount - row.openCount + row.closeCount);
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
 
-      group = { rows: [], base };
-      groups.set(key, group);
-    }
+  return [...groups.entries()].map(([key, group]) => {
+    const last = group[group.length - 1];
+    const flows = group.filter(r => r.month > from);
 
-    group.rows.push(row);
-  });
+    const start = flows[0]?.baseMonth ?? last.month;
 
-  const points: TrendPoint[] = [];
+    const summary = flows.length
+      ? summarizeTrend(sorted, start, last.month)
+      : null;
 
-  groups.forEach((group, key) => {
-    const open = group.rows.reduce((sum, r) => sum + r.openCount, 0);
-    const close = group.rows.reduce((sum, r) => sum + r.closeCount, 0);
-    const last = group.rows[group.rows.length - 1];
+    const valid = summary?.coverageComplete;
 
-    points.push({
+    return {
       key,
-      label: labelOf(key, granularity),
+      label:
+        granularity === 'year'
+          ? key
+          : `${key.slice(2, 4)}.${key.slice(5)}`,
       storeCount: last.storeCount,
-      openCount: open,
-      closeCount: close,
-      openRate: group.base > 0 ? round1((open / group.base) * 100) : 0,
-      closeRate: group.base > 0 ? round1((close / group.base) * 100) : 0,
-      netChange: open - close,
-    });
+      openCount:
+        valid ? summary.totalOpen : Number.NaN,
+      closeCount:
+        valid ? summary.totalClose : Number.NaN,
+      openRate: summary?.openRate ?? Number.NaN,
+      closeRate: summary?.closeRate ?? Number.NaN,
+      netChange: summary?.netChange ?? Number.NaN,
+      baseStoreCount:
+        summary?.firstCount ?? last.storeCount,
+      fromMonth: start,
+      toMonth: last.month,
+      transferIn:
+        valid ? summary.transferIn : Number.NaN,
+      transferOut:
+        valid ? summary.transferOut : Number.NaN,
+    };
   });
-
-  return points;
 }
