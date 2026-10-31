@@ -13,7 +13,9 @@ import { sejongAreas } from '@/constants/sejongAreas';
 import type { AIExplanation } from '@/services/aiExplanation';
 
 import { generateAIExplanation } from '@/services/aiExplanation';
+
 import { sendChatMessage } from '@/services/chatbot';
+
 import { parseChecklistContent, saveChecklist } from '@/services/checklistStorage';
 
 import {
@@ -23,6 +25,7 @@ import {
 
   toggleAnalysisFavorite,
 } from '@/services/analysisHistory';
+
 import {
   exportAnalysisReportPdf,
 } from '@/services/pdfExport';
@@ -32,8 +35,11 @@ import {
 
   sharePublicAnalysisLink,
 } from '@/services/shareAnalysis';
+
 import type { NearbyStore } from '@/services/storeApi';
+
 import { getStoreList } from '@/services/storeApi';
+
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useEffect, useState } from 'react';
@@ -453,6 +459,7 @@ export default function RegionResultDetailScreen() {
    */
 
   const [pdfAction, setPdfAction] = useState<'save' | 'share' | null>(null);
+
   const [checklistCreating, setChecklistCreating] = useState(false);
 
   /**
@@ -920,75 +927,115 @@ export default function RegionResultDetailScreen() {
   });
 
   const handleSavePdf = async () => {
-
     if (pdfAction) return;
 
-    try {
+    if (aiLoading) {
+      const message = 'AI 분석이 완료된 후 PDF로 저장해주세요.';
 
-      setPdfAction('save');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(message);
+      } else {
+        Alert.alert('AI 분석 중', message);
+      }
 
-      await exportAnalysisReportPdf(getPdfReportData());
-
-    } catch (error) {
-
-      console.error('PDF 저장 실패:', error);
-
-      Alert.alert(
-
-        'PDF 저장 실패',
-
-        error instanceof Error ? error.message : 'PDF를 생성하지 못했습니다.',
-
-      );
-
-    } finally {
-
-      setPdfAction(null);
-
+      return;
     }
 
+    if (!explanation) {
+      const message =
+        aiError || 'AI 분석 결과가 없습니다. 분석을 다시 불러온 후 저장해주세요.';
+
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(message);
+      } else {
+        Alert.alert('AI 분석 확인', message);
+      }
+
+      return;
+    }
+
+    try {
+      setPdfAction('save');
+      await exportAnalysisReportPdf(getPdfReportData());
+    } catch (error) {
+      console.error('PDF 저장 실패:', error);
+      Alert.alert(
+        'PDF 저장 실패',
+        error instanceof Error ? error.message : 'PDF를 생성하지 못했습니다.',
+      );
+    } finally {
+      setPdfAction(null);
+    }
   };
 
   const handleSharePdf = async () => {
+
     if (pdfAction) return;
 
     try {
+
       setPdfAction('share');
 
       const { url } = await createSharedAnalysis(getPdfReportData());
+
       const result = await sharePublicAnalysisLink(
+
         url,
+
         `${areaName} ${businessName} 상권 분석`,
+
         `${areaName} ${businessName} 분석 결과를 확인해보세요.`,
+
       );
 
       if (result === 'copied') {
+
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
+
           window.alert('공유 링크가 복사되었습니다.');
+
         } else {
+
           Alert.alert('링크 복사 완료', '공유 링크가 복사되었습니다.');
+
         }
+
       }
 
       if (result === 'unsupported') {
+
         Alert.alert('공유 불가', '현재 환경에서는 공유 기능을 지원하지 않습니다.');
+
       }
+
     } catch (error) {
+
       console.error('[공유하기] 오류:', error);
 
       const message =
+
         error instanceof Error
+
           ? error.message
+
           : '분석 결과를 공유하지 못했습니다.';
 
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
+
         window.alert(`공유 실패: ${message}`);
+
       } else {
+
         Alert.alert('공유 실패', message);
+
       }
+
     } finally {
+
       setPdfAction(null);
+
     }
+
   };
 
   const handleCreateChecklist =
@@ -1039,35 +1086,35 @@ export default function RegionResultDetailScreen() {
 
 ## ${areaName} ${businessName} 창업 체크리스트
 
-\- [ ] 입지·상권
+- [ ] 입지·상권
 
   - 실제로 확인해야 할 구체적인 항목
 
   - 실제로 확인해야 할 구체적인 항목
 
-\- [ ] 인허가·행정
+- [ ] 인허가·행정
 
   - 실제로 확인해야 할 구체적인 항목
 
-\- [ ] 시설·설비
+- [ ] 시설·설비
 
   - 실제로 확인해야 할 구체적인 항목
 
-\- [ ] 운영·자금
+- [ ] 운영·자금
 
   - 실제로 확인해야 할 구체적인 항목
 
 조건:
 
-1\. 현재 분석 결과의 지역과 업종에 맞게 작성해줘.
+1. 현재 분석 결과의 지역과 업종에 맞게 작성해줘.
 
-2\. 실제 창업 준비 과정에서 바로 체크할 수 있는 행동 단위로 작성해줘.
+2. 실제 창업 준비 과정에서 바로 체크할 수 있는 행동 단위로 작성해줘.
 
-3\. 입지·상권, 인허가·행정, 시설·설비, 운영·자금을 빠뜨리지 마.
+3. 입지·상권, 인허가·행정, 시설·설비, 운영·자금을 빠뜨리지 마.
 
-4\. 제공된 분석 데이터에서 확인할 수 없는 사실은 지어내지 마.
+4. 제공된 분석 데이터에서 확인할 수 없는 사실은 지어내지 마.
 
-5\. 설명 문단은 쓰지 말고 체크리스트만 출력해줘.
+5. 설명 문단은 쓰지 말고 체크리스트만 출력해줘.
 
         `.trim();
 
@@ -1796,8 +1843,11 @@ export default function RegionResultDetailScreen() {
             disabled={pdfAction !== null}
 
             onPress={() => {
+
               console.log('[모바일 공유] 버튼 클릭됨');
+
               void handleSharePdf();
+
             }}
 
           >
@@ -2904,9 +2954,10 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
 
-
     borderRadius: 16,
+
     backgroundColor: '#FFFFFF',
+
     borderColor: '#D9DEE8',
 
   },
@@ -2950,16 +3001,25 @@ const styles = StyleSheet.create({
   },
 
   checklistCreateTitle: {
+
     marginBottom: 3,
+
     fontSize: 14,
+
     fontWeight: '900',
+
     color: '#202544',
+
   },
 
   checklistCreateDescription: {
+
     fontSize: 11,
+
     lineHeight: 16,
+
     color: '#7C8798',
+
   },
 
   checklistCreateArrow: {
