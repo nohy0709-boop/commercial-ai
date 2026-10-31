@@ -9,15 +9,12 @@ import { useRouter } from 'expo-router';
 
 import {
   useEffect,
-  useRef,
   useState,
 } from 'react';
 
 import {
   ActivityIndicator,
   Alert,
-  PanResponder,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,110 +31,15 @@ const STARTUP_STAGES = [
   '창업 준비 중',
 ];
 
-/**
- * 관심 업종: 큰 카테고리 -> 세부 업종.
- * 저장은 기존과 똑같이 interested_businesses(문자열 배열)에
- * 세부 업종 이름만 담는다. (DB 변경 없음)
- */
-const BUSINESS_CATEGORIES = [
-  {
-    name: '음식점',
-    items: [
-      '한식',
-      '중식',
-      '일식',
-      '양식',
-      '분식',
-      '치킨',
-      '피자',
-      '고기·구이',
-      '국밥·찌개',
-      '패스트푸드',
-    ],
-  },
-  {
-    name: '카페·디저트',
-    items: [
-      '카페',
-      '베이커리',
-      '디저트',
-      '아이스크림',
-      '주스·차',
-    ],
-  },
-  {
-    name: '주점',
-    items: [
-      '호프·맥주',
-      '이자카야',
-      '포차',
-      '와인바',
-    ],
-  },
-  {
-    name: '소매·편의',
-    items: [
-      '편의점',
-      '슈퍼마켓',
-      '식료품',
-      '꽃집',
-      '문구·잡화',
-    ],
-  },
-  {
-    name: '패션·뷰티',
-    items: [
-      '의류',
-      '신발·가방',
-      '미용실',
-      '네일·피부관리',
-    ],
-  },
-  {
-    name: '생활서비스',
-    items: [
-      '세탁소',
-      '반려동물',
-      '인테리어',
-      '수리',
-    ],
-  },
-  {
-    name: '교육·학원',
-    items: [
-      '입시학원',
-      '어학원',
-      '예체능',
-      '스터디카페',
-    ],
-  },
-  {
-    name: '건강·여가',
-    items: [
-      '헬스장',
-      '필라테스·요가',
-      '노래방',
-      'PC방',
-      '오락',
-    ],
-  },
-];
-
-const ETC_CATEGORY = '기타';
-
-const PRESET_BUSINESSES = BUSINESS_CATEGORIES.flatMap(
-  category => category.items,
-);
-
-const CUSTOMER_QUICK_OPTIONS = [
-  '10대',
-  '20대',
-  '30대',
-  '40대 이상',
-  '학생',
-  '직장인',
-  '가족 단위',
-  '어르신',
+const BUSINESS_TYPES = [
+  '카페',
+  '한식',
+  '분식',
+  '베이커리',
+  '편의점',
+  '미용실',
+  '의류',
+  '기타',
 ];
 
 const BUDGET_OPTIONS = [
@@ -163,58 +65,6 @@ const BUDGET_OPTIONS = [
   },
 ];
 
-/**
- * 알림 도우미.
- * react-native 의 Alert.alert 는 웹에서 아무것도 하지 않으므로
- * 웹에서는 window.alert 를 쓴다.
- */
-function notify(
-  title: string,
-  message?: string,
-) {
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined') {
-      window.alert(
-        message
-          ? `${title}\n${message}`
-          : title,
-      );
-    }
-
-    return;
-  }
-
-  Alert.alert(title, message);
-}
-
-/**
- * 예산 직접 입력.
- * selectedBudget === CUSTOM_BUDGET 이면 직접 입력 모드.
- * 저장 시 budgetMin = budgetMax = 입력 금액(원) 으로 저장한다.
- */
-const CUSTOM_BUDGET = -1;
-
-/** 직접 입력 가능한 최대 금액 (만원 단위, 100억원) */
-const MAX_CUSTOM_BUDGET_MANWON = 1000000;
-
-/** 만원 단위 숫자 -> "1억 2,000만원" 형태 문자열 */
-function formatBudget(manwon: number) {
-  const eok = Math.floor(manwon / 10000);
-  const rest = manwon % 10000;
-
-  const parts: string[] = [];
-
-  if (eok > 0) {
-    parts.push(`${eok.toLocaleString()}억`);
-  }
-
-  if (rest > 0) {
-    parts.push(`${rest.toLocaleString()}만`);
-  }
-
-  return `${parts.join(' ')}원`;
-}
-
 const AREA_OPTIONS = [
   '한솔동',
   '새롬동',
@@ -235,10 +85,6 @@ const AREA_OPTIONS = [
 const STARTUP_TYPES = [
   '개인 창업',
   '프랜차이즈',
-  '공동 창업(동업)',
-  '기존 점포 인수',
-  '무인·셀프 점포',
-  '온라인·배달 전문',
   '아직 미정',
 ];
 
@@ -249,236 +95,6 @@ const PRIORITY_OPTIONS = [
   '접근성',
   '생활인구',
 ];
-
-/**
- * 예산 슬라이더 (외부 라이브러리 없이 구현).
- * 500만원 ~ 1억원: 500만원 단위
- * 1억원 ~ 10억원: 5,000만원 단위
- * 막대를 누르거나 끌면 값이 바뀐다.
- */
-const BUDGET_STEPS: number[] = (() => {
-  const steps: number[] = [];
-
-  for (
-    let value = 500;
-    value <= 10000;
-    value += 500
-  ) {
-    steps.push(value);
-  }
-
-  for (
-    let value = 15000;
-    value <= 100000;
-    value += 5000
-  ) {
-    steps.push(value);
-  }
-
-  return steps;
-})();
-
-const THUMB_SIZE = 26;
-
-function nearestStepIndex(
-  manwon: number,
-) {
-  let best = 0;
-
-  for (
-    let i = 1;
-    i < BUDGET_STEPS.length;
-    i += 1
-  ) {
-    if (
-      Math.abs(
-        BUDGET_STEPS[i] - manwon,
-      ) <
-      Math.abs(
-        BUDGET_STEPS[best] -
-          manwon,
-      )
-    ) {
-      best = i;
-    }
-  }
-
-  return best;
-}
-
-function BudgetSlider({
-  valueManwon,
-  onChange,
-}: {
-  valueManwon: number;
-  onChange: (manwon: number) => void;
-}) {
-  const [width, setWidth] =
-    useState(0);
-
-  const widthRef = useRef(0);
-  const startRatio = useRef(0);
-  const onChangeRef =
-    useRef(onChange);
-
-  onChangeRef.current = onChange;
-
-  const lastIndex =
-    BUDGET_STEPS.length - 1;
-
-  const index =
-    valueManwon > 0
-      ? nearestStepIndex(
-          valueManwon,
-        )
-      : 0;
-
-  const ratio = index / lastIndex;
-
-  const update = (
-    nextRatio: number,
-  ) => {
-    const clamped = Math.min(
-      1,
-      Math.max(0, nextRatio),
-    );
-
-    onChangeRef.current(
-      BUDGET_STEPS[
-        Math.round(
-          clamped * lastIndex,
-        )
-      ],
-    );
-  };
-
-  const responder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder:
-        () => true,
-      onMoveShouldSetPanResponder:
-        () => true,
-      onPanResponderTerminationRequest:
-        () => false,
-      onPanResponderGrant:
-        evt => {
-          const w =
-            widthRef.current;
-
-          if (!w) {
-            return;
-          }
-
-          const next =
-            evt.nativeEvent
-              .locationX / w;
-
-          startRatio.current =
-            Math.min(
-              1,
-              Math.max(0, next),
-            );
-
-          update(next);
-        },
-      onPanResponderMove: (
-        _,
-        gesture,
-      ) => {
-        const w =
-          widthRef.current;
-
-        if (!w) {
-          return;
-        }
-
-        update(
-          startRatio.current +
-            gesture.dx / w,
-        );
-      },
-    }),
-  ).current;
-
-  return (
-    <View>
-      <View
-        style={
-          styles.sliderTouch
-        }
-        onLayout={event => {
-          const w =
-            event.nativeEvent
-              .layout.width;
-
-          widthRef.current = w;
-          setWidth(w);
-        }}
-        {...responder.panHandlers}
-      >
-        <View
-          pointerEvents="none"
-          style={
-            styles.sliderTrack
-          }
-        />
-
-        <View
-          pointerEvents="none"
-          style={[
-            styles.sliderFill,
-            {
-              width:
-                ratio * width,
-            },
-          ]}
-        />
-
-        <View
-          pointerEvents="none"
-          style={[
-            styles.sliderThumb,
-            {
-              left:
-                ratio * width -
-                THUMB_SIZE / 2,
-            },
-          ]}
-        />
-      </View>
-
-      <View
-        style={
-          styles.sliderLabels
-        }
-      >
-        <Text
-          style={
-            styles.sliderLabel
-          }
-        >
-          500만원
-        </Text>
-
-        <Text
-          style={
-            styles.sliderLabel
-          }
-        >
-          1억원
-        </Text>
-
-        <Text
-          style={
-            styles.sliderLabel
-          }
-        >
-          10억원
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 export default function NeedsSetupScreen() {
   const router = useRouter();
@@ -497,11 +113,6 @@ export default function NeedsSetupScreen() {
     selectedBudget,
     setSelectedBudget,
   ] = useState<number | null>(null);
-
-  const [
-    customBudgetInput,
-    setCustomBudgetInput,
-  ] = useState('');
 
   const [
     preferredAreas,
@@ -532,21 +143,6 @@ export default function NeedsSetupScreen() {
     locationAddress,
     setLocationAddress,
   ] = useState('');
-
-  const [
-    openCategory,
-    setOpenCategory,
-  ] = useState<string | null>(null);
-
-  const [
-    customBusinessInput,
-    setCustomBusinessInput,
-  ] = useState('');
-
-  const [
-    isEditing,
-    setIsEditing,
-  ] = useState(false);
 
   const [
     loading,
@@ -580,11 +176,6 @@ export default function NeedsSetupScreen() {
           return;
         }
 
-        setIsEditing(
-          profile.setup_completed ===
-            true,
-        );
-
         setStartupStage(
           profile.startup_stage ?? '',
         );
@@ -593,11 +184,7 @@ export default function NeedsSetupScreen() {
           Array.isArray(
             profile.interested_businesses,
           )
-            ? profile.interested_businesses.filter(
-                (item: string) =>
-                  item !==
-                  ETC_CATEGORY,
-              )
+            ? profile.interested_businesses
             : [],
         );
 
@@ -651,24 +238,6 @@ export default function NeedsSetupScreen() {
           setSelectedBudget(
             budgetIndex,
           );
-        } else if (
-          typeof profile.budget_min ===
-            'number' &&
-          profile.budget_min > 0
-        ) {
-          // 프리셋과 일치하지 않으면 직접 입력한 예산으로 본다.
-          setSelectedBudget(
-            CUSTOM_BUDGET,
-          );
-
-          setCustomBudgetInput(
-            String(
-              Math.round(
-                profile.budget_min /
-                  10000,
-              ),
-            ),
-          );
         }
       } catch (error) {
         console.error(
@@ -706,53 +275,6 @@ export default function NeedsSetupScreen() {
     );
   };
 
-  /**
-   * 기타 -> 직접 입력한 업종을 관심 업종에 추가한다.
-   * 프리셋에 없는 이름은 "직접 입력한 업종"으로 취급된다.
-   */
-  const addCustomBusiness = () => {
-    const value =
-      customBusinessInput.trim();
-
-    if (!value) {
-      return;
-    }
-
-    setInterestedBusinesses(
-      prev =>
-        prev.includes(value)
-          ? prev
-          : [
-              ...prev,
-              value,
-            ],
-    );
-
-    setCustomBusinessInput('');
-  };
-
-  const toggleCustomerQuick = (
-    option: string,
-  ) => {
-    const parts = targetCustomer
-      .split(',')
-      .map(item => item.trim())
-      .filter(Boolean);
-
-    setTargetCustomer(
-      parts.includes(option)
-        ? parts
-            .filter(
-              item =>
-                item !== option,
-            )
-            .join(', ')
-        : [...parts, option].join(
-            ', ',
-          ),
-    );
-  };
-
   const toggleArea = (
     area: string,
   ) => {
@@ -784,7 +306,7 @@ export default function NeedsSetupScreen() {
       }
 
       if (prev.length >= 3) {
-        notify(
+        Alert.alert(
           '확인',
           '중요 기준은 최대 3개까지 선택할 수 있어요.',
         );
@@ -799,13 +321,9 @@ export default function NeedsSetupScreen() {
     });
   };
 
-  const customBudgetManwon =
-    Number(customBudgetInput) ||
-    0;
-
   const validateForm = () => {
     if (!startupStage) {
-      notify(
+      Alert.alert(
         '확인',
         '현재 창업 준비 단계를 선택해주세요.',
       );
@@ -816,7 +334,7 @@ export default function NeedsSetupScreen() {
       interestedBusinesses.length ===
       0
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '관심 업종을 하나 이상 선택해주세요.',
       );
@@ -826,7 +344,7 @@ export default function NeedsSetupScreen() {
     if (
       selectedBudget === null
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '창업 예산을 선택해주세요.',
       );
@@ -834,25 +352,9 @@ export default function NeedsSetupScreen() {
     }
 
     if (
-      selectedBudget ===
-        CUSTOM_BUDGET &&
-      !(
-        customBudgetManwon > 0 &&
-        customBudgetManwon <=
-          MAX_CUSTOM_BUDGET_MANWON
-      )
-    ) {
-      notify(
-        '확인',
-        '직접 입력한 예산을 만원 단위 숫자로 입력해주세요.',
-      );
-      return false;
-    }
-
-    if (
       preferredAreas.length === 0
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '관심 지역을 하나 이상 선택해주세요.',
       );
@@ -860,7 +362,7 @@ export default function NeedsSetupScreen() {
     }
 
     if (!startupType) {
-      notify(
+      Alert.alert(
         '확인',
         '창업 형태를 선택해주세요.',
       );
@@ -870,7 +372,7 @@ export default function NeedsSetupScreen() {
     if (
       priorities.length === 0
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '중요하게 보는 기준을 하나 이상 선택해주세요.',
       );
@@ -880,7 +382,7 @@ export default function NeedsSetupScreen() {
     if (
       !targetCustomer.trim()
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '주요 고객층을 입력해주세요.',
       );
@@ -890,7 +392,7 @@ export default function NeedsSetupScreen() {
     if (
       hasLocation === null
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '현재 보유한 점포나 장소가 있는지 선택해주세요.',
       );
@@ -901,7 +403,7 @@ export default function NeedsSetupScreen() {
       hasLocation &&
       !locationAddress.trim()
     ) {
-      notify(
+      Alert.alert(
         '확인',
         '보유한 점포 또는 장소의 주소를 입력해주세요.',
       );
@@ -917,19 +419,9 @@ export default function NeedsSetupScreen() {
     }
 
     const budget =
-      selectedBudget ===
-      CUSTOM_BUDGET
-        ? {
-            min:
-              customBudgetManwon *
-              10000,
-            max:
-              customBudgetManwon *
-              10000,
-          }
-        : BUDGET_OPTIONS[
-            selectedBudget!
-          ];
+      BUDGET_OPTIONS[
+        selectedBudget!
+      ];
 
     try {
       setLoading(true);
@@ -965,52 +457,24 @@ export default function NeedsSetupScreen() {
           targetCustomer.trim(),
       });
 
-      /**
-       * 저장 후 이동.
-       * - 이미 설정을 마친 사용자가 MY에서 수정하러 들어온 경우: 이전 화면(MY)으로 돌아간다.
-       * - 처음 입력한 경우: 홈으로 이동한다.
-       *
-       * 웹에서는 Alert.alert가 동작하지 않기 때문에
-       * 알림 버튼에 이동을 걸어두면 화면이 넘어가지 않는다.
-       * 그래서 알림과 상관없이 이동을 직접 호출한다.
-       */
-      const goNext = () => {
-        if (
-          isEditing &&
-          router.canGoBack()
-        ) {
-          router.back();
-        } else {
-          router.replace('/');
-        }
-      };
-
-      if (Platform.OS === 'web') {
-        notify(
-          '설정 완료',
-          '나의 창업 정보가 저장되었습니다.',
-        );
-
-        goNext();
-      } else {
-        Alert.alert(
-          '설정 완료',
-          '나의 창업 정보가 저장되었습니다.',
-          [
-            {
-              text: '확인',
-              onPress: goNext,
-            },
-          ],
-        );
-      }
+      Alert.alert(
+        '설정 완료',
+        '나의 창업 정보가 저장되었습니다.',
+        [
+          {
+            text: '확인',
+            onPress: () =>
+              router.replace('/'),
+          },
+        ],
+      );
     } catch (error: any) {
       console.error(
         '창업 정보 저장 실패:',
         error,
       );
 
-      notify(
+      Alert.alert(
         '저장 실패',
         error?.message ??
           '창업 정보를 저장하지 못했습니다.',
@@ -1168,7 +632,7 @@ export default function NeedsSetupScreen() {
             styles.sectionDescription
           }
         >
-          카테고리를 누르면 세부 업종을 고를 수 있어요. 여러 개 선택할 수 있어요.
+          여러 업종을 선택할 수 있어요.
         </Text>
 
         <View
@@ -1176,243 +640,41 @@ export default function NeedsSetupScreen() {
             styles.optionWrap
           }
         >
-          {[
-            ...BUSINESS_CATEGORIES.map(
-              category =>
-                category.name,
-            ),
-            ETC_CATEGORY,
-          ].map(name => {
-            const opened =
-              openCategory ===
-              name;
+          {BUSINESS_TYPES.map(
+            item => {
+              const selected =
+                interestedBusinesses.includes(
+                  item,
+                );
 
-            const count =
-              name ===
-              ETC_CATEGORY
-                ? interestedBusinesses.filter(
-                    item =>
-                      !PRESET_BUSINESSES.includes(
-                        item,
-                      ),
-                  ).length
-                : BUSINESS_CATEGORIES.find(
-                    category =>
-                      category.name ===
-                      name,
-                  )?.items.filter(
-                    item =>
-                      interestedBusinesses.includes(
-                        item,
-                      ),
-                  ).length ?? 0;
-
-            return (
-              <TouchableOpacity
-                key={name}
-                style={[
-                  styles.option,
-                  styles.categoryOption,
-                  opened &&
-                    styles.optionSelected,
-                ]}
-                onPress={() =>
-                  setOpenCategory(
-                    opened
-                      ? null
-                      : name,
-                  )
-                }
-              >
-                <Text
+              return (
+                <TouchableOpacity
+                  key={item}
                   style={[
-                    styles.optionText,
-                    opened &&
-                      styles.optionTextSelected,
+                    styles.option,
+                    selected &&
+                      styles.optionSelected,
                   ]}
-                >
-                  {name}
-                </Text>
-
-                {count > 0 && (
-                  <View
-                    style={
-                      styles.countBadge
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.countBadgeText
-                      }
-                    >
-                      {count}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {openCategory !==
-          null &&
-          openCategory !==
-            ETC_CATEGORY && (
-            <View
-              style={
-                styles.subPanel
-              }
-            >
-              <View
-                style={
-                  styles.subOptionWrap
-                }
-              >
-                {BUSINESS_CATEGORIES.find(
-                  category =>
-                    category.name ===
-                    openCategory,
-                )?.items.map(
-                  item => {
-                    const selected =
-                      interestedBusinesses.includes(
-                        item,
-                      );
-
-                    return (
-                      <TouchableOpacity
-                        key={item}
-                        style={[
-                          styles.option,
-                          selected &&
-                            styles.optionSelected,
-                        ]}
-                        onPress={() =>
-                          toggleBusiness(
-                            item,
-                          )
-                        }
-                      >
-                        <Text
-                          style={[
-                            styles.optionText,
-                            selected &&
-                              styles.optionTextSelected,
-                          ]}
-                        >
-                          {item}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  },
-                )}
-              </View>
-            </View>
-          )}
-
-        {openCategory ===
-          ETC_CATEGORY && (
-          <View
-            style={
-              styles.subPanel
-            }
-          >
-            <View
-              style={
-                styles.addRow
-              }
-            >
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.addInput,
-                ]}
-                value={
-                  customBusinessInput
-                }
-                onChangeText={
-                  setCustomBusinessInput
-                }
-                placeholder="원하는 업종을 직접 입력하세요 (예: 방탈출, 세탁소)"
-                placeholderTextColor="#A0A0A0"
-                returnKeyType="done"
-                onSubmitEditing={
-                  addCustomBusiness
-                }
-              />
-
-              <TouchableOpacity
-                style={
-                  styles.addButton
-                }
-                onPress={
-                  addCustomBusiness
-                }
-              >
-                <Text
-                  style={
-                    styles.addButtonText
+                  onPress={() =>
+                    toggleBusiness(
+                      item,
+                    )
                   }
                 >
-                  추가
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {interestedBusinesses.length >
-          0 && (
-          <View
-            style={
-              styles.selectedSummary
-            }
-          >
-            <Text
-              style={
-                styles.selectedSummaryLabel
-              }
-            >
-              선택한 업종{' '}
-              {
-                interestedBusinesses.length
-              }
-              개 (누르면 해제)
-            </Text>
-
-            <View
-              style={
-                styles.subOptionWrap
-              }
-            >
-              {interestedBusinesses.map(
-                item => (
-                  <TouchableOpacity
-                    key={item}
+                  <Text
                     style={[
-                      styles.option,
-                      styles.optionSelected,
-                    ]}
-                    onPress={() =>
-                      toggleBusiness(
-                        item,
-                      )
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
+                      styles.optionText,
+                      selected &&
                         styles.optionTextSelected,
-                      ]}
-                    >
-                      {item}  ✕
-                    </Text>
-                  </TouchableOpacity>
-                ),
-              )}
-            </View>
-          </View>
-        )}
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              );
+            },
+          )}
+        </View>
       </View>
 
       <View
@@ -1481,136 +743,7 @@ export default function NeedsSetupScreen() {
               );
             },
           )}
-          <TouchableOpacity
-            style={[
-              styles.option,
-              selectedBudget ===
-                CUSTOM_BUDGET &&
-                styles.optionSelected,
-            ]}
-            onPress={() => {
-              setSelectedBudget(
-                CUSTOM_BUDGET,
-              );
-
-              if (
-                !customBudgetInput
-              ) {
-                setCustomBudgetInput(
-                  '3000',
-                );
-              }
-            }}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                selectedBudget ===
-                  CUSTOM_BUDGET &&
-                  styles.optionTextSelected,
-              ]}
-            >
-              직접 입력
-            </Text>
-          </TouchableOpacity>
         </View>
-
-        {selectedBudget ===
-          CUSTOM_BUDGET && (
-          <View
-            style={
-              styles.subPanel
-            }
-          >
-            <Text
-              style={
-                styles.budgetValue
-              }
-            >
-              {customBudgetManwon >
-              0
-                ? formatBudget(
-                    Math.min(
-                      customBudgetManwon,
-                      MAX_CUSTOM_BUDGET_MANWON,
-                    ),
-                  )
-                : '예산을 정해주세요'}
-            </Text>
-
-            <BudgetSlider
-              valueManwon={
-                customBudgetManwon
-              }
-              onChange={manwon =>
-                setCustomBudgetInput(
-                  String(manwon),
-                )
-              }
-            />
-
-            <Text
-              style={
-                styles.budgetHint
-              }
-            >
-              막대를 움직이거나, 정확한 금액은 아래에 직접 입력하세요.
-            </Text>
-
-            <View
-              style={[
-                styles.addRow,
-                styles.budgetInputRow,
-              ]}
-            >
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.addInput,
-                ]}
-                value={
-                  customBudgetInput
-                }
-                onChangeText={text =>
-                  setCustomBudgetInput(
-                    text.replace(
-                      /[^0-9]/g,
-                      '',
-                    ),
-                  )
-                }
-                placeholder="예산을 숫자로 입력하세요 (예: 15000)"
-                placeholderTextColor="#A0A0A0"
-                keyboardType="number-pad"
-                maxLength={7}
-              />
-
-              <Text
-                style={
-                  styles.unitText
-                }
-              >
-                만원
-              </Text>
-            </View>
-
-            <Text
-              style={
-                styles.budgetPreview
-              }
-            >
-              {customBudgetManwon >
-              0
-                ? customBudgetManwon >
-                  MAX_CUSTOM_BUDGET_MANWON
-                  ? '입력할 수 있는 최대 금액은 100억원이에요.'
-                  : `= ${formatBudget(
-                      customBudgetManwon,
-                    )}`
-                : '만원 단위로 입력해주세요. 1억원 = 10000'}
-            </Text>
-          </View>
-        )}
       </View>
 
       <View
@@ -1831,53 +964,9 @@ export default function NeedsSetupScreen() {
           onChangeText={
             setTargetCustomer
           }
-          placeholder="예: 10~20대 학생, 20~30대 직장인, 가족 단위 손님"
+          placeholder="예: 20~30대 직장인"
           placeholderTextColor="#A0A0A0"
         />
-
-        <View
-          style={
-            styles.optionWrap
-          }
-        >
-          {CUSTOMER_QUICK_OPTIONS.map(
-            item => {
-              const selected =
-                targetCustomer
-                  .split(',')
-                  .map(part =>
-                    part.trim(),
-                  )
-                  .includes(item);
-
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.option,
-                    selected &&
-                      styles.optionSelected,
-                  ]}
-                  onPress={() =>
-                    toggleCustomerQuick(
-                      item,
-                    )
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      selected &&
-                        styles.optionTextSelected,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            },
-          )}
-        </View>
       </View>
 
       <View
@@ -2127,171 +1216,6 @@ const styles =
       color:
         COLORS.primary,
       fontWeight: '900',
-    },
-
-    categoryOption: {
-      flexDirection: 'row',
-    },
-
-    countBadge: {
-      marginLeft: 6,
-      minWidth: 18,
-      height: 18,
-      borderRadius: 9,
-      paddingHorizontal: 5,
-      backgroundColor:
-        COLORS.primary,
-      alignItems: 'center',
-      justifyContent:
-        'center',
-    },
-
-    countBadgeText: {
-      color: '#FFFFFF',
-      fontSize: 11,
-      fontWeight: '900',
-    },
-
-    subPanel: {
-      marginTop: 12,
-      padding: 12,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      backgroundColor:
-        '#FFFFFF',
-    },
-
-    subOptionWrap: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 9,
-    },
-
-    addRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-
-    addInput: {
-      flex: 1,
-      marginTop: 0,
-    },
-
-    addButton: {
-      minHeight: 52,
-      paddingHorizontal: 18,
-      borderRadius: 13,
-      alignItems: 'center',
-      justifyContent:
-        'center',
-      backgroundColor:
-        COLORS.text,
-    },
-
-    addButtonText: {
-      color: '#FFFFFF',
-      fontSize: 13,
-      fontWeight: '900',
-    },
-
-    budgetValue: {
-      fontSize: 22,
-      fontWeight: '900',
-      color:
-        COLORS.primary,
-      marginBottom: 6,
-    },
-
-    budgetHint: {
-      marginTop: 6,
-      fontSize: 11,
-      color:
-        COLORS.textSecondary,
-    },
-
-    budgetInputRow: {
-      marginTop: 12,
-    },
-
-    sliderTouch: {
-      height: 44,
-      justifyContent: 'center',
-    },
-
-    sliderTrack: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 18,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor:
-        COLORS.border,
-    },
-
-    sliderFill: {
-      position: 'absolute',
-      left: 0,
-      top: 18,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor:
-        COLORS.primary,
-    },
-
-    sliderThumb: {
-      position: 'absolute',
-      top: 9,
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      backgroundColor:
-        '#FFFFFF',
-      borderWidth: 3,
-      borderColor:
-        COLORS.primary,
-    },
-
-    sliderLabels: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-    },
-
-    sliderLabel: {
-      fontSize: 11,
-      color:
-        COLORS.textSecondary,
-    },
-
-    unitText: {
-      fontSize: 14,
-      fontWeight: '900',
-      color:
-        COLORS.text,
-    },
-
-    budgetPreview: {
-      marginTop: 10,
-      fontSize: 13,
-      fontWeight: '700',
-      color:
-        COLORS.textSecondary,
-    },
-
-    selectedSummary: {
-      marginTop: 16,
-    },
-
-    selectedSummaryLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      color:
-        COLORS.textSecondary,
-      marginBottom: 8,
     },
 
     input: {
