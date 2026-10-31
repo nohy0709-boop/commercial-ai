@@ -1,24 +1,24 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    PanResponder,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 
 import {
-    CostPlan,
-    deleteCostPlan,
-    getCostPlans,
-    saveCostPlan,
+  CostPlan,
+  deleteCostPlan,
+  getCostPlans,
+  saveCostPlan,
 } from '@/services/startupCostPlans';
 import { getUserProfile } from '@/services/userProfile';
 
@@ -476,7 +476,7 @@ export default function CostCalculatorScreen() {
             if (plan.id === planId) setPlanId(null);
             setPlans(await getCostPlans());
           })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       return;
@@ -915,12 +915,12 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 12,
-    backgroundColor: LIME,
+    backgroundColor: '#202544',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  saveButtonText: { fontSize: 15, fontWeight: '800', color: NAVY },
+  saveButtonText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
   resetButton: { marginTop: 10, alignItems: 'center', paddingVertical: 6 },
   resetText: { fontSize: 13, color: GRAY },
 
