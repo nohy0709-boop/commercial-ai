@@ -1,7 +1,9 @@
 import { COLORS } from '@/constants/colors';
 import { useResponsive } from '@/hooks/useResponsive';
-import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { getCurrentUser } from '@/services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   Image, Modal, ScrollView,
   StyleSheet,
@@ -42,10 +44,28 @@ const FEATURES: Feature[] = [
 ];
 
 export default function HomeScreen() {
-  const [showServiceInfo, setShowServiceInfo] = useState(true);
+  const [showServiceInfo, setShowServiceInfo] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
   const { isMobile } = useResponsive();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+
+  const requireLogin = async (destination: string) => {
+    try {
+      const user = await getCurrentUser();
+
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      router.push(destination as any);
+    } catch (error) {
+      console.error('로그인 확인 오류:', error);
+      router.push('/auth/login');
+    }
+  };
+
 
   const isPC = screenWidth >= 1024;
   const isTablet = screenWidth >= 600 && screenWidth < 1024;
@@ -57,6 +77,70 @@ export default function HomeScreen() {
       : screenWidth * 0.90;
 
   const modalScale = isPC ? 1.45 : isTablet ? 1.2 : 1;
+
+  useEffect(() => {
+    let active = true;
+
+    const checkServiceInfo = async () => {
+      try {
+        const dismissed = await AsyncStorage.getItem(
+          'serviceInfoDismissed'
+        );
+
+        if (active && dismissed !== 'true') {
+          setShowServiceInfo(true);
+        }
+      } catch (error) {
+        console.error('서비스 안내 확인 오류:', error);
+      }
+    };
+
+    checkServiceInfo();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!userId) {
+      setShowServiceInfo(false);
+      return;
+    }
+
+    let active = true;
+
+    const checkServiceInfo = async () => {
+      try {
+        const key = `serviceInfoDismissed:${userId}`;
+        const dismissed = await AsyncStorage.getItem(key);
+
+        if (active && dismissed !== 'true') {
+          setShowServiceInfo(true);
+        }
+      } catch (error) {
+        console.error('서비스 안내 확인 오류:', error);
+      }
+    };
+
+    checkServiceInfo();
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const closeServiceInfo = async () => {
+    setShowServiceInfo(false);
+
+    try {
+      await AsyncStorage.setItem(
+        'serviceInfoDismissed',
+        'true'
+      );
+    } catch (error) {
+      console.error('서비스 안내 저장 오류:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -113,16 +197,15 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <Link href="/market-analysis/industry" asChild>
-            <TouchableOpacity
-              style={styles.heroButton}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.heroButtonText}>
-                분석 시작하기 →
-              </Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            style={styles.heroButton}
+            activeOpacity={0.85}
+            onPress={() => requireLogin('/market-analysis/industry')}
+          >
+            <Text style={styles.heroButtonText}>
+              분석 시작하기 →
+            </Text>
+          </TouchableOpacity>
 
         </View>
 
@@ -130,27 +213,32 @@ export default function HomeScreen() {
         <Text style={styles.sectionLabel}>핵심 분석 기능</Text>
 
         <View style={styles.featureList}>
-          {FEATURES.map((feature, index) => (
-            <Link key={feature.href} href={feature.href as any} asChild>
-              <TouchableOpacity style={styles.featureCard} activeOpacity={0.85}>
-                <View style={styles.featureIconBox}>
-                  <Text style={styles.featureIcon}>{feature.icon}</Text>
-                </View>
+          {FEATURES.map((feature) => (
+            <TouchableOpacity
+              key={feature.href}
+              style={styles.featureCard}
+              activeOpacity={0.85}
+              onPress={() => requireLogin(feature.href)}
+            >
+              <View style={styles.featureIconBox}>
+                <Text style={styles.featureIcon}>{feature.icon}</Text>
+              </View>
 
-                <View style={styles.featureTopRow}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                </View>
-
-                <Text style={styles.featureDescription}>
-                  {feature.description}
+              <View style={styles.featureTopRow}>
+                <Text style={styles.featureTitle}>
+                  {feature.title}
                 </Text>
+              </View>
 
-                <View style={styles.featureCta}>
-                  <Text style={styles.featureCtaText}>시작하기</Text>
-                  <Text style={styles.featureCtaArrow}>→</Text>
-                </View>
-              </TouchableOpacity>
-            </Link>
+              <Text style={styles.featureDescription}>
+                {feature.description}
+              </Text>
+
+              <View style={styles.featureCta}>
+                <Text style={styles.featureCtaText}>시작하기</Text>
+                <Text style={styles.featureCtaArrow}>→</Text>
+              </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -173,11 +261,13 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <Link href="/short-term-analysis" asChild>
-            <TouchableOpacity style={styles.shortTermButton} activeOpacity={0.8}>
-              <Text style={styles.shortTermButtonText}>분석하기</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            style={styles.shortTermButton}
+            activeOpacity={0.8}
+            onPress={() => requireLogin('/short-term-analysis')}
+          >
+            <Text style={styles.shortTermButtonText}>분석하기</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 커뮤니티 */}
@@ -213,12 +303,15 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <Link href={'/community' as any} asChild>
-            <TouchableOpacity style={styles.shortTermButton} activeOpacity={0.8}>
-              <Text style={styles.shortTermButtonText}>들어가기</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            style={styles.shortTermButton}
+            activeOpacity={0.8}
+            onPress={() => requireLogin('/community')}
+          >
+            <Text style={styles.shortTermButtonText}>들어가기</Text>
+          </TouchableOpacity>
         </View>
+
 
         {/* 팀 후보지 (협업) */}
         <View style={styles.shortTermCard}>
@@ -241,7 +334,10 @@ export default function HomeScreen() {
                 ]}
               >
                 <Text
-                  style={[styles.shortTermTagText, { color: COLORS.primary }]}
+                  style={[
+                    styles.shortTermTagText,
+                    { color: COLORS.primary },
+                  ]}
                 >
                   협업
                 </Text>
@@ -253,12 +349,17 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <Link href={'/team' as any} asChild>
-            <TouchableOpacity style={styles.shortTermButton} activeOpacity={0.8}>
-              <Text style={styles.shortTermButtonText}>들어가기</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            style={styles.shortTermButton}
+            activeOpacity={0.8}
+            onPress={() => requireLogin('/team')}
+          >
+            <Text style={styles.shortTermButtonText}>
+              들어가기
+            </Text>
+          </TouchableOpacity>
         </View>
+
 
         {/* 서비스 안내 다시 보기 */}
         <TouchableOpacity
@@ -276,7 +377,7 @@ export default function HomeScreen() {
         visible={showServiceInfo}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowServiceInfo(false)}
+        onRequestClose={closeServiceInfo}
         statusBarTranslucent
       >
         <View style={styles.serviceModalOverlay}>
@@ -302,7 +403,7 @@ export default function HomeScreen() {
               </Text>
 
               <TouchableOpacity
-                onPress={() => setShowServiceInfo(false)}
+                onPress={closeServiceInfo}
                 accessibilityRole="button"
                 accessibilityLabel="서비스 안내 닫기"
               >
@@ -315,41 +416,64 @@ export default function HomeScreen() {
                 <Text style={styles.infoTitleIcon}>ℹ️</Text>
                 <Text
                   style={[
-                    styles.infoTitle,
-                    { fontSize: 17 * modalScale },
+                    styles.infoText,
+                    {
+                      fontSize: 17 * modalScale,
+                      lineHeight: 28 * modalScale,
+                    },
                   ]}
                 >서비스 안내</Text>
               </View>
 
               <Text
                 style={[
-                  styles.infoTitle,
-                  { fontSize: 17 * modalScale },
+                  styles.infoText,
+                  {
+                    fontSize: 17 * modalScale,
+                    lineHeight: 28 * modalScale,
+                  },
                 ]}
               >
-                이 서비스는 공공데이터 기반의 상권 분석 도구로,{' '}
+                본 서비스는{' '}
+                <Text style={styles.infoTextStrong}>
+                  사용자 맞춤형 AI 상권 분석 서비스
+                </Text>
+                입니다.
+                {'\n\n'}
+                사용자의 창업 조건과 희망 업종, 지역 등의 정보가 있어야
+                맞춤형 분석과 추천을 제공할 수 있습니다.
+                {'\n\n'}
+                따라서{' '}
+                <Text style={styles.infoTextStrong}>
+                  서비스 이용을 위해 로그인 또는 회원가입이 필요합니다.
+                </Text>
+                {'\n\n'}
+                분석 결과는 공공데이터를 기반으로 제공되며,{' '}
                 <Text style={styles.infoTextStrong}>
                   창업 성공을 보장하지 않습니다.
-                </Text>{' '}
-                제공되는 분석 결과는 의사결정에 참고하는 보조 자료로 활용하세요.
-                분석 대상 지역은 세종시 14개 행정동 기준입니다.
+                </Text>
+                {' '}
+                의사결정을 위한 참고 자료로 활용해 주세요.
+                분석 대상은 세종시 14개 행정동입니다.
               </Text>
             </View>
 
             <View style={styles.serviceModalFooter}>
+
               <TouchableOpacity
-                style={styles.serviceModalConfirm}
-                onPress={() => setShowServiceInfo(false)}
+                style={styles.chatFloatingButton}
+                activeOpacity={0.85}
+                onPress={() => requireLogin('/chat')}
+                accessibilityRole="button"
+                accessibilityLabel="AI 챗봇 열기"
               >
-                <Text
-                  style={[
-                    styles.serviceModalConfirmText,
-                    { fontSize: 16 * modalScale },
-                  ]}
-                >
-                  닫기
-                </Text>
+                <Image
+                  source={require('../../../assets/images/chatbot-question-map-red.png')}
+                  style={styles.chatFloatingImage}
+                  resizeMode="cover"
+                />
               </TouchableOpacity>
+
             </View>
 
           </View>
@@ -377,14 +501,14 @@ export default function HomeScreen() {
         />
       </TouchableOpacity>
 
+
+
       <TouchableOpacity
         style={styles.calculatorFloatingButton}
         activeOpacity={0.85}
-        onPress={() => {
-          // 계산기 기능 연결 예정
-        }}
+        onPress={() => requireLogin('/tools/cost-calculator')}
         accessibilityRole="button"
-        accessibilityLabel="계산기 열기"
+        accessibilityLabel="초기 창업 비용 계산기 열기"
       >
         <Image
           source={require('../../../assets/images/calculator3.png')}
@@ -392,6 +516,8 @@ export default function HomeScreen() {
           resizeMode="contain"
         />
       </TouchableOpacity>
+
+
 
     </SafeAreaView>
 
