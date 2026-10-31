@@ -1,12 +1,13 @@
-import { GlossaryProvider, Term } from '@/components/Term';
+import { GlossaryProvider } from '@/components/Term';
 import { COLORS } from '@/constants/colors';
 import {
   addMonths,
   aggregateTrend,
   fetchMonthlyRows,
-  getCadence,
   getMonthRange,
+  getSnapshotMonths,
   monthText,
+  summarizeTrend,
   type Granularity,
   type MonthlyRow,
   type TrendPoint,
@@ -35,22 +36,21 @@ type Preset = '6m' | '1y' | 'all' | 'custom';
 type Metric = 'count' | 'rate' | 'flow';
 
 const GRANULARITIES: { key: Granularity; label: string; unit: string }[] = [
-  { key: 'month', label: '월별', unit: '월' },
-  { key: 'quarter', label: '분기별', unit: '분기' },
+  { key: 'month', label: '기준 시점별', unit: '시점' },
   { key: 'year', label: '연도별', unit: '연' },
 ];
 
 const PRESETS: { key: Preset; label: string }[] = [
-  { key: '6m', label: '최근 6개월' },
-  { key: '1y', label: '최근 1년' },
+  { key: '6m', label: '6개월' },
+  { key: '1y', label: '1년' },
   { key: 'all', label: '전체' },
   { key: 'custom', label: '직접 선택' },
 ];
 
 const METRICS: { key: Metric; label: string }[] = [
   { key: 'count', label: '점포 수' },
-  { key: 'rate', label: '개업·폐업률' },
-  { key: 'flow', label: '개업·폐업 수' },
+  { key: 'rate', label: '개업·폐업률(추정)' },
+  { key: 'flow', label: '개업·폐업 수(추정)' },
 ];
 
 
@@ -71,8 +71,9 @@ function TrendChart({
   series: Series[];
   unit: string;
 }) {
-  const W = 320;
-  const H = 190;
+  const [chartWidth, setChartWidth] = useState(320);
+  const W = Math.max(240, chartWidth);
+  const H = 230;
   const padLeft = 38;
   const padRight = 12;
   const padTop = 14;
@@ -80,22 +81,27 @@ function TrendChart({
   const plotW = W - padLeft - padRight;
   const plotH = H - padTop - padBottom;
 
-  const all = series.flatMap(s => s.values);
+  const finiteValues = series.flatMap(s => s.values).filter(Number.isFinite);
+  const all = finiteValues.length ? finiteValues : [0];
   const rawMin = Math.min(...all);
   const rawMax = Math.max(...all);
 
   // 점포 수는 변화가 잘 보이게 아래쪽을 잘라서, 나머지(률·건수)는 0부터 시작
   const startsAtZero = unit !== '개';
   const span = Math.max(rawMax - rawMin, 1);
-  const yMin = startsAtZero ? 0 : Math.max(0, rawMin - span * 0.2);
+  const yMin = startsAtZero ? 0 : Math.floor(Math.max(0, rawMin - span * 0.2));
   const yMax = startsAtZero
     ? Math.max(rawMax * 1.15, 1)
-    : rawMax + span * 0.2;
+    : yMin + Math.max(1, Math.ceil((rawMax + span * 0.2 - yMin) / 2)) * 2;
 
-  const xFor = (i: number) =>
-    points.length > 1
-      ? padLeft + (i / (points.length - 1)) * plotW
-      : padLeft + plotW / 2;
+  const timeIndex = (month: string) => {
+    const [y, m] = month.split('-').map(Number); return y * 12 + m - 1;
+  };
+  const times = points.map(p => timeIndex(p.toMonth));
+  const timeSpan = times.length > 1 ? times[times.length - 1] - times[0] : 0;
+  const xFor = (i: number) => timeSpan > 0
+    ? padLeft + ((times[i] - times[0]) / timeSpan) * plotW
+    : padLeft + plotW / 2;
 
   const yFor = (v: number) =>
     padTop + plotH - ((v - yMin) / (yMax - yMin || 1)) * plotH;
@@ -108,7 +114,12 @@ function TrendChart({
     unit === '%' ? `${v.toFixed(1)}` : `${Math.round(v)}`;
 
   return (
-    <Svg width="100%" height={200} viewBox={`0 0 ${W} ${H}`}>
+    <View
+      style={{ width: '100%', height: 240 }}
+      onLayout={event => setChartWidth(event.nativeEvent.layout.width)}
+    >
+    <Svg width="100%" height={240} viewBox={`0 0 ${W} ${H}`}>
+
       {ticks.map((t, i) => (
         <Line
           key={`g-${i}`}
@@ -134,27 +145,38 @@ function TrendChart({
         </SvgText>
       ))}
 
-      {series.map(s => (
-        <Polyline
-          key={s.name}
-          points={s.values.map((v, i) => `${xFor(i)},${yFor(v)}`).join(' ')}
-          fill="none"
-          stroke={s.color}
-          strokeWidth={2}
-        />
-      ))}
-
-      {series.map(s =>
-        s.values.map((v, i) => (
-          <Circle
-            key={`${s.name}-${i}`}
-            cx={xFor(i)}
-            cy={yFor(v)}
-            r={points.length > 24 ? 1.5 : 3}
-            fill={s.color}
+      {series.map(s => {
+        const segments: string[][] = [];
+        let segment: string[] = [];
+        s.values.forEach((value, index) => {
+          if (Number.isFinite(value)) {
+            segment.push(`${xFor(index)},${yFor(value)}`);
+          } else if (segment.length) {
+            segments.push(segment);
+            segment = [];
+          }
+        });
+        if (segment.length) segments.push(segment);
+        return segments.map((vertices, index) => vertices.length > 1 ? (
+          <Polyline
+            key={`${s.name}-line-${index}`}
+            points={vertices.join(' ')}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={2}
           />
-        )),
-      )}
+        ) : null);
+      })}
+
+      {series.map(s => s.values.map((value, index) => Number.isFinite(value) ? (
+        <Circle
+          key={`${s.name}-${index}`}
+          cx={xFor(index)}
+          cy={yFor(value)}
+          r={points.length > 24 ? 1.5 : 3}
+          fill={s.color}
+        />
+      ) : null))}
 
       {points.map((p, i) =>
         i % labelStep === 0 || i === points.length - 1 ? (
@@ -171,6 +193,7 @@ function TrendChart({
         ) : null,
       )}
     </Svg>
+    </View>
   );
 }
 
@@ -179,12 +202,13 @@ function TrendChart({
 export default function TrendSection({ areaName, businessName }: Props) {
   const [rows, setRows] = useState<MonthlyRow[]>([]);
   const [isSample, setIsSample] = useState(false);
+  const [matchedBusiness, setMatchedBusiness] = useState('');
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
   const [granularity, setGranularity] = useState<Granularity>('month');
   const [preset, setPreset] = useState<Preset>('1y');
-  const [metric, setMetric] = useState<Metric>('rate');
+  const [metric, setMetric] = useState<Metric>('count');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [showTable, setShowTable] = useState(false);
@@ -196,6 +220,8 @@ export default function TrendSection({ areaName, businessName }: Props) {
       try {
         setLoading(true);
         setFailed(false);
+        setRows([]);
+        setIsSample(false);
 
         const result = await fetchMonthlyRows(areaName, businessName);
         if (cancelled) {
@@ -204,18 +230,18 @@ export default function TrendSection({ areaName, businessName }: Props) {
 
         setRows(result.rows);
         setIsSample(result.isSample);
+        setMatchedBusiness(result.matchedBusiness);
 
         const range = getMonthRange(result.rows);
         if (range) {
-          setCustomFrom(addMonths(range.maxMonth, -11) < range.minMonth
-            ? range.minMonth
-            : addMonths(range.maxMonth, -11));
+          const months = getSnapshotMonths(result.rows);
+          const target = addMonths(range.maxMonth, -12);
+          setCustomFrom([...months].reverse().find(m => m <= target) ?? range.minMonth);
           setCustomTo(range.maxMonth);
         }
+        setGranularity('month');
+        setPreset('1y');
 
-        // 데이터가 분기 단위뿐이면 월별은 선택할 수 없으니 분기로 시작
-        const cadence = getCadence(result.rows);
-        setGranularity(cadence >= 12 ? 'year' : cadence >= 3 ? 'quarter' : 'month');
       } catch (error) {
         console.error('상권 추이 조회 실패:', error);
         if (!cancelled) {
@@ -234,88 +260,53 @@ export default function TrendSection({ areaName, businessName }: Props) {
   }, [areaName, businessName]);
 
   const range = useMemo(() => getMonthRange(rows), [rows]);
-  const cadence = useMemo(() => getCadence(rows), [rows]);
+  const months = useMemo(() => getSnapshotMonths(rows), [rows]);
 
   const { fromMonth, toMonth } = useMemo(() => {
     if (!range) {
       return { fromMonth: '', toMonth: '' };
     }
 
-    const clamp = (m: string) =>
-      m < range.minMonth ? range.minMonth : m > range.maxMonth ? range.maxMonth : m;
-
-    if (preset === 'all') {
-      return { fromMonth: range.minMonth, toMonth: range.maxMonth };
+    const snap = (target: string) =>
+      [...months].reverse().find(m => m <= target) ?? range.minMonth;
+    if (preset === 'all') return { fromMonth: range.minMonth, toMonth: range.maxMonth };
+    if (preset === '6m' || preset === '1y') {
+      return { fromMonth: snap(addMonths(range.maxMonth, preset === '6m' ? -6 : -12)), toMonth: range.maxMonth };
     }
-    if (preset === '6m') {
-      return { fromMonth: clamp(addMonths(range.maxMonth, -5)), toMonth: range.maxMonth };
-    }
-    if (preset === '1y') {
-      return { fromMonth: clamp(addMonths(range.maxMonth, -11)), toMonth: range.maxMonth };
-    }
-
-    const from = clamp(customFrom || range.minMonth);
-    const to = clamp(customTo || range.maxMonth);
-    return from <= to
-      ? { fromMonth: from, toMonth: to }
-      : { fromMonth: to, toMonth: from };
-  }, [range, preset, customFrom, customTo]);
+    const from = months.includes(customFrom) ? customFrom : range.minMonth;
+    const to = months.includes(customTo) ? customTo : range.maxMonth;
+    return from < to ? { fromMonth: from, toMonth: to }
+      : { fromMonth: range.minMonth, toMonth: range.maxMonth };
+  }, [range, months, preset, customFrom, customTo]);
 
   const points = useMemo(
-    () => (range ? aggregateTrend(rows, granularity, fromMonth, toMonth) : []),
+    () => range
+      ? aggregateTrend(rows, granularity, fromMonth, toMonth)
+          .filter(point => point.toMonth >= '2023-01')
+      : [],
     [rows, granularity, fromMonth, toMonth, range],
   );
-
-  const granularityUnit =
-    GRANULARITIES.find(g => g.key === granularity)?.unit ?? '월';
-
-  const isGranularityDisabled = (g: Granularity) =>
-    (g === 'month' && cadence > 1) || (g === 'quarter' && cadence > 3);
-
+  const isGranularityDisabled = (g: Granularity) => g === 'quarter';
   const shiftCustom = (target: 'from' | 'to', diff: number) => {
-    if (!range) {
-      return;
-    }
-
-    const clamp = (m: string) =>
-      m < range.minMonth ? range.minMonth : m > range.maxMonth ? range.maxMonth : m;
-
-    if (target === 'from') {
-      const next = clamp(addMonths(customFrom || range.minMonth, diff));
-      setCustomFrom(next);
-      if (next > (customTo || range.maxMonth)) {
-        setCustomTo(next);
-      }
-    } else {
-      const next = clamp(addMonths(customTo || range.maxMonth, diff));
-      setCustomTo(next);
-      if (next < (customFrom || range.minMonth)) {
-        setCustomFrom(next);
-      }
-    }
+    const current = target === 'from' ? fromMonth : toMonth;
+    const next = months[months.indexOf(current) + diff];
+    if (!next) return;
+    if (target === 'from' && next < toMonth) setCustomFrom(next);
+    if (target === 'to' && next > fromMonth) setCustomTo(next);
+  };
+  const selectPreset = (value: Preset) => {
+    if (value === 'custom') { setCustomFrom(fromMonth); setCustomTo(toMonth); }
+    setPreset(value);
   };
 
-  /* ----- 요약 ----- */
-  const summary = useMemo(() => {
-    if (points.length === 0) {
-      return null;
-    }
+  /* ----- 요약: 그래프 보기 단위와 분리 ----- */
+  const summary = useMemo(
+    () => summarizeTrend(rows, fromMonth, toMonth),
+    [rows, fromMonth, toMonth],
+  );
 
-    const first = points[0];
-    const last = points[points.length - 1];
-    const avg = (pick: (p: TrendPoint) => number) =>
-      points.reduce((sum, p) => sum + pick(p), 0) / points.length;
-
-    return {
-      firstCount: first.storeCount,
-      lastCount: last.storeCount,
-      diff: last.storeCount - first.storeCount,
-      avgOpen: avg(p => p.openRate),
-      avgClose: avg(p => p.closeRate),
-      totalOpen: points.reduce((s, p) => s + p.openCount, 0),
-      totalClose: points.reduce((s, p) => s + p.closeCount, 0),
-    };
-  }, [points]);
+  const formatRate = (rate: number | null) =>
+    rate !== null && Number.isFinite(rate) ? `${rate.toFixed(1)}%` : '산출 불가';
 
   const series: Series[] = useMemo(() => {
     if (metric === 'count') {
@@ -325,32 +316,26 @@ export default function TrendSection({ areaName, businessName }: Props) {
     }
     if (metric === 'rate') {
       return [
-        { name: '개업률', color: OPEN_COLOR, values: points.map(p => p.openRate) },
-        { name: '폐업률', color: CLOSE_COLOR, values: points.map(p => p.closeRate) },
+        { name: '개업률(추정)', color: OPEN_COLOR, values: points.map(p => p.openRate) },
+        { name: '폐업률(추정)', color: CLOSE_COLOR, values: points.map(p => p.closeRate) },
       ];
     }
     return [
-      { name: '개업', color: OPEN_COLOR, values: points.map(p => p.openCount) },
-      { name: '폐업', color: CLOSE_COLOR, values: points.map(p => p.closeCount) },
+      { name: '개업(추정)', color: OPEN_COLOR, values: points.map(p => p.openCount) },
+      { name: '폐업(추정)', color: CLOSE_COLOR, values: points.map(p => p.closeCount) },
     ];
   }, [metric, points]);
 
   const chartUnit = metric === 'count' ? '개' : metric === 'rate' ? '%' : '건';
 
   const insight = useMemo(() => {
-    if (!summary) {
-      return '';
-    }
-    if (summary.totalOpen === 0 && summary.totalClose === 0) {
-      return '이 기간에는 개업·폐업 변화가 거의 없었어요.';
-    }
-    if (summary.totalOpen > summary.totalClose) {
-      return `개업이 폐업보다 ${summary.totalOpen - summary.totalClose}곳 많아 점포가 늘어난 흐름이에요.`;
-    }
-    if (summary.totalOpen < summary.totalClose) {
-      return `폐업이 개업보다 ${summary.totalClose - summary.totalOpen}곳 많아 점포가 줄어든 흐름이에요.`;
-    }
-    return '개업과 폐업이 비슷해서 점포 수가 안정적이에요.';
+    if (!summary) return '';
+    if (!summary.coverageComplete) return '연속된 원본 집계를 확인할 수 없어 기간 비율을 표시하지 않아요.';
+    const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
+    return `개업 추정 ${summary.totalOpen}곳, 폐업 추정 ${summary.totalClose}곳이에요. ` +
+      `계속 관측된 업소의 지역·업종 그룹 진입 ${summary.transferIn}곳, 이탈 ${summary.transferOut}곳을 포함해 ` +
+      `점포 수는 ${signed(summary.diff)}곳 변했어요.` +
+      (summary.reconciliationDifference ? ' 집계 불일치가 있어 원본 확인이 필요해요.' : '');
   }, [summary]);
 
   /* ----- 렌더 ----- */
@@ -368,8 +353,17 @@ export default function TrendSection({ areaName, businessName }: Props) {
         </View>
 
         <Text style={styles.description}>
-          {areaName} · {businessName}의 점포 수와 개업·폐업 흐름을 기간별로 볼 수 있어요.
+          {areaName} · {businessName}의 점포 수와 개업·폐업 추이를 볼 수 있어요. 개업·폐업 수와 비율은 추정치예요.
         </Text>
+
+        {matchedBusiness && matchedBusiness !== businessName && !loading ? (
+          <Text style={styles.hint}>집계에 사용한 공식 업종: {matchedBusiness}</Text>
+        ) : null}
+        {isSample && !loading ? (
+          <Text style={styles.hint}>
+            화면 확인용으로 생성한 가상 데이터입니다. 실제 지역·업종의 상권 판단에 사용할 수 없어요.
+          </Text>
+        ) : null}
 
         {loading ? (
           <View style={styles.center}>
@@ -382,7 +376,7 @@ export default function TrendSection({ areaName, businessName }: Props) {
         ) : !range ? (
           <View style={styles.center}>
             <Text style={styles.emptyText}>
-              이 지역·업종의 추이 데이터가 아직 준비되지 않았어요.
+              이 지역·업종의 데이터가 없거나 업종명이 일치하지 않아요. 업로드와 business_catalog.csv의 업종명을 확인해주세요.
             </Text>
           </View>
         ) : (
@@ -420,14 +414,15 @@ export default function TrendSection({ areaName, businessName }: Props) {
               })}
             </View>
 
-            {cadence > 1 ? (
-              <Text style={styles.hint}>
-                현재 데이터는 {cadence}개월 간격이라 더 촘촘한 단위는 선택할 수 없어요.
-              </Text>
-            ) : null}
+            <Text style={styles.hint}>
+              월별 자료가 아니에요. 파일명 기준 관측 시점 사이를 비교하며, 2025년 6→10월은 4개월, 10→12월은 2개월이에요.
+            </Text>
 
             {/* 기간 */}
             <Text style={styles.label}>기간</Text>
+            <Text style={styles.rangeText}>
+              데이터 기준: {monthText(range.maxMonth)}
+            </Text>
             <View style={styles.rowWrap}>
               {PRESETS.map(p => {
                 const active = preset === p.key;
@@ -437,7 +432,7 @@ export default function TrendSection({ areaName, businessName }: Props) {
                     key={p.key}
                     style={[styles.chip, active && styles.chipActive]}
                     activeOpacity={0.7}
-                    onPress={() => setPreset(p.key)}
+                    onPress={() => selectPreset(p.key)}
                   >
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>
                       {p.label}
@@ -484,6 +479,10 @@ export default function TrendSection({ areaName, businessName }: Props) {
               </Text>
             )}
 
+            <Text style={styles.hint}>
+              시작·끝은 실제 관측 시점이에요. 시작 시점 이후부터 끝 시점까지의 변화를 합산해요. 6개월·1년은 데이터 기준 시점에서 거슬러 계산하며, 관측 시점에 맞춘 실제 범위가 위에 표시돼요. 비율은 각 구간 누적값으로, 간격이 다르면 단순 비교에 주의해주세요.
+            </Text>
+
             {/* 지표 */}
             <View style={styles.metricRow}>
               {METRICS.map(m => {
@@ -527,11 +526,20 @@ export default function TrendSection({ areaName, businessName }: Props) {
 
                 <TrendChart points={points} series={series} unit={chartUnit} />
 
+                {points.length === 1 ? (
+                  <Text style={styles.hint}>
+                    선택한 보기 단위에서 집계 구간이 1개라 점으로 표시돼요. 변화 추이를 보려면 더 긴 기간이나 더 촘촘한 단위를 선택해주세요.
+                  </Text>
+                ) : null}
+                {metric === 'count' ? (
+                  <Text style={styles.hint}>점포 수 그래프의 세로축은 변화가 보이도록 0보다 큰 값에서 시작할 수 있어요.</Text>
+                ) : null}
+
                 {summary ? (
                   <>
                     <View style={styles.summaryRow}>
                       <View style={styles.summaryItem}>
-                        <Text style={styles.summaryLabel}>점포 수 변화</Text>
+                        <Text style={styles.summaryLabel}>기초 → 기말 점포 수</Text>
                         <Text style={styles.summaryValue}>
                           {summary.firstCount} → {summary.lastCount}
                         </Text>
@@ -548,25 +556,33 @@ export default function TrendSection({ areaName, businessName }: Props) {
 
                       <View style={styles.summaryItem}>
                         <Text style={styles.summaryLabel}>
-                          평균 <Term k="openRate">개업률</Term>
+                          기간 개업률(추정)
                         </Text>
                         <Text style={[styles.summaryValue, { color: OPEN_COLOR }]}>
-                          {summary.avgOpen.toFixed(1)}%
+                          {formatRate(summary.openRate)}
                         </Text>
-                        <Text style={styles.summarySub}>{granularityUnit}당</Text>
+                        <Text style={styles.summarySub}>선택 기간 누적</Text>
                       </View>
 
                       <View style={styles.summaryItem}>
                         <Text style={styles.summaryLabel}>
-                          평균 <Term k="closeRate">폐업률</Term>
+                          기간 폐업률(추정)
                         </Text>
                         <Text style={[styles.summaryValue, { color: CLOSE_COLOR }]}>
-                          {summary.avgClose.toFixed(1)}%
+                          {formatRate(summary.closeRate)}
                         </Text>
-                        <Text style={styles.summarySub}>{granularityUnit}당</Text>
+                        <Text style={styles.summarySub}>선택 기간 누적</Text>
                       </View>
                     </View>
 
+                    {summary.inferredBase ? (
+                      <Text style={styles.hint}>기초 점포 수는 직전 스냅샷이 없어 개업·폐업 집계로 역산한 값이에요.</Text>
+                    ) : null}
+                    {!summary.coverageComplete ? (
+                      <Text style={styles.hint}>
+                        원본 집계 범위: {monthText(summary.fromMonth)} ~ {monthText(summary.toMonth)}. 원본 구간을 월별로 임의 분할하거나 누락 구간을 0으로 채우지 않아요.
+                      </Text>
+                    ) : null}
                     <View style={styles.insightBox}>
                       <Text style={styles.insightText}>{insight}</Text>
                     </View>
@@ -588,19 +604,19 @@ export default function TrendSection({ areaName, businessName }: Props) {
                     <View style={[styles.tableRow, styles.tableHead]}>
                       <Text style={[styles.cell, styles.cellFirst, styles.headText]}>기간</Text>
                       <Text style={[styles.cell, styles.headText]}>점포</Text>
-                      <Text style={[styles.cell, styles.headText]}>개업</Text>
-                      <Text style={[styles.cell, styles.headText]}>폐업</Text>
+                      <Text style={[styles.cell, styles.headText]}>개업(추정)</Text>
+                      <Text style={[styles.cell, styles.headText]}>폐업(추정)</Text>
                     </View>
 
                     {points.map(p => (
                       <View key={p.key} style={styles.tableRow}>
-                        <Text style={[styles.cell, styles.cellFirst]}>{p.label}</Text>
+                        <Text style={[styles.cell, styles.cellFirst]}>{p.label}{"\n"}<Text style={styles.summarySub}>{monthText(p.fromMonth)} ~ {monthText(p.toMonth)}</Text></Text>
                         <Text style={styles.cell}>{p.storeCount}</Text>
                         <Text style={[styles.cell, { color: OPEN_COLOR }]}>
-                          {p.openCount} ({p.openRate}%)
+                          {Number.isFinite(p.openCount) ? p.openCount : '—'} ({formatRate(p.openRate)})
                         </Text>
                         <Text style={[styles.cell, { color: CLOSE_COLOR }]}>
-                          {p.closeCount} ({p.closeRate}%)
+                          {Number.isFinite(p.closeCount) ? p.closeCount : '—'} ({formatRate(p.closeRate)})
                         </Text>
                       </View>
                     ))}
@@ -608,11 +624,10 @@ export default function TrendSection({ areaName, businessName }: Props) {
                 ) : null}
 
                 <Text style={styles.footnote}>
-                  개업·폐업은 상가 데이터에서 점포가 새로 생기거나 사라진 것을 비교한{' '}
-                  <Term k="estimate">추정치</Term>예요.
-                  양도·이전·업종 변경은 개업과 폐업으로 함께 잡힐 수 있어요.{' '}
-                  <Term k="openRate">개업률</Term>·<Term k="closeRate">폐업률</Term>은 기간
-                  시작 시점의 점포 수(<Term k="baseStoreCount">기초 점포 수</Term>) 대비 비율이에요.
+                  개업·폐업은 시점별 세종 상가 목록의 신규 등장·소멸을 비교한 추정치이며, 실제 신고 통계와 다를 수 있어요.
+                  수집 범위·자료 정비·업소번호 변경도 영향을 줄 수 있어요. 계속 관측된 업소의 행정동·업종 그룹 이동은 별도로 집계해요.
+                  개업률·폐업률(추정)은 각 구간 합계 ÷ 시작 점포 수 × 100이에요. 시작 점포 수가 0이면 비율을 계산하지 않아요.
+                  그래프는 2023년부터 표시해요. 2022년 12월 자료는 2023년 첫 구간의 계산 기준으로만 사용해요. 선택 시작 시점의 이전 변화는 합산하지 않아요. 2025-10은 파일명 기준으로 유지했고 9월로 바꾸지 않았어요.
                 </Text>
               </>
             )}
