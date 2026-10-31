@@ -1,13 +1,12 @@
 import { COLORS } from '@/constants/colors';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Link, useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
-  Image,
-  ScrollView,
+  Image, Modal, ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View
+  TouchableOpacity, useWindowDimensions, View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -43,8 +42,21 @@ const FEATURES: Feature[] = [
 ];
 
 export default function HomeScreen() {
+  const [showServiceInfo, setShowServiceInfo] = useState(true);
   const router = useRouter();
-  const { isMobile, isTablet } = useResponsive();
+  const { isMobile } = useResponsive();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+
+  const isPC = screenWidth >= 1024;
+  const isTablet = screenWidth >= 600 && screenWidth < 1024;
+
+  const modalWidth = isPC
+    ? Math.min(screenWidth * 0.48, 900)
+    : isTablet
+      ? screenWidth * 0.72
+      : screenWidth * 0.90;
+
+  const modalScale = isPC ? 1.45 : isTablet ? 1.2 : 1;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -248,21 +260,101 @@ export default function HomeScreen() {
           </Link>
         </View>
 
-        {/* 서비스 안내 */}
-        <View style={styles.infoBox}>
-          <View style={styles.infoTitleRow}>
-            <Text style={styles.infoTitleIcon}>ℹ️</Text>
-            <Text style={styles.infoTitle}>서비스 안내</Text>
-          </View>
-
-          <Text style={styles.infoText}>
-            이 서비스는 공공데이터 기반의 상권 분석 도구로,{' '}
-            <Text style={styles.infoTextStrong}>창업 성공을 보장하지 않습니다.</Text>{' '}
-            제공되는 분석 결과는 의사결정에 참고하는 보조 자료로 활용하세요.
-            분석 대상 지역은 세종시 14개 행정동 기준입니다.
+        {/* 서비스 안내 다시 보기 */}
+        <TouchableOpacity
+          style={styles.infoReopenButton}
+          onPress={() => setShowServiceInfo(true)}
+        >
+          <Text style={styles.infoReopenText}>
+            ⓘ 서비스 안내 다시 보기
           </Text>
-        </View>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* 서비스 안내 팝업 */}
+      <Modal
+        visible={showServiceInfo}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowServiceInfo(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.serviceModalOverlay}>
+          <View
+            style={[
+              styles.serviceModalContainer,
+              {
+                width: modalWidth,
+                maxWidth: 900,
+                maxHeight: screenHeight * 0.85,
+                padding: 24 * modalScale,
+              },
+            ]}
+          >
+            <View style={styles.serviceModalHeader}>
+              <Text
+                style={[
+                  styles.serviceModalTitle,
+                  { fontSize: 22 * modalScale },
+                ]}
+              >
+                서비스 안내
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowServiceInfo(false)}
+                accessibilityRole="button"
+                accessibilityLabel="서비스 안내 닫기"
+              >
+                <Text style={styles.serviceModalClose}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.serviceModalBody}>
+              <View style={styles.infoTitleRow}>
+                <Text style={styles.infoTitleIcon}>ℹ️</Text>
+                <Text
+                  style={[
+                    styles.infoTitle,
+                    { fontSize: 17 * modalScale },
+                  ]}
+                >서비스 안내</Text>
+              </View>
+
+              <Text
+                style={[
+                  styles.infoTitle,
+                  { fontSize: 17 * modalScale },
+                ]}
+              >
+                이 서비스는 공공데이터 기반의 상권 분석 도구로,{' '}
+                <Text style={styles.infoTextStrong}>
+                  창업 성공을 보장하지 않습니다.
+                </Text>{' '}
+                제공되는 분석 결과는 의사결정에 참고하는 보조 자료로 활용하세요.
+                분석 대상 지역은 세종시 14개 행정동 기준입니다.
+              </Text>
+            </View>
+
+            <View style={styles.serviceModalFooter}>
+              <TouchableOpacity
+                style={styles.serviceModalConfirm}
+                onPress={() => setShowServiceInfo(false)}
+              >
+                <Text
+                  style={[
+                    styles.serviceModalConfirmText,
+                    { fontSize: 16 * modalScale },
+                  ]}
+                >
+                  닫기
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      </Modal>
 
       <TouchableOpacity
         style={styles.chatFloatingButton}
@@ -284,11 +376,105 @@ export default function HomeScreen() {
           resizeMode="cover"
         />
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.calculatorFloatingButton}
+        activeOpacity={0.85}
+        onPress={() => {
+          // 계산기 기능 연결 예정
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="계산기 열기"
+      >
+        <Image
+          source={require('../../../assets/images/calculator3.png')}
+          style={styles.calculatorFloatingImage}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+
     </SafeAreaView>
+
   );
 }
 
 const styles = StyleSheet.create({
+  serviceModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+
+  serviceModalContainer: {
+    width: '100%',
+    maxWidth: 520,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+
+  serviceModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5ECF8',
+  },
+
+  serviceModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#202544',
+  },
+
+  serviceModalClose: {
+    fontSize: 28,
+    color: '#7E8BA3',
+  },
+
+  serviceModalBody: {
+    backgroundColor: '#FFF6CC',
+    margin: 20,
+    borderRadius: 14,
+    padding: 20,
+  },
+
+  serviceModalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+
+  serviceModalConfirm: {
+    backgroundColor: '#202544',
+    paddingHorizontal: 26,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+
+  serviceModalConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  infoReopenButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 12,
+  },
+
+  infoReopenText: {
+    color: '#202544',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -525,18 +711,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   infoTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.primary,
+    color: '#202544',
+    fontWeight: '800',
   },
   infoText: {
     fontSize: 13,
     lineHeight: 20,
-    color: COLORS.primaryDark,
+    color: '#202544',
+    fontWeight: '400',
   },
   infoTextStrong: {
+    color: '#EF302B',
     fontWeight: '800',
   },
+
+  calculatorFloatingButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 110,
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+
+  calculatorFloatingImage: {
+    width: 64,
+    height: 64,
+  },
+
   chatFloatingButton: {
     position: 'absolute',
     right: 22,
