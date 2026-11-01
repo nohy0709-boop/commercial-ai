@@ -2216,6 +2216,37 @@ export default function RegionResultDetailScreen() {
 
               </View>
 
+              {explanation.personalized &&
+                (explanation.personalized.summary ||
+                  (explanation.personalized.fits?.length ?? 0) > 0 ||
+                  (explanation.personalized.cautions?.length ?? 0) > 0) && (
+                  <View style={styles.personalCard}>
+                    <View style={styles.personalBadge}>
+                      <Text style={styles.personalBadgeText}>내 조건 맞춤 판단</Text>
+                    </View>
+
+                    {!!explanation.personalized.summary &&
+                      renderEmphasizedText(
+                        explanation.personalized.summary,
+                        styles.personalSummary,
+                      )}
+
+                    {(explanation.personalized.fits ?? []).map((item, index) => (
+                      <View key={`fit-${index}`} style={styles.personalRow}>
+                        <Text style={styles.personalIconGood}>✓</Text>
+                        {renderEmphasizedText(item, styles.personalText)}
+                      </View>
+                    ))}
+
+                    {(explanation.personalized.cautions ?? []).map((item, index) => (
+                      <View key={`caution-${index}`} style={styles.personalRow}>
+                        <Text style={styles.personalIconWarn}>!</Text>
+                        {renderEmphasizedText(item, styles.personalText)}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
               <TouchableOpacity
 
                 style={styles.detailToggleButton}
@@ -3310,6 +3341,62 @@ const styles = StyleSheet.create({
 
     color: '#7C4A03',
 
+  },
+
+  personalCard: {
+    marginTop: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#FFD52A',
+    borderRadius: 14,
+    backgroundColor: '#FFFBE6',
+    gap: 8,
+  },
+
+  personalBadge: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#1D2545',
+  },
+
+  personalBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFD52A',
+  },
+
+  personalSummary: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: '#1D2545',
+  },
+
+  personalRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+
+  personalIconGood: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1D2545',
+  },
+
+  personalIconWarn: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#B45309',
+  },
+
+  personalText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#1D2545',
   },
 
   detailToggleButton: {

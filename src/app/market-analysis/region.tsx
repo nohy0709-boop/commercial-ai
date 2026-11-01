@@ -26,6 +26,7 @@ import {
 
 import {
   useCallback,
+  useEffect,
   useState,
 } from 'react';
 
@@ -66,9 +67,11 @@ export default function RegionSelectionScreen() {
 
   const {
     businesses,
+    prefillAreas,
   } =
     useLocalSearchParams<{
       businesses: string;
+      prefillAreas?: string;
     }>();
 
   const SEJONG_CENTER = {
@@ -240,6 +243,83 @@ export default function RegionSelectionScreen() {
     useState<
       DetailedLocation[]
     >([]);
+
+  /**
+   * =====================================================
+   * 내 정보로 자동 선택된 지역 (업종 선택 화면의 버튼)
+   * 처음 한 번만 미리 선택해 두고, 이후엔 자유롭게 추가/제거할 수 있다.
+   * =====================================================
+   */
+  useEffect(() => {
+    if (!prefillAreas) {
+      return;
+    }
+
+    const names = prefillAreas
+      .split(',')
+      .filter(Boolean)
+      .filter(name =>
+        sejongAreas.some(area => area.name === name),
+      );
+
+    if (names.length === 0) {
+      return;
+    }
+
+    let alive = true;
+
+    const run = async () => {
+      const found: MapMarkerData[] = [];
+
+      for (const name of names) {
+        try {
+          const result =
+            await searchLocation(
+              `세종특별자치시 ${name}`,
+            );
+
+          if (!result) {
+            continue;
+          }
+
+          found.push({
+            id: `area-${name}`,
+            name,
+            category: 'selected-area',
+            latitude: result.lat,
+            longitude: result.lng,
+          });
+        } catch (error) {
+          console.error(
+            '자동 선택 지역 위치 검색 실패:',
+            error,
+          );
+        }
+      }
+
+      if (!alive || found.length === 0) {
+        return;
+      }
+
+      setSelectedAreas(found.map(marker => marker.name));
+
+      setAreaMarkers(found);
+
+      const last = found[found.length - 1];
+
+      setMapCenter({
+        latitude: last.latitude,
+        longitude: last.longitude,
+      });
+    };
+
+    run();
+
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillAreas]);
 
   const totalSelected =
     selectedAreas.length +
