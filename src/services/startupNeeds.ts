@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { getCurrentUser } from '@/services/auth';
+import { formatWon } from '@/services/profileContext';
 
 export interface StartupNeeds {
   /** 대표 업종 (관심 업종 중 첫 번째) - 기존 화면 호환용 */
@@ -61,6 +62,18 @@ function budgetToRange(budget: string) {
         max: 100000000,
       };
 
+    case '3,000만원 ~ 5,000만원':
+      return {
+        min: 30000000,
+        max: 50000000,
+      };
+
+    case '5,000만원 ~ 1억원':
+      return {
+        min: 50000000,
+        max: 100000000,
+      };
+
     case '1억원 이상':
       return {
         min: 100000000,
@@ -83,20 +96,70 @@ function rangeToBudget(
   min: number | null,
   max: number | null,
 ) {
-  if (max === 30000000) {
+  if (min === null && max === null) {
+    return '';
+  }
+
+  /**
+   * 직접 입력한 예산 (min === max)
+   * 예: 2억원
+   * 프리셋 구간보다 먼저 검사해야
+   * 1억원 / 3,000만원처럼 경계값과 같은 금액도 정확히 보인다.
+   */
+  if (
+    typeof min === 'number' &&
+    min === max &&
+    min > 0
+  ) {
+    return formatWon(min);
+  }
+
+  // 입력 화면(needs-setup)의 프리셋
+  if (min === 0 && max === 30000000) {
     return '3,000만원 이하';
   }
 
-  if (max === 50000000) {
-    return '5,000만원 이하';
+  if (
+    min === 30000000 &&
+    max === 50000000
+  ) {
+    return '3,000만원 ~ 5,000만원';
   }
 
-  if (max === 100000000) {
-    return '1억원 이하';
+  if (
+    min === 50000000 &&
+    max === 100000000
+  ) {
+    return '5,000만원 ~ 1억원';
   }
 
   if (min === 100000000 && max === null) {
     return '1억원 이상';
+  }
+
+  // 예전 saveStartupNeeds()로 저장된 값 (호환용)
+  if (min === 0 && max === 50000000) {
+    return '5,000만원 이하';
+  }
+
+  if (min === 0 && max === 100000000) {
+    return '1억원 이하';
+  }
+
+  // 그 외 값도 빈 글자로 두지 않고 그대로 보여준다.
+  if (
+    typeof min === 'number' &&
+    typeof max === 'number'
+  ) {
+    return `${formatWon(min)} ~ ${formatWon(max)}`;
+  }
+
+  if (typeof max === 'number') {
+    return `${formatWon(max)} 이하`;
+  }
+
+  if (typeof min === 'number') {
+    return `${formatWon(min)} 이상`;
   }
 
   return '';
