@@ -1,3 +1,4 @@
+import BusinessPermitGuide from '@/components/BusinessPermitGuide';
 import MonthlyCandidateComparison from '@/components/MonthlyCandidateComparison';
 import AnalysisHeader from '@/components/analysis-header';
 import AnalysisStepper from '@/components/analysis-stepper';
@@ -5,6 +6,7 @@ import { COLORS } from '@/constants/colors';
 import { sejongAreas } from '@/constants/sejongAreas';
 import type { AIExplanation } from '@/services/aiExplanation';
 import { generateAIExplanation } from '@/services/aiExplanation';
+import { getBusinessPermitContext } from '@/services/businessPermits';
 import type { ScoredCommercialAnalysisResult } from '@/services/commercialAnalysis';
 import {
   analyzeCommercialArea,
@@ -447,6 +449,7 @@ export default function ResultScreen() {
             유동인구증감률: item.floatingPopulationChangeRate,
             생활인구증감률: item.livingPopulationChangeRate,
             evaluation: item.evaluation,
+            permitGuide: getBusinessPermitContext({ businessName, lclsCode, mclsCode, sclsCode }),
           });
         setAiExplanations(prev => ({
           ...prev,
@@ -523,6 +526,13 @@ export default function ResultScreen() {
         <Text style={styles.title}>
           {`'${businessName}' 지역별 적합도 순위`}
         </Text>
+        <BusinessPermitGuide
+          key={`${lclsCode}|${mclsCode}|${sclsCode}|${businessName}`}
+          businessName={businessName}
+          lclsCode={lclsCode}
+          mclsCode={mclsCode}
+          sclsCode={sclsCode}
+        />
         {loading && (
           <View style={styles.loadingBox}>
             <ActivityIndicator
