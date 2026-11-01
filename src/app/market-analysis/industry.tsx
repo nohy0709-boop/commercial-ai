@@ -8,7 +8,13 @@ import { COLORS } from '@/constants/colors';
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { sejongAreas } from '@/constants/sejongAreas';
+
+import { getAnalysisDefaults, hasProfile } from '@/services/profileContext';
+
+import { getUserProfile } from '@/services/userProfile';
 
 import { useResponsive } from '@/hooks/useResponsive';
 
@@ -49,6 +55,64 @@ export default function IndustrySelectionScreen() {
   );
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  /**
+   * 내 정보로 자동 선택하기
+   * - 나의 창업 정보(관심 업종 / 관심 지역)를 읽어 앱이 지원하는 값만 남긴다.
+   */
+  const [myBusinesses, setMyBusinesses] = useState<string[]>([]);
+
+  const [myAreas, setMyAreas] = useState<string[]>([]);
+
+  useEffect(() => {
+
+    let alive = true;
+
+    const load = async () => {
+
+      try {
+
+        const profile = await getUserProfile();
+
+        if (!alive || !hasProfile(profile)) return;
+
+        const defaults = getAnalysisDefaults(profile);
+
+        const supportedBusinesses = businessCategories
+          .flatMap(category => category.businesses.map(business => business.name));
+
+        const supportedAreas = sejongAreas.map(area => area.name);
+
+        setMyBusinesses(
+          defaults.allBusinesses.filter(name => supportedBusinesses.includes(name)),
+        );
+
+        setMyAreas(
+          defaults.regions.filter(name => supportedAreas.includes(name)),
+        );
+
+      } catch (error) {
+
+        console.warn('내 정보 불러오기 실패:', error);
+
+      }
+
+    };
+
+    load();
+
+    return () => {
+
+      alive = false;
+
+    };
+
+  }, []);
+
+  const canQuickAnalyze = myBusinesses.length > 0 && myAreas.length > 0;
+
+  /** 내 정보 적용 체크 여부 (체크하면 업종이 선택되고, 다음 화면에서 지역이 미리 선택된다) */
+  const [useMyInfo, setUseMyInfo] = useState(false);
 
 
 
@@ -102,6 +166,33 @@ export default function IndustrySelectionScreen() {
 
 
 
+  const toggleMyInfo = () => {
+
+    if (!canQuickAnalyze) return;
+
+    if (useMyInfo) {
+
+      setSelectedBusinesses(prev =>
+        prev.filter(name => !myBusinesses.includes(name)),
+      );
+
+      setUseMyInfo(false);
+
+      return;
+
+    }
+
+    setSelectedBusinesses(prev => [
+      ...prev,
+      ...myBusinesses.filter(name => !prev.includes(name)),
+    ]);
+
+    setUseMyInfo(true);
+
+  };
+
+
+
   const handleNext = () => {
 
     if (selectedBusinesses.length === 0) return;
@@ -110,7 +201,15 @@ export default function IndustrySelectionScreen() {
 
       pathname: '/market-analysis/region',
 
-      params: { businesses: selectedBusinesses.join(',') },
+      params: {
+
+        businesses: selectedBusinesses.join(','),
+
+        ...(useMyInfo && myAreas.length > 0
+          ? { prefillAreas: myAreas.join(',') }
+          : {}),
+
+      },
 
     });
 
@@ -164,6 +263,7 @@ export default function IndustrySelectionScreen() {
         <View style={styles.contentFrame}>
 
           <View style={styles.titleFrame}>
+
             <Text
               style={[
                 styles.heading,
@@ -287,6 +387,34 @@ export default function IndustrySelectionScreen() {
           </View>
 
 
+
+          {canQuickAnalyze && (
+
+            <TouchableOpacity
+              style={[styles.bannerRow, useMyInfo && styles.bannerRowActive]}
+              activeOpacity={0.85}
+              onPress={toggleMyInfo}
+            >
+
+              <View style={[styles.checkBox, useMyInfo && styles.checkBoxActive]}>
+
+                {useMyInfo && <Text style={styles.checkMark}>✓</Text>}
+
+              </View>
+
+              <View style={styles.bannerBody}>
+
+                <Text style={styles.bannerTitle}>내 정보로 선택</Text>
+
+                <Text style={styles.bannerText} numberOfLines={1}>
+                  {`${myBusinesses.join(', ')} · ${myAreas.join(', ')}`}
+                </Text>
+
+              </View>
+
+            </TouchableOpacity>
+
+          )}
 
           {/* 세부 업종 패널 */}
 
@@ -539,6 +667,62 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     paddingBottom: 24,
+  },
+
+  bannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+  },
+
+  bannerRowActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
+  },
+
+  checkBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+
+  checkBoxActive: {
+    backgroundColor: COLORS.primary,
+  },
+
+  checkMark: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: -1,
+  },
+
+  bannerBody: {
+    flex: 1,
+  },
+
+  bannerTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: COLORS.text,
+  },
+
+  bannerText: {
+    marginTop: 2,
+    fontSize: 12,
+    color: COLORS.textSecondary,
   },
 
   titleFrame: {
