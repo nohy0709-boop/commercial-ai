@@ -1,6 +1,8 @@
 import {
   getAccessibilityByArea,
 } from '../data/accessibilityData';
+import type { MarketEvaluation } from './marketEvaluation';
+import { buildMarketEvaluation, normalizeMetric, SUITABILITY_WEIGHTS } from './marketEvaluation';
 
 import {
   getPopulationByArea,
@@ -119,6 +121,8 @@ export type ScoredCommercialAnalysisResult =
     accessibilityScore: number;
 
     suitabilityScore: number;
+
+    evaluation?: MarketEvaluation;
   };
 
 /**
@@ -631,74 +635,14 @@ export async function analyzeCommercialPoint(
  *
  * 값이 클수록 높은 점수
  */
-function normalize(
-  value: number,
-
-  min: number,
-
-  max: number,
-): number {
-  if (
-    max === min
-  ) {
-    return 100;
-  }
-
-  return (
-    (
-      value -
-      min
-    ) /
-    (
-      max -
-      min
-    )
-  ) *
-    100;
+function normalize(value: number, min: number, max: number): number {
+  return normalizeMetric(value, min, max);
+}
+function normalizeReverse(value: number, min: number, max: number): number {
+  return normalizeMetric(value, min, max, true);
 }
 
-/**
- * =====================================================
- * 역방향 정규화
- * =====================================================
- *
- * 값이 낮을수록 높은 점수
- *
- * 경쟁밀도 등에 사용
- */
-function normalizeReverse(
-  value: number,
-
-  min: number,
-
-  max: number,
-): number {
-  if (
-    max === min
-  ) {
-    return 100;
-  }
-
-  return (
-    (
-      max -
-      value
-    ) /
-    (
-      max -
-      min
-    )
-  ) *
-    100;
-}
-
-/**
- * =====================================================
- * 상권 적합도 점수 계산
- * =====================================================
- *
- * 여러 지역의 상권을 비교하는 용도
- */
+/** 여러 지역 간 상대 적합도 계산. 기존 점수·가중치를 유지합니다. */
 export function calculateSuitabilityScores(
   results:
     CommercialAnalysisResult[],
@@ -973,29 +917,21 @@ export function calculateSuitabilityScores(
          * 총 100%
          */
         const suitabilityScore =
-          floatingPopulationScore *
-            0.18 +
+          floatingPopulationScore * SUITABILITY_WEIGHTS.floatingPopulationScore +
 
-          salesScore *
-            0.14 +
+          salesScore * SUITABILITY_WEIGHTS.salesScore +
 
-          averageSalesScore *
-            0.18 +
+          averageSalesScore * SUITABILITY_WEIGHTS.averageSalesScore +
 
-          competitionScore *
-            0.14 +
+          competitionScore * SUITABILITY_WEIGHTS.competitionScore +
 
-          livingPopulationScore *
-            0.09 +
+          livingPopulationScore * SUITABILITY_WEIGHTS.livingPopulationScore +
 
-          livingPopulationChangeScore *
-            0.09 +
+          livingPopulationChangeScore * SUITABILITY_WEIGHTS.livingPopulationChangeScore +
 
-          floatingPopulationChangeScore *
-            0.09 +
+          floatingPopulationChangeScore * SUITABILITY_WEIGHTS.floatingPopulationChangeScore +
 
-          accessibilityScore *
-            0.09;
+          accessibilityScore * SUITABILITY_WEIGHTS.accessibilityScore;
 
         return {
           ...item,
@@ -1078,5 +1014,8 @@ export function calculateSuitabilityScores(
       a.suitabilityScore,
   );
 
-  return scoredResults;
+  return scoredResults.map(item => ({
+    ...item,
+    evaluation: buildMarketEvaluation(item, results, 'suitability'),
+  }));
 }
