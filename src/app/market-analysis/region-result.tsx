@@ -1098,6 +1098,10 @@ export default function RegionResultScreen() {
 
                     top.rank,
 
+                  evaluation:
+
+                    top.evaluation,
+
                 },
 
               )
@@ -1454,6 +1458,18 @@ export default function RegionResultScreen() {
             result.accessibilityScore,
 
           ),
+
+        evaluation:
+
+          result.evaluation
+
+            ? JSON.stringify(
+
+              result.evaluation,
+
+            )
+
+            : '',
 
         compareData:
 
