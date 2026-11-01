@@ -12,6 +12,8 @@ import { sejongAreas } from '@/constants/sejongAreas';
 
 import type { AIExplanation } from '@/services/aiExplanation';
 
+import type { MarketEvaluation } from '@/services/marketEvaluation';
+
 import { generateAIExplanation } from '@/services/aiExplanation';
 
 import { sendChatMessage } from '@/services/chatbot';
@@ -218,6 +220,8 @@ export default function RegionResultDetailScreen() {
 
     compareData?: string;
 
+    evaluation?: string;
+
     analysisType?: string;
 
     dongName?: string;
@@ -267,6 +271,8 @@ export default function RegionResultDetailScreen() {
     floatingPopulationChangeRate,
 
     compareData,
+
+    evaluation: evaluationParam,
 
     analysisType,
 
@@ -408,6 +414,24 @@ export default function RegionResultDetailScreen() {
 
    */
 
+  /**
+   * 앱이 계산한 지표별 평가 (목록 화면에서 넘겨받음)
+   * 이 값이 있어야 AI가 "높음/낮음"을 앱 화면과 같은 기준으로 설명한다.
+   */
+  let evaluation: MarketEvaluation | undefined;
+
+  try {
+
+    evaluation = evaluationParam ? JSON.parse(evaluationParam) : undefined;
+
+  } catch (error) {
+
+    console.error('평가 데이터 파싱 오류:', error);
+
+    evaluation = undefined;
+
+  }
+
   const [explanation, setExplanation] = useState<AIExplanation | null>(null);
 
   const [aiLoading, setAiLoading] = useState(true);
@@ -505,6 +529,8 @@ export default function RegionResultDetailScreen() {
           적합도점수: Number(suitabilityScore),
 
           순위: Number(rank),
+
+          evaluation,
 
         });
 
