@@ -710,6 +710,19 @@ export default function RegionResultScreen() {
           String(
             result.accessibilityScore,
           ),
+
+        evaluation:
+
+          result.evaluation
+
+            ? JSON.stringify(
+
+              result.evaluation,
+
+            )
+
+            : '',
+
         compareData:
           JSON.stringify(
             allItems.map(
