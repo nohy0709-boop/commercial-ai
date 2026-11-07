@@ -31,10 +31,9 @@ export const businessCategories = [
         lclsCode: "I2",
         mclsCode: "I204",
         sclsCode: undefined,
-},
+      },
     ],
   },
-
   {
     categoryName: "소매",
     businesses: [
@@ -43,6 +42,71 @@ export const businessCategories = [
         lclsCode: "G2",
         mclsCode: "G204",
         sclsCode: "G20405",
+      },
+    ],
+  },
+  {
+    categoryName: "학원",
+    businesses: [
+      {
+        name: "입시·보습",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "영어학원",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "수학학원",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "외국어학원",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "음악학원",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "미술학원",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "체육·무용",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "코딩·컴퓨터",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "독서실",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
+      },
+      {
+        name: "직업·자격증",
+        lclsCode: "",
+        mclsCode: "",
+        sclsCode: undefined,
       },
     ],
   },
