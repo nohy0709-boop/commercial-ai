@@ -312,6 +312,97 @@ function appExplanation(
   };
 }
 
+const GEMINI_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash-lite',
+];
+
+const RETRY_STATUS = [429, 500, 502, 503, 504];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Gemini 호출.
+ * 일시적 오류(429/5xx)는 잠깐 쉬고 다시 시도하고,
+ * 그래도 안 되면 다음 모델로 넘어갑니다.
+ * 모두 실패하면 null을 돌려줍니다.
+ */
+async function callGemini(
+  apiKey: string,
+  prompt: string,
+): Promise<string | null> {
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: prompt,
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.2,
+              },
+            }),
+            signal: AbortSignal.timeout(25000),
+          },
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+
+          const text = result.candidates?.[0]?.content?.parts
+            ?.filter(
+              (part: { text?: string }) =>
+                typeof part.text === 'string',
+            )
+            .map((part: { text: string }) => part.text)
+            .join('');
+
+          if (text) {
+            return text;
+          }
+
+          break; // 빈 응답이면 다음 모델로
+        }
+
+        console.error(
+          `Gemini 요청 실패 model=${model} HTTP ${response.status}`,
+        );
+
+        if (!RETRY_STATUS.includes(response.status)) {
+          break; // 재시도해도 소용없는 오류 → 다음 모델로
+        }
+      } catch (error) {
+        console.error(
+          `Gemini 호출 예외 model=${model}`,
+          error,
+        );
+      }
+
+      if (attempt === 0) {
+        await sleep(1500);
+      }
+    }
+  }
+
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
@@ -412,49 +503,21 @@ ${JSON.stringify(userProfile)}
 }
 `;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.2,
-          },
-        }),
-      },
-    );
+    const text = await callGemini(apiKey, prompt);
 
-    if (!response.ok) {
-      throw new Error(
-        `Gemini API 요청 실패 (HTTP ${response.status})`,
-      );
-    }
-
-    const result = await response.json();
-
-    const text = result.candidates?.[0]?.content?.parts
-      ?.filter(
-        (part: { text?: string }) =>
-          typeof part.text === 'string',
-      )
-      .map((part: { text: string }) => part.text)
-      .join('');
-
+    // AI가 일시적으로 응답하지 않으면 앱이 계산한 평가로 대신 설명합니다.
     if (!text) {
-      throw new Error('Gemini 응답을 받아오지 못했습니다.');
+      if (evaluation) {
+        return json({
+          ...appExplanation(evaluation),
+          evaluationVersion: evaluation.version,
+          consistencyStatus: 'app-evaluation-fallback',
+        });
+      }
+
+      throw new Error(
+        'AI 서버가 일시적으로 혼잡해요. 잠시 후 다시 시도해주세요.',
+      );
     }
 
     let explanation: Explanation;
