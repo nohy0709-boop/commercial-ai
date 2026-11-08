@@ -9,6 +9,11 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "moduleSuffixes": [
+        "./.web",
+        "./.native",
+        "./"
       ]
     }
   },
