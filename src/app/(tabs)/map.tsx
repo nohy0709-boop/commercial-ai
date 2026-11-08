@@ -4639,13 +4639,15 @@ const styles =
     analysisResultCard: {
       position:
         'absolute',
-      left: 22,
+      left: '50%',
+      marginLeft: -180,
       bottom: 22,
       width: 360,
+      maxWidth: '100%',
       padding: 18,
       borderWidth: 1,
       borderColor:
-        '#DCEFE0',
+        COLORS.border,
       borderRadius: 20,
       backgroundColor:
         '#FFFFFF',
@@ -4656,6 +4658,7 @@ const styles =
     analysisResultCardSmall: {
       left: 12,
       right: 12,
+      marginLeft: 0,
       bottom: 12,
       width:
         'auto',
@@ -4698,7 +4701,7 @@ const styles =
         'center',
       borderRadius: 16,
       backgroundColor:
-        '#111111',
+        COLORS.text,
     },
 
     analysisScoreValue: {
@@ -4706,7 +4709,7 @@ const styles =
       fontWeight:
         '900',
       color:
-        COLORS.neonLime,
+        COLORS.primary,
     },
 
     analysisScoreUnit: {
@@ -4730,7 +4733,7 @@ const styles =
       padding: 10,
       borderRadius: 12,
       backgroundColor:
-        '#F6F8F6',
+        COLORS.lightGray,
     },
 
     analysisMetricLabel: {
@@ -4768,14 +4771,14 @@ const styles =
       alignItems: 'center',
       gap: 10,
       borderWidth: 1,
-      borderColor: '#E5E7EB',
+      borderColor: COLORS.border,
       borderRadius: 12,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: COLORS.surface,
     },
 
     analysisCandidateRowActive: {
-      borderColor: '#9BD94F',
-      backgroundColor: '#F4FBEA',
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.primaryLight,
     },
 
     analysisCandidateRank: {
@@ -4784,7 +4787,7 @@ const styles =
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 14,
-      backgroundColor: '#111111',
+      backgroundColor: COLORS.text,
     },
 
     analysisCandidateRankText: {
@@ -4797,7 +4800,7 @@ const styles =
       flex: 1,
       fontSize: 13,
       fontWeight: '800',
-      color: '#111111',
+      color: COLORS.text,
     },
 
     analysisCandidateScore: {
@@ -4809,22 +4812,22 @@ const styles =
 
     analysisReturnButton: {
       marginTop: 12,
-      minHeight: 44,
+      minHeight: 52,
       alignItems:
         'center',
       justifyContent:
         'center',
-      borderRadius: 12,
+      borderRadius: 16,
       backgroundColor:
-        COLORS.neonLime,
+        COLORS.primary,
     },
 
     analysisReturnButtonText: {
-      fontSize: 12,
+      fontSize: 14,
       fontWeight:
         '900',
       color:
-        '#111111',
+        '#FFFFFF',
     },
 
     errorBox: {
