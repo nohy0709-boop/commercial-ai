@@ -10,6 +10,10 @@ import { COLORS } from '@/constants/colors';
 
 import { sejongAreas } from '@/constants/sejongAreas';
 
+import { supabase } from '@/lib/supabase';
+
+import { analyzeAcademyAreas, isAcademyCategory } from '@/services/academyAnalysis';
+
 import type { AIExplanation } from '@/services/aiExplanation';
 
 import type { MarketEvaluation } from '@/services/marketEvaluation';
@@ -232,6 +236,10 @@ export default function RegionResultDetailScreen() {
 
     radius?: string;
 
+    isAcademy?: string;
+
+    totalAcademyCount?: string;
+
   }>();
 
   const {
@@ -297,6 +305,9 @@ export default function RegionResultDetailScreen() {
    */
 
   const isPointAnalysis = analysisType === 'point';
+
+  /** 학원 분석 여부 (목록 화면에서 넘겨받음) */
+  const isAcademyAnalysis = params.isAcademy === '1';
 
   const actualDongName = dongName || areaName;
 
@@ -487,6 +498,124 @@ export default function RegionResultDetailScreen() {
   const [checklistCreating, setChecklistCreating] = useState(false);
 
   /**
+   * 학원 분석: 세종 다른 동과의 비교 데이터
+   */
+  const [academyCompare, setAcademyCompare] =
+    useState<AcademyCompareData | null>(null);
+
+  /**
+   * 학원 분석: 이 동의 실제 학원 목록 (교육청 NEIS 등록 기준)
+   */
+  useEffect(() => {
+    if (!isAcademyAnalysis) {
+      return;
+    }
+
+    const run = async () => {
+      try {
+        setStoresLoading(true);
+        setStoresError('');
+
+        const { data, error } = await supabase
+          .from('academies')
+          .select('name, address, address_detail')
+          .eq('dong', actualDongName)
+          .eq('category', businessName)
+          .eq('status', '개원')
+          .order('name')
+          .limit(10);
+
+        if (error) {
+          throw error;
+        }
+
+        setNearbyStores(
+          (
+            (data ?? []) as {
+              name: string | null;
+              address: string | null;
+              address_detail: string | null;
+            }[]
+          ).map(
+            row =>
+              ({
+                name: row.name ?? '',
+                address: [row.address, row.address_detail]
+                  .filter(Boolean)
+                  .join(' '),
+                lat: 0,
+                lng: 0,
+              }) as unknown as NearbyStore,
+          ),
+        );
+      } catch (error) {
+        console.error('학원 목록 조회 오류:', error);
+        setStoresError('학원 목록을 가져오지 못했어요.');
+      } finally {
+        setStoresLoading(false);
+      }
+    };
+
+    run();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!isAcademyAnalysis || !isAcademyCategory(businessName)) {
+      return;
+    }
+
+    const run = async () => {
+      try {
+        const outcome = await analyzeAcademyAreas(
+          sejongAreas.map(item => item.name),
+          businessName,
+        );
+
+        const current = outcome.results.find(
+          item => item.areaName === actualDongName,
+        );
+
+        const others = outcome.results.filter(
+          item => item.areaName !== actualDongName,
+        );
+
+        if (!current || others.length === 0) {
+          return;
+        }
+
+        const average = (values: number[]) =>
+          values.reduce((sum, value) => sum + value, 0) /
+          values.length;
+
+        setAcademyCompare({
+          otherAreaCount: others.length,
+          currentCount: current.sameCategoryCount,
+          averageCount: average(
+            others.map(item => item.sameCategoryCount),
+          ),
+          currentDensity: current.competitionDensity,
+          averageDensity: average(
+            others.map(item => item.competitionDensity),
+          ),
+          currentCluster: current.totalAcademyCount,
+          averageCluster: average(
+            others.map(item => item.totalAcademyCount),
+          ),
+        });
+      } catch (error) {
+        console.error('학원 비교 데이터 오류:', error);
+      }
+    };
+
+    run();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+  /**
 
    * =====================================================
 
@@ -506,33 +635,34 @@ export default function RegionResultDetailScreen() {
 
         setAiError('');
 
-        const result = await generateAIExplanation({
+        const aiInput = isAcademyAnalysis
+          ? {
+            지역: areaName,
+            업종: businessName,
+            같은업종학원수: Number(storeCount),
+            앱지원학원전체수: Number(params.totalAcademyCount),
+            생활인구: Number(livingPopulation),
+            경쟁밀도: Number(competitionDensity),
+            적합도점수: Number(suitabilityScore),
+            순위: Number(rank),
+            evaluation,
+          }
+          : {
+            지역: areaName,
+            업종: businessName,
+            유동인구: Number(floatingPopulation),
+            생활인구: Number(livingPopulation),
+            점포수: Number(storeCount),
+            경쟁밀도: Number(competitionDensity),
+            전체카드소비: Number(salesAmount),
+            점포당카드소비: Number(averageSalesPerStore),
+            버스정류장수: Number(busStopCount),
+            적합도점수: Number(suitabilityScore),
+            순위: Number(rank),
+            evaluation,
+          };
 
-          지역: areaName,
-
-          업종: businessName,
-
-          유동인구: Number(floatingPopulation),
-
-          생활인구: Number(livingPopulation),
-
-          점포수: Number(storeCount),
-
-          경쟁밀도: Number(competitionDensity),
-
-          전체카드소비: Number(salesAmount),
-
-          점포당카드소비: Number(averageSalesPerStore),
-
-          버스정류장수: Number(busStopCount),
-
-          적합도점수: Number(suitabilityScore),
-
-          순위: Number(rank),
-
-          evaluation,
-
-        });
+        const result = await generateAIExplanation(aiInput);
 
         setExplanation(result);
 
@@ -571,6 +701,12 @@ export default function RegionResultDetailScreen() {
    */
 
   useEffect(() => {
+
+    if (isAcademyAnalysis) {
+
+      return;
+
+    }
 
     if (!area || !business) {
 
@@ -1910,6 +2046,30 @@ export default function RegionResultDetailScreen() {
 
       ================================================= */}
 
+        {isAcademyAnalysis ? (
+          <View style={styles.metricGrid}>
+            <View style={styles.metricBox}>
+              <Text style={styles.metricLabel}>{`${businessName} 수`}</Text>
+              <Text style={styles.metricValue}>{storeCount}개</Text>
+            </View>
+            <View style={styles.metricBox}>
+              <Text style={styles.metricLabel}>경쟁밀도 (생활인구 1,000명당 같은 업종 학원 수)</Text>
+              <Text style={styles.metricValue}>
+                {Number(competitionDensity).toFixed(3)}
+              </Text>
+            </View>
+            <View style={styles.metricBox}>
+              <Text style={styles.metricLabel}>앱 지원 학원 전체 수 (학원 밀집도)</Text>
+              <Text style={styles.metricValue}>{params.totalAcademyCount}개</Text>
+            </View>
+            <View style={styles.metricBox}>
+              <Text style={styles.metricLabel}>생활인구 (참고값)</Text>
+              <Text style={styles.metricValue}>
+                {Number(livingPopulation).toLocaleString()}명
+              </Text>
+            </View>
+          </View>
+        ) : (
         <View style={styles.metricGrid}>
 
           <View style={styles.metricBox}>
@@ -1965,6 +2125,7 @@ export default function RegionResultDetailScreen() {
           </View>
 
         </View>
+        )}
 
         {/* =================================================
 
@@ -1972,7 +2133,9 @@ export default function RegionResultDetailScreen() {
 
       ================================================= */}
 
-        <TrendSection areaName={actualDongName} businessName={businessName} />
+        {!isAcademyAnalysis && (
+          <TrendSection areaName={actualDongName} businessName={businessName} />
+        )}
 
         {/* =================================================
 
@@ -1980,7 +2143,15 @@ export default function RegionResultDetailScreen() {
 
       ================================================= */}
 
-        {compareItems.length > 0 ? (
+        {isAcademyAnalysis ? (
+          <View style={styles.comparisonWrapper}>
+            <AcademyCompareSection
+              data={academyCompare}
+              category={businessName}
+              areaName={actualDongName}
+            />
+          </View>
+        ) : compareItems.length > 0 ? (
 
           <View style={styles.comparisonWrapper}>
 
@@ -2018,15 +2189,21 @@ export default function RegionResultDetailScreen() {
 
         <View style={styles.sectionBox}>
 
-          <Text style={styles.sectionTitle}>주변 실제 {businessName} 매장</Text>
+          <Text style={styles.sectionTitle}>
+            {isAcademyAnalysis
+              ? `${areaName} ${businessName} 목록`
+              : `주변 실제 ${businessName} 매장`}
+          </Text>
 
           <Text style={styles.sectionDescription}>
 
-            공공데이터에 등록된 이 지역의 실제 매장 정보예요.
+            {isAcademyAnalysis
+              ? '교육청(NEIS)에 등록된 이 지역의 현재 운영 중인 학원·교습소예요. (최대 10곳)'
+              : '공공데이터에 등록된 이 지역의 실제 매장 정보예요.'}
 
           </Text>
 
-          {Platform.OS !== 'web' && nearbyStores.length > 0 && (
+          {!isAcademyAnalysis && Platform.OS !== 'web' && nearbyStores.length > 0 && (
 
             <NativeStoreMap stores={nearbyStores} />
 
@@ -2085,6 +2262,28 @@ export default function RegionResultDetailScreen() {
         <View style={styles.sectionBox}>
 
           <Text style={styles.sectionTitle}>지역 환경 상세</Text>
+          {isAcademyAnalysis ? (
+            <>
+              <Text style={styles.estimateNotice}>
+                학원 분석은 유동인구·카드소비·버스정류장 지표를 사용하지 않아 표시하지 않아요.
+              </Text>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>생활인구 (경쟁 지표의 분모, 참고값)</Text>
+                <Text style={styles.detailValue}>
+                  {Number(livingPopulation).toLocaleString()}명
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>앱 지원 학원 전체 수</Text>
+                <Text style={styles.detailValue}>{params.totalAcademyCount}개</Text>
+              </View>
+              <View style={[styles.detailRow, styles.detailRowLast]}>
+                <Text style={styles.detailLabel}>{`${businessName} 수`}</Text>
+                <Text style={styles.detailValue}>{storeCount}개</Text>
+              </View>
+            </>
+          ) : (
+            <>
 
           {isPointAnalysis && (
 
@@ -2178,6 +2377,8 @@ export default function RegionResultDetailScreen() {
 
           </View>
 
+            </>
+          )}
         </View>
 
         {/* =================================================
@@ -2330,6 +2531,115 @@ export default function RegionResultDetailScreen() {
  * =====================================================
 
  */
+
+type AcademyCompareData = {
+  otherAreaCount: number;
+  currentCount: number;
+  averageCount: number;
+  currentDensity: number;
+  averageDensity: number;
+  currentCluster: number;
+  averageCluster: number;
+};
+
+function AcademyCompareRow({
+  label,
+  current,
+  average,
+  digits,
+}: {
+  label: string;
+  current: number;
+  average: number;
+  digits: number;
+}) {
+  const max = Math.max(current, average, 0.000001);
+
+  const barWidth = (value: number) =>
+    `${Math.max((value / max) * 100, 2)}%` as `${number}%`;
+
+  return (
+    <View style={styles.academyCompareRow}>
+      <Text style={styles.academyCompareLabel}>{label}</Text>
+
+      <View style={styles.academyBarLine}>
+        <Text style={styles.academyBarName}>이 지역</Text>
+        <View style={styles.academyBarTrack}>
+          <View
+            style={[
+              styles.academyBarFill,
+              { width: barWidth(current) },
+            ]}
+          />
+        </View>
+        <Text style={styles.academyBarValue}>{current.toFixed(digits)}</Text>
+      </View>
+
+      <View style={styles.academyBarLine}>
+        <Text style={styles.academyBarName}>다른 동 평균</Text>
+        <View style={styles.academyBarTrack}>
+          <View
+            style={[
+              styles.academyBarFill,
+              styles.academyBarFillAverage,
+              { width: barWidth(average) },
+            ]}
+          />
+        </View>
+        <Text style={styles.academyBarValue}>{average.toFixed(digits)}</Text>
+      </View>
+    </View>
+  );
+}
+
+function AcademyCompareSection({
+  data,
+  category,
+  areaName,
+}: {
+  data: AcademyCompareData | null;
+  category: string;
+  areaName: string;
+}) {
+  return (
+    <View style={styles.sectionBox}>
+      <Text style={styles.sectionTitle}>세종시 다른 지역과 비교</Text>
+
+      {!data ? (
+        <Text style={styles.noCompareText}>
+          비교 데이터를 불러오는 중이거나 불러오지 못했어요.
+        </Text>
+      ) : (
+        <>
+          <Text style={styles.sectionDescription}>
+            {`${areaName}과 세종 다른 ${data.otherAreaCount}개 동의 평균을 비교해요. 현재 운영 중인 학원·교습소 기준이에요.`}
+          </Text>
+
+          <AcademyCompareRow
+            label={`${category} 수 (곳)`}
+            current={data.currentCount}
+            average={data.averageCount}
+            digits={1}
+          />
+
+          <AcademyCompareRow
+            label="경쟁밀도 (생활인구 1,000명당 같은 업종 학원 수)"
+            current={data.currentDensity}
+            average={data.averageDensity}
+            digits={3}
+          />
+
+          <AcademyCompareRow
+            label="앱 지원 학원 전체 수 (곳)"
+            current={data.currentCluster}
+            average={data.averageCluster}
+            digits={1}
+          />
+        </>
+      )}
+    </View>
+  );
+}
 
 function NativeStoreMap({ stores }: { stores: NearbyStore[] }) {
 
@@ -3469,6 +3779,57 @@ const styles = StyleSheet.create({
 
     color: COLORS.textSecondary,
 
+  },
+
+
+  academyCompareRow: {
+    marginTop: 14,
+  },
+
+  academyCompareLabel: {
+    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  academyBarLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+
+  academyBarName: {
+    width: 78,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+
+  academyBarTrack: {
+    flex: 1,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EEF1F5',
+    overflow: 'hidden',
+  },
+
+  academyBarFill: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+
+  academyBarFillAverage: {
+    backgroundColor: '#B6BDCA',
+  },
+
+  academyBarValue: {
+    width: 56,
+    textAlign: 'right',
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.text,
   },
 
 });
