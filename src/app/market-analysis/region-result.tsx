@@ -1,4 +1,4 @@
-  import CardMapThumbnail from '@/components/CardMapThumbnail';
+import CardMapThumbnail from '@/components/CardMapThumbnail';
 
 import AnalysisHeader from '@/components/analysis-header';
 
@@ -11,7 +11,15 @@ import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
 
 import { sejongAreas } from '@/constants/sejongAreas';
-
+import type {
+  AcademyAreaResult,
+  AcademyCountTable,
+} from '@/services/academyAnalysis';
+import {
+  analyzeAcademyAreas,
+  fetchAcademyCountTable,
+  isAcademyCategory,
+} from '@/services/academyAnalysis';
 import { generateAIExplanation } from '@/services/aiExplanation';
 
 import { getBusinessPermitContext } from '@/services/businessPermits';
@@ -97,13 +105,16 @@ type RankedResult =
     radius?: number;
 
     isEstimated?: boolean;
-
+    /** 학원 분석 결과 여부 */
+    isAcademy?: boolean;
+    /** 학원 분석: 앱이 지원하는 학원 전체 수 (밀집도) */
+    totalAcademyCount?: number;
   };
 
 type GroupedResult = {
 
   businessName: string;
-
+  isAcademy?: boolean;
   items: RankedResult[];
 
 };
@@ -137,7 +148,41 @@ function getPermitInput(businessName: string) {
   };
 
 }
-
+/**
+ * 학원 분석 결과를 기존 결과 카드 형태로 맞춥니다.
+ * 학원 분석에 쓰지 않는 지표(유동인구·카드소비·접근성 등)는 0으로 둡니다.
+ */
+function toAcademyRankedResult(
+  result: AcademyAreaResult,
+): ScoredCommercialAnalysisResult & {
+  isAcademy: true;
+  totalAcademyCount: number;
+} {
+  return {
+    areaName: result.areaName,
+    storeCount: result.sameCategoryCount,
+    livingPopulation: result.livingPopulation,
+    floatingPopulation: 0,
+    livingPopulationChangeRate: 0,
+    floatingPopulationChangeRate: 0,
+    salesAmount: 0,
+    competitionDensity: result.competitionDensity,
+    averageSalesPerStore: 0,
+    busStopCount: 0,
+    floatingPopulationScore: 0,
+    salesScore: 0,
+    averageSalesScore: 0,
+    competitionScore: result.competitionScore,
+    livingPopulationScore: result.livingPopulationScore,
+    livingPopulationChangeScore: 0,
+    floatingPopulationChangeScore: 0,
+    accessibilityScore: 0,
+    suitabilityScore: result.suitabilityScore,
+    evaluation: result.evaluation,
+    isAcademy: true,
+    totalAcademyCount: result.totalAcademyCount,
+  };
+}
 function renderSummaryText(value: unknown) {
   const text = typeof value === 'string' ? value : '';
   return text.split(/(\*\*[\s\S]+?\*\*)/g).map((part, index) =>
@@ -146,15 +191,15 @@ function renderSummaryText(value: unknown) {
       : part,
   );
 }
-
-function getOneLineSummary(result: ScoredCommercialAnalysisResult): string {
-
+function getOneLineSummary(
+  result: ScoredCommercialAnalysisResult & { isAcademy?: boolean },
+): string {
   const metrics = result.evaluation?.metrics.filter(metric =>
 
     metric.comparable && metric.normalizedScore !== null &&
-
-    !metric.key.includes('ChangeRate'),
-
+    !metric.key.includes('ChangeRate') &&
+    // 학원 분석에서 생활인구는 경쟁 지표의 분모로 쓰이는 참고값
+    !(result.isAcademy && metric.key === 'livingPopulation'),
   ) ?? [];
 
   const top = [...metrics].sort((a, b) =>
@@ -578,13 +623,59 @@ export default function RegionResultScreen() {
           const groups: GroupedResult[] =
 
             [];
-
+          // 학원 집계는 한 번만 읽어서 여러 학원 업종이 함께 씁니다.
+          let academyTable:
+            AcademyCountTable | undefined;
           for (
 
             const business of targetBusinesses
 
           ) {
-
+            // 학원 업종은 카드소비 기반 분석 대신 학원 분석을 사용합니다.
+            if (isAcademyCategory(business.name)) {
+              try {
+                academyTable =
+                  academyTable ??
+                  await fetchAcademyCountTable();
+                // 학원은 행정동 단위 분석이라 상세 위치의 행정동도 함께 비교합니다.
+                const academyAreaNames = Array.from(
+                  new Set([
+                    ...selectedAreaNames,
+                    ...selectedDetailedLocations.map(
+                      location => location.dongName,
+                    ),
+                  ]),
+                );
+                const outcome =
+                  await analyzeAcademyAreas(
+                    academyAreaNames,
+                    business.name,
+                    academyTable,
+                  );
+                if (outcome.results.length > 0) {
+                  groups.push({
+                    businessName:
+                      business.name,
+                    isAcademy: true,
+                    items:
+                      outcome.results.map(
+                        (result, index) => ({
+                          ...toAcademyRankedResult(
+                            result,
+                          ),
+                          rank: index + 1,
+                        }),
+                      ),
+                  });
+                }
+              } catch (error) {
+                console.error(
+                  `${business.name} 학원 분석 실패`,
+                  error,
+                );
+              }
+              continue;
+            }
             const analysisResults: any[] =
 
               [];
@@ -858,11 +949,28 @@ export default function RegionResultScreen() {
                 }),
 
               );
-
-              generateAIExplanation(
-
-                {
-
+              // 학원은 유동인구·카드소비·접근성 대신 학원 지표만 AI에 전달합니다.
+              const aiInput = top.isAcademy
+                ? {
+                  지역:
+                    top.areaName,
+                  업종:
+                    group.businessName,
+                  같은업종학원수:
+                    top.storeCount,
+                  앱지원학원전체수:
+                    top.totalAcademyCount,
+                  생활인구:
+                    top.livingPopulation,
+                  경쟁밀도:
+                    top.competitionDensity,
+                  적합도점수:
+                    top.suitabilityScore,
+                  순위:
+                    top.rank,
+                  evaluation: top.evaluation,
+                }
+                : {
                   지역:
 
                     top.areaName,
@@ -914,9 +1022,9 @@ export default function RegionResultScreen() {
                   evaluation: top.evaluation,
 
                   permitGuide: getBusinessPermitContext(getPermitInput(group.businessName)),
-
-                },
-
+                };
+              generateAIExplanation(
+                aiInput,
               )
 
                 .then(
@@ -1285,6 +1393,18 @@ export default function RegionResultScreen() {
 
             )
 
+            : '',
+
+        isAcademy:
+          result.isAcademy
+            ? '1'
+            : '',
+        totalAcademyCount:
+          result.totalAcademyCount !==
+            undefined
+            ? String(
+              result.totalAcademyCount,
+            )
             : '',
 
         compareData:
@@ -1744,9 +1864,9 @@ export default function RegionResultScreen() {
                   }
 
                 >
-
-                  유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.
-
+                  {group.isAcademy
+                    ? '같은 업종 학원 수, 생활인구, 학원 밀집도를 바탕으로 비교한 결과예요.'
+                    : '유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.'}
                 </Text>
 
                 {(topAiLoading[
@@ -1850,9 +1970,9 @@ export default function RegionResultScreen() {
                     </View>
 
                   )}
-
-                <BusinessPermitGuide {...getPermitInput(group.businessName)} />
-
+                {!group.isAcademy && (
+                  <BusinessPermitGuide {...getPermitInput(group.businessName)} />
+                )}
                 <View
 
                   style={styles.cardGrid}
@@ -2150,35 +2270,53 @@ export default function RegionResultScreen() {
                             }
 
                           >
-
-                            <View
-
-                              style={
-
-                                styles.tag
-
-                              }
-
-                            >
-
-                              <Text
-
+                            {result.isAcademy ? (
+                              <>
+                                <View
+                                  style={
+                                    styles.tag
+                                  }
+                                >
+                                  <Text
+                                    style={
+                                      styles.tagText
+                                    }
+                                  >
+                                    {`${group.businessName} ${result.storeCount}곳`}
+                                  </Text>
+                                </View>
+                                <View
+                                  style={
+                                    styles.tag
+                                  }
+                                >
+                                  <Text
+                                    style={
+                                      styles.tagText
+                                    }
+                                  >
+                                    학원 밀집도{' '}
+                                    {getMetricLabel(result.evaluation, 'academyCluster') ?? '평가 불가'}
+                                  </Text>
+                                </View>
+                              </>
+                            ) : (
+                              <View
                                 style={
-
-                                  styles.tagText
-
+                                  styles.tag
                                 }
 
                               >
-
-                                유동인구{' '}
-
-                                {getMetricLabel(result.evaluation, 'floatingPopulation') ?? getLevelLabel(result.floatingPopulationScore)}
-
-                              </Text>
-
-                            </View>
-
+                                <Text
+                                  style={
+                                    styles.tagText
+                                  }
+                                >
+                                  유동인구{' '}
+                                  {getMetricLabel(result.evaluation, 'floatingPopulation') ?? getLevelLabel(result.floatingPopulationScore)}
+                                </Text>
+                              </View>
+                            )}
                             <View
 
                               style={
