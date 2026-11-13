@@ -25,19 +25,15 @@ import { generateAIExplanation } from '@/services/aiExplanation';
 import { getBusinessPermitContext } from '@/services/businessPermits';
 
 import type {
-
   ScoredCommercialAnalysisResult,
-
 } from '@/services/commercialAnalysis';
 
 import {
-
   analyzeCommercialArea,
 
   analyzeCommercialPoint,
 
   calculateSuitabilityScores,
-
 } from '@/services/commercialAnalysis';
 
 import type { Coordinates } from '@/services/geocoding';
@@ -51,7 +47,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import {
-
   ActivityIndicator,
 
   Pressable,
@@ -67,7 +62,6 @@ import {
   useWindowDimensions,
 
   View,
-
 } from 'react-native';
 
 type DetailedLocation = {
@@ -126,6 +120,37 @@ const delay = (ms: number) =>
     setTimeout(resolve, ms),
 
   );
+
+/**
+ * 후보가 1곳일 때 AI 한줄 요약을 보여줄지 여부.
+ * AI 응답이 어색하면 false로 바꾸면 1곳 선택 시 AI 요약만 숨깁니다.
+ */
+const AI_SINGLE_MODE_ENABLED = true;
+
+/** 후보가 1곳뿐이면 지표를 정규화할 비교 대상이 없어 점수·순위가 의미가 없습니다. */
+const NO_COMPARE_NOTE =
+  '선택한 지역이 1곳이라 상대 점수와 순위는 산정되지 않았습니다. 적합도 점수나 순위는 언급하지 말고, 제공된 지표의 실제 수치만 근거로 설명해주세요.';
+
+function toNoCompareEvaluation(evaluation: any) {
+  if (!evaluation || !Array.isArray(evaluation.metrics)) {
+    return evaluation;
+  }
+  return {
+    ...evaluation,
+    metrics: evaluation.metrics.map((metric: any) => ({
+      ...metric,
+      comparable: false,
+      normalizedScore: null,
+      unroundedScore: null,
+      weightedContribution: null,
+      label: '비교 불가',
+    })),
+  };
+}
+
+const isSingleGroup = (group: { items: unknown[] }) =>
+  group.items.length === 1;
+
 
 function getPermitInput(businessName: string) {
 
@@ -931,9 +956,11 @@ export default function RegionResultScreen() {
                 group.items[0];
 
               if (!top) {
-
                 return;
-
+              }
+              const isSingle = group.items.length === 1;
+              if (isSingle && !AI_SINGLE_MODE_ENABLED) {
+                return;
               }
 
               setTopAiLoading(
@@ -1023,8 +1050,17 @@ export default function RegionResultScreen() {
 
                   permitGuide: getBusinessPermitContext(getPermitInput(group.businessName)),
                 };
+              const aiInputFinal = isSingle
+                ? {
+                  ...aiInput,
+                  적합도점수: undefined,
+                  순위: undefined,
+                  비교안내: NO_COMPARE_NOTE,
+                  evaluation: toNoCompareEvaluation(top.evaluation),
+                }
+                : aiInput;
               generateAIExplanation(
-                aiInput,
+                aiInputFinal,
               )
 
                 .then(
@@ -1851,23 +1887,28 @@ export default function RegionResultScreen() {
 
                 >
 
-                  {`${group.businessName} 업종에 적합한 입지 TOP ${group.items.length}를 분석했어요!`}
+                  {isSingleGroup(group)
+                    ? `${group.businessName} 업종으로 선택한 지역을 분석했어요!`
+                    : `${group.businessName} 업종에 적합한 입지 TOP ${group.items.length}를 분석했어요!`}
 
                 </Text>
 
-                <Text
-
-                  style={
-
-                    styles.groupDescription
-
-                  }
-
-                >
-                  {group.isAcademy
-                    ? '같은 업종 학원 수, 생활인구, 학원 밀집도를 바탕으로 비교한 결과예요.'
-                    : '유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.'}
-                </Text>
+                {isSingleGroup(group) ? (
+                  <View style={styles.singleNotice}>
+                    <Text style={styles.singleNoticeTitle}>
+                      비교 점수는 산정하지 않았어요
+                    </Text>
+                    <Text style={styles.singleNoticeText}>
+                      선택한 지역이 1곳이라 지역 간 비교 점수와 순위를 계산할 수 없어요. 2곳 이상 선택하면 비교할 수 있어요. 아래 수치는 선택한 지역의 실제 값이에요.
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.groupDescription}>
+                    {group.isAcademy
+                      ? '같은 업종 학원 수, 생활인구, 학원 밀집도를 바탕으로 비교한 결과예요.'
+                      : '유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.'}
+                  </Text>
+                )}
 
                 {(topAiLoading[
 
@@ -1995,9 +2036,8 @@ export default function RegionResultScreen() {
 
                   result => {
 
-                    const isFirst =
-
-                      result.rank === 1;
+                    const single = group.items.length === 1;
+                    const isFirst = !single && result.rank === 1;
 
                     const isPoint =
 
@@ -2097,10 +2137,9 @@ export default function RegionResultScreen() {
 
                           )}
 
+                          {!single && (
                           <View
-
                             style={[
-
                               styles.rankBadge,
 
                               isFirst &&
@@ -2134,6 +2173,7 @@ export default function RegionResultScreen() {
                             </Text>
 
                           </View>
+                          )}
 
                         </View>
 
@@ -2215,7 +2255,12 @@ export default function RegionResultScreen() {
 
                             </View>
 
-                            <View
+                            {single ? (
+                              <View style={styles.noScoreBox}>
+                                <Text style={styles.noScoreText}>비교 불가</Text>
+                              </View>
+                            ) : (
+<View
 
                               style={
 
@@ -2258,6 +2303,7 @@ export default function RegionResultScreen() {
                               </Text>
 
                             </View>
+                            )}
 
                           </View>
 
@@ -2270,7 +2316,37 @@ export default function RegionResultScreen() {
                             }
 
                           >
-                            {result.isAcademy ? (
+                            {single ? (
+                              <>
+                                {result.isAcademy ? (
+                                  <View style={styles.tag}>
+                                    <Text style={styles.tagText}>
+                                      {`${group.businessName} ${result.storeCount}곳`}
+                                    </Text>
+                                  </View>
+                                ) : (
+                                  <>
+                                    <View style={styles.tag}>
+                                      <Text style={styles.tagText}>
+                                        {`유동인구 ${Math.round(result.floatingPopulation).toLocaleString()}명`}
+                                      </Text>
+                                    </View>
+                                    <View style={styles.tag}>
+                                      <Text style={styles.tagText}>
+                                        {`${group.businessName} 점포 ${Math.round(result.storeCount).toLocaleString()}개`}
+                                      </Text>
+                                    </View>
+                                  </>
+                                )}
+                                <View style={styles.tag}>
+                                  <Text style={styles.tagText}>
+                                    {`경쟁밀도 ${Number(result.competitionDensity).toFixed(3)}`}
+                                  </Text>
+                                </View>
+                              </>
+                            ) : (
+                              <>
+{result.isAcademy ? (
                               <>
                                 <View
                                   style={
@@ -2343,7 +2419,9 @@ export default function RegionResultScreen() {
 
                             </View>
 
-                            {isPoint && (
+                            </>
+                            )}
+{isPoint && (
 
                               <View
 
@@ -2395,11 +2473,9 @@ export default function RegionResultScreen() {
 
                             >
 
-                              {getOneLineSummary(
-
-                                result,
-
-                              )}
+                              {single
+                              ? '비교 대상이 없어 점수는 산정하지 않았어요. 지표별 실제 수치를 확인해보세요.'
+                              : getOneLineSummary(result)}
 
                             </Text>
 
@@ -3007,6 +3083,44 @@ const styles =
 
       marginBottom: 2,
 
+    },
+
+    noScoreBox: {
+      marginLeft: 8,
+      paddingVertical: 5,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.primaryLight,
+    },
+
+    noScoreText: {
+      fontSize: 13,
+      fontWeight: '900',
+      color: COLORS.primary,
+    },
+
+    singleNotice: {
+      marginBottom: 16,
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.primaryLight,
+    },
+
+    singleNoticeTitle: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: COLORS.primary,
+      marginBottom: 4,
+    },
+
+    singleNoticeText: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: COLORS.text,
     },
 
     tagRow: {
