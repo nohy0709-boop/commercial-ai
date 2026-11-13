@@ -41,6 +41,28 @@ const delay = (ms: number) =>
   new Promise(resolve =>
     setTimeout(resolve, ms),
   );
+
+/** 후보가 1곳뿐이면 지표를 정규화할 비교 대상이 없어 점수·순위가 의미가 없습니다. */
+const NO_COMPARE_NOTE =
+  '선택한 지역이 1곳이라 상대 점수와 순위는 산정되지 않았습니다. 적합도 점수나 순위는 언급하지 말고, 제공된 지표의 실제 수치만 근거로 설명해주세요.';
+
+function toNoCompareEvaluation(evaluation: any) {
+  if (!evaluation || !Array.isArray(evaluation.metrics)) {
+    return evaluation;
+  }
+  return {
+    ...evaluation,
+    metrics: evaluation.metrics.map((metric: any) => ({
+      ...metric,
+      comparable: false,
+      normalizedScore: null,
+      unroundedScore: null,
+      weightedContribution: null,
+      label: '비교 불가',
+    })),
+  };
+}
+
 function renderEmphasizedText(
   text: string,
   textStyle: object,
@@ -444,11 +466,18 @@ export default function ResultScreen() {
             버스정류장수:
               item.busStopCount,
             적합도점수:
-              item.suitabilityScore,
-            순위: item.rank,
+              results.length === 1
+                ? undefined
+                : item.suitabilityScore,
+            순위: results.length === 1 ? undefined : item.rank,
             유동인구증감률: item.floatingPopulationChangeRate,
             생활인구증감률: item.livingPopulationChangeRate,
-            evaluation: item.evaluation,
+            evaluation:
+              results.length === 1
+                ? toNoCompareEvaluation(item.evaluation)
+                : item.evaluation,
+            비교안내:
+              results.length === 1 ? NO_COMPARE_NOTE : undefined,
             permitGuide: getBusinessPermitContext({ businessName, lclsCode, mclsCode, sclsCode }),
           });
         setAiExplanations(prev => ({
@@ -488,6 +517,7 @@ export default function ResultScreen() {
         [key]: !prev[key],
       }));
     };
+  const isSingle = results.length === 1;
   return (
     <View style={styles.screen}>
       <AnalysisHeader
@@ -524,8 +554,17 @@ export default function ResultScreen() {
         }
       >
         <Text style={styles.title}>
-          {`'${businessName}' 지역별 적합도 순위`}
+          {isSingle
+            ? `'${businessName}' 지역 분석 결과`
+            : `'${businessName}' 지역별 적합도 순위`}
         </Text>
+        {isSingle && !loading && errorMessage === '' && (
+          <View style={styles.noticeBox}>
+            <Text style={styles.noticeText}>
+              선택한 지역이 1곳이라 지역 간 비교 점수와 순위는 산정하지 않아요. 2곳 이상 선택하면 비교할 수 있어요. 아래는 선택한 지역의 실제 수치예요.
+            </Text>
+          </View>
+        )}
         <BusinessPermitGuide
           key={`${lclsCode}|${mclsCode}|${sclsCode}|${businessName}`}
           businessName={businessName}
@@ -570,7 +609,7 @@ export default function ResultScreen() {
             const aiDetailExpanded =
               aiDetailExpandedKeys[key];
             const isFirst =
-              item.rank === 1;
+              !isSingle && item.rank === 1;
             return (
               <View
                 key={key}
@@ -606,10 +645,9 @@ export default function ResultScreen() {
                         styles.rankTextFirst,
                       ]}
                     >
-                      {getRankLabel(
-                        item,
-                        results,
-                      )}
+                      {isSingle
+                        ? '단일 지역'
+                        : getRankLabel(item, results)}
                     </Text>
                   </View>
                 </View>
@@ -626,7 +664,12 @@ export default function ResultScreen() {
                     >
                       {item.areaName} 일대
                     </Text>
-                    <View
+                    {isSingle ? (
+                      <View style={styles.noScoreBox}>
+                        <Text style={styles.noScoreText}>비교 불가</Text>
+                      </View>
+                    ) : (
+<View
                       style={styles.scoreBox}
                     >
                       <Text
@@ -646,8 +689,10 @@ export default function ResultScreen() {
                         점
                       </Text>
                     </View>
+                    )}
                   </View>
-                  <View style={styles.tagRow}>
+                  {!isSingle && (
+<View style={styles.tagRow}>
                     <View style={styles.tag}>
                       <Text
                         style={
@@ -668,6 +713,7 @@ export default function ResultScreen() {
                       </Text>
                     </View>
                   </View>
+                  )}
                   <Text
                     style={
                       styles.sectionTitle
@@ -793,7 +839,8 @@ export default function ResultScreen() {
                           }
                         />
                       </View>
-                      <View
+                      {!isSingle && (
+<View
                         style={
                           styles.scoreDetailBox
                         }
@@ -861,6 +908,7 @@ export default function ResultScreen() {
                           }
                         />
                       </View>
+                      )}
                     </>
                   )}
                   <View style={styles.aiArea}>
@@ -1257,6 +1305,34 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginLeft: 1,
     marginBottom: 2,
+  },
+  noScoreBox: {
+    marginLeft: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
+  },
+  noScoreText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+  noticeBox: {
+    padding: 14,
+    marginBottom: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
+  },
+  noticeText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   tagRow: {
     flexDirection: 'row',
