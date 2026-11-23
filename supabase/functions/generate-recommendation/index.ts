@@ -394,7 +394,13 @@ const GEMINI_MODELS = [
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemini-3.8-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
 ];
+
+// 모든 모델을 합쳐 이 시간(ms)이 지나면 더 기다리지 않고 앱 평가 기반 설명으로 대신합니다.
+const GEMINI_TOTAL_BUDGET_MS = 60000;
+const GEMINI_ATTEMPTS_PER_MODEL = 3;
 
 const RETRY_STATUS = [429, 500, 502, 503, 504];
 
@@ -412,8 +418,19 @@ async function callGemini(
   apiKey: string,
   prompt: string,
 ): Promise<string | null> {
+  const startedAt = Date.now();
+
   for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (
+      let attempt = 0;
+      attempt < GEMINI_ATTEMPTS_PER_MODEL;
+      attempt++
+    ) {
+      if (Date.now() - startedAt > GEMINI_TOTAL_BUDGET_MS) {
+        console.error('Gemini 전체 대기 시간 초과');
+        return null;
+      }
+
       try {
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -459,8 +476,16 @@ async function callGemini(
           break; // 빈 응답이면 다음 모델로
         }
 
+        let detail = '';
+
+        try {
+          detail = (await response.text()).slice(0, 300);
+        } catch {
+          // 본문을 읽지 못해도 상태 코드만 기록합니다.
+        }
+
         console.error(
-          `Gemini 요청 실패 model=${model} HTTP ${response.status}`,
+          `Gemini 요청 실패 model=${model} HTTP ${response.status} ${detail}`,
         );
 
         if (!RETRY_STATUS.includes(response.status)) {
@@ -478,8 +503,8 @@ async function callGemini(
         }
       }
 
-      if (attempt === 0) {
-        await sleep(1500);
+      if (attempt < GEMINI_ATTEMPTS_PER_MODEL - 1) {
+        await sleep(1500 * (attempt + 1));
       }
     }
   }
