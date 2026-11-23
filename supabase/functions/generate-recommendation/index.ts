@@ -388,9 +388,12 @@ function appExplanation(
   };
 }
 
+// 앞 모델이 혼잡(503)하거나 종료(404)되면 다음 모델로 넘어갑니다.
+// gemini-2.5-flash-lite는 2026-10-16에 종료되어 더 이상 호출할 수 없습니다.
 const GEMINI_MODELS = [
   'gemini-3.5-flash-lite',
-  'gemini-2.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.8-flash',
 ];
 
 const RETRY_STATUS = [429, 500, 502, 503, 504];
