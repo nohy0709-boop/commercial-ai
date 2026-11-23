@@ -1,3 +1,5 @@
+import AcademyChangeSection from '@/components/AcademyChangeSection';
+
 import AnalysisHeader from '@/components/analysis-header';
 
 import MonthlyCandidateComparison from '@/components/MonthlyCandidateComparison';
@@ -9,6 +11,8 @@ import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
 
 import { sejongAreas } from '@/constants/sejongAreas';
+
+import { getAcademyDemandByArea } from '@/data/academyDemandData';
 
 import { supabase } from '@/lib/supabase';
 
@@ -310,6 +314,9 @@ export default function RegionResultDetailScreen() {
   const isAcademyAnalysis = params.isAcademy === '1';
 
   const actualDongName = dongName || areaName;
+
+  /** 학원 분석의 수요 데이터 (학령인구 등, 앱에 내장된 값) */
+  const academyDemand = getAcademyDemandByArea(actualDongName);
 
   const backBusinesses = originBusinesses || businessName;
 
@@ -641,7 +648,8 @@ export default function RegionResultDetailScreen() {
             업종: businessName,
             같은업종학원수: Number(storeCount),
             앱지원학원전체수: Number(params.totalAcademyCount),
-            생활인구: Number(livingPopulation),
+            학령인구_6to19세: academyDemand?.schoolAgePopulation,
+            생활인구_참고: Number(livingPopulation),
             경쟁밀도: Number(competitionDensity),
             적합도점수: Number(suitabilityScore),
             순위: Number(rank),
@@ -1626,6 +1634,103 @@ export default function RegionResultDetailScreen() {
 
   };
 
+  /**
+   * =====================================================
+   * 학원 분석: 종합 적합도의 점수 구성
+   * =====================================================
+   *
+   * 경쟁 점수 × 가중치 + 집적 점수 × 가중치 = 종합 적합도
+   * 이미 계산된 evaluation 값을 화면에 풀어서 보여주기만 하며
+   * 점수 계산에는 영향을 주지 않습니다.
+   * 후보가 1곳이라 비교 불가이거나 값이 없으면 카드를 숨깁니다.
+   */
+  const scoreBreakdownRows = (() => {
+    if (!isAcademyAnalysis) {
+      return null;
+    }
+
+    const metrics = evaluation?.metrics;
+
+    if (!metrics) {
+      return null;
+    }
+
+    const rowDefs = [
+      {
+        key: 'competitionDensity',
+        label: '경쟁 점수',
+        hint: '같은 업종 경쟁 밀도가 낮을수록 높아요',
+      },
+      {
+        key: 'academyCluster',
+        label: '집적 점수',
+        hint: '학원 밀집도가 높을수록 높아요',
+      },
+    ];
+
+    const rows: {
+      key: string;
+      label: string;
+      hint: string;
+      score: number;
+      weightPercent: number;
+      contribution: number;
+      comparable: boolean;
+    }[] = [];
+
+    for (const def of rowDefs) {
+      const metric = metrics.find(item => item.key === def.key);
+
+      if (!metric || typeof metric.normalizedScore !== 'number') {
+        return null;
+      }
+
+      const contribution =
+        typeof metric.weightedContribution === 'number'
+          ? metric.weightedContribution
+          : metric.normalizedScore * metric.weight;
+
+      rows.push({
+        key: def.key,
+        label: def.label,
+        hint: def.hint,
+        score: metric.normalizedScore,
+        weightPercent: Math.round(metric.weight * 100),
+        contribution,
+        comparable: metric.comparable,
+      });
+    }
+
+    return rows;
+  })();
+
+  /**
+   * 학원 분석: 수요 기준 비교
+   * 경쟁 점수의 분모만 바꿔 따로 계산한 결과를 그대로 보여줍니다.
+   * 대표 점수(학령인구 기준)는 바뀌지 않으며 결과를 합치거나 평균내지 않습니다.
+   */
+  const demandComparisonRows = (() => {
+    if (!isAcademyAnalysis || !evaluation) {
+      return null;
+    }
+
+    const entries = evaluation.demandComparison;
+
+    if (
+      !entries ||
+      entries.length === 0 ||
+      evaluation.comparisonCount < 2
+    ) {
+      return null;
+    }
+
+    return {
+      entries,
+      rankVaries:
+        new Set(entries.map(entry => entry.rank)).size > 1,
+    };
+  })();
+
   return (
 
     <View style={styles.screen}>
@@ -1763,6 +1868,120 @@ export default function RegionResultDetailScreen() {
           </View>
 
         </View>
+
+        {/* =================================================
+
+          학원 분석: 점수 구성 (경쟁 점수 + 집적 점수)
+
+      ================================================= */}
+
+        {scoreBreakdownRows && (
+          <View style={styles.sectionBox}>
+            <Text style={styles.sectionTitle}>점수 구성</Text>
+
+            <Text style={styles.sectionDescription}>
+              종합 적합도는 경쟁 점수와 집적 점수를 가중 합산해 계산해요.
+            </Text>
+
+            {scoreBreakdownRows.map(row => (
+              <View key={row.key} style={styles.scoreBreakdownRow}>
+                <View style={styles.scoreBreakdownHeader}>
+                  <Text style={styles.scoreBreakdownLabel}>{row.label}</Text>
+
+                  <Text style={styles.scoreBreakdownFormula}>
+                    {row.comparable
+                      ? `${row.score.toFixed(1)}점 × ${row.weightPercent}% = ${row.contribution.toFixed(1)}`
+                      : '비교 차이 없음'}
+                  </Text>
+                </View>
+
+                <Text style={styles.scoreBreakdownHint}>{row.hint}</Text>
+
+                {row.comparable && (
+                  <View style={styles.academyBarTrack}>
+                    <View
+                      style={[
+                        styles.academyBarFill,
+                        {
+                          width: `${Math.max(
+                            Math.min(row.score, 100),
+                            2,
+                          )}%` as `${number}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                )}
+              </View>
+            ))}
+
+            <View style={styles.scoreBreakdownTotalRow}>
+              <Text style={styles.scoreBreakdownTotalLabel}>종합 적합도</Text>
+
+              <Text style={styles.scoreBreakdownTotalValue}>
+                {`${suitabilityScore}점`}
+              </Text>
+            </View>
+
+            <Text style={styles.scoreBreakdownNote}>
+              점수는 이번에 선택한 후보 사이의 상대 평가예요. 후보 중 가장 유리한 지역이 100점, 가장 불리한 지역이 0점이 되도록 맞춘 값이라 후보가 적을수록 점수 차이가 크게 나타날 수 있어요. 각 값은 소수 첫째 자리까지 반올림해 보여줘서 합계와 0.1점 정도 차이가 날 수 있어요.
+            </Text>
+          </View>
+        )}
+
+        {/* =================================================
+
+          학원 분석: 수요 기준 비교 (분모만 바꿔 따로 계산)
+
+      ================================================= */}
+
+        {demandComparisonRows && (
+          <View style={styles.sectionBox}>
+            <Text style={styles.sectionTitle}>수요 기준 비교</Text>
+
+            <Text style={styles.sectionDescription}>
+              경쟁 점수의 분모(수요 기준)만 바꿔 따로 계산한 결과예요. 대표 점수는 학령인구 기준이에요.
+            </Text>
+
+            {demandComparisonRows.entries.map(entry => (
+              <View key={entry.basis} style={styles.scoreBreakdownRow}>
+                <View style={styles.scoreBreakdownHeader}>
+                  <Text style={styles.scoreBreakdownLabel}>
+                    {entry.isPrimary ? `${entry.label} (대표)` : entry.label}
+                  </Text>
+
+                  <Text style={styles.scoreBreakdownFormula}>
+                    {`${entry.suitabilityScore.toFixed(1)}점 · ${entry.rank}위`}
+                  </Text>
+                </View>
+
+                <Text style={styles.scoreBreakdownHint}>
+                  {`경쟁 점수 ${entry.competitionScore.toFixed(1)}점 · 1,000명당 ${entry.density.toFixed(3)}곳`}
+                </Text>
+              </View>
+            ))}
+
+            {demandComparisonRows.rankVaries && (
+              <Text style={styles.demandCompareNotice}>
+                수요 기준에 따라 이 지역의 순위가 달라져요.
+              </Text>
+            )}
+
+            <Text style={styles.scoreBreakdownNote}>
+              세 결과는 합치거나 평균내지 않아요. 점수는 이번에 선택한 후보 사이의 상대 평가예요.
+            </Text>
+          </View>
+        )}
+
+        {/* =================================================
+
+          학원 분석: 최근 변화 (참고 정보, 점수 미반영)
+
+      ================================================= */}
+
+        {isAcademyAnalysis && (
+          <AcademyChangeSection areaName={actualDongName} />
+        )}
 
         {/* =================================================
 
@@ -2053,7 +2272,7 @@ export default function RegionResultDetailScreen() {
               <Text style={styles.metricValue}>{storeCount}개</Text>
             </View>
             <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>경쟁밀도 (생활인구 1,000명당 같은 업종 학원 수)</Text>
+              <Text style={styles.metricLabel}>경쟁밀도 (학령인구 1,000명당 같은 업종 학원 수)</Text>
               <Text style={styles.metricValue}>
                 {Number(competitionDensity).toFixed(3)}
               </Text>
@@ -2063,9 +2282,11 @@ export default function RegionResultDetailScreen() {
               <Text style={styles.metricValue}>{params.totalAcademyCount}개</Text>
             </View>
             <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>생활인구 (참고값)</Text>
+              <Text style={styles.metricLabel}>학령인구 (6~19세)</Text>
               <Text style={styles.metricValue}>
-                {Number(livingPopulation).toLocaleString()}명
+                {academyDemand
+                  ? `${academyDemand.schoolAgePopulation.toLocaleString()}명`
+                  : '-'}
               </Text>
             </View>
           </View>
@@ -2268,7 +2489,15 @@ export default function RegionResultDetailScreen() {
                 학원 분석은 유동인구·카드소비·버스정류장 지표를 사용하지 않아 표시하지 않아요.
               </Text>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>생활인구 (경쟁 지표의 분모, 참고값)</Text>
+                <Text style={styles.detailLabel}>학령인구 6~19세 (경쟁 지표의 분모)</Text>
+                <Text style={styles.detailValue}>
+                  {academyDemand
+                    ? `${academyDemand.schoolAgePopulation.toLocaleString()}명`
+                    : '-'}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>생활인구 (비교용 분모, 참고값)</Text>
                 <Text style={styles.detailValue}>
                   {Number(livingPopulation).toLocaleString()}명
                 </Text>
@@ -2623,7 +2852,7 @@ function AcademyCompareSection({
           />
 
           <AcademyCompareRow
-            label="경쟁밀도 (생활인구 1,000명당 같은 업종 학원 수)"
+            label="경쟁밀도 (학령인구 1,000명당 같은 업종 학원 수)"
             current={data.currentDensity}
             average={data.averageDensity}
             digits={3}
@@ -3830,6 +4059,78 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.text,
+  },
+
+  /**
+   * 점수 구성 (학원 분석)
+   */
+
+  scoreBreakdownRow: {
+    marginTop: 12,
+  },
+
+  scoreBreakdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 2,
+  },
+
+  scoreBreakdownLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  scoreBreakdownFormula: {
+    flexShrink: 1,
+    textAlign: 'right',
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  scoreBreakdownHint: {
+    marginBottom: 8,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+
+  scoreBreakdownTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+
+  scoreBreakdownTotalLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  scoreBreakdownTotalValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+
+  scoreBreakdownNote: {
+    marginTop: 10,
+    fontSize: 11,
+    lineHeight: 16,
+    color: COLORS.textSecondary,
+  },
+
+  demandCompareNotice: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
 
 });
