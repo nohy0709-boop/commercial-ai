@@ -11,8 +11,6 @@ import { businessCategories } from '@/constants/businessTypes';
 import { COLORS } from '@/constants/colors';
 
 import { sejongAreas } from '@/constants/sejongAreas';
-
-import { getAcademyDemandByArea } from '@/data/academyDemandData';
 import type {
   AcademyAreaResult,
   AcademyCountTable,
@@ -989,10 +987,7 @@ export default function RegionResultScreen() {
                     top.storeCount,
                   앱지원학원전체수:
                     top.totalAcademyCount,
-                  학령인구_6to19세:
-                    getAcademyDemandByArea(top.areaName)
-                      ?.schoolAgePopulation,
-                  생활인구_참고:
+                  생활인구:
                     top.livingPopulation,
                   경쟁밀도:
                     top.competitionDensity,
@@ -1910,7 +1905,7 @@ export default function RegionResultScreen() {
                 ) : (
                   <Text style={styles.groupDescription}>
                     {group.isAcademy
-                      ? '같은 업종 학원 수, 학령인구, 학원 밀집도를 바탕으로 비교한 결과예요.'
+                      ? '같은 업종 학원 수, 생활인구, 학원 밀집도를 바탕으로 비교한 결과예요.'
                       : '유동인구, 소비 패턴, 주변 환경 등을 종합적으로 분석한 결과예요.'}
                   </Text>
                 )}

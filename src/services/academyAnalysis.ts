@@ -1,9 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
-import { getAcademyDemandByArea } from '../data/academyDemandData';
 import { getPopulationByArea } from '../data/populationData';
 import type {
-    DemandComparisonEntry,
     MarketEvaluation,
     MetricEvaluation,
 } from './marketEvaluation';
@@ -73,75 +71,27 @@ export const ACADEMY_CATEGORY_HINTS: Record<
  * 합계는 1이어야 합니다.
  */
 export const ACADEMY_WEIGHTS = {
-  /** 같은 업종 학원 경쟁 (학령인구 1,000명당 학원 수, 낮을수록 유리) */
+  /** 같은 업종 학원 경쟁 (생활인구 1,000명당 학원 수, 낮을수록 유리) */
   competition: 0.6,
   /** 학원가 밀집도 (앱이 지원하는 학원 전체 수, 높을수록 학원가) */
   cluster: 0.4,
   /**
-   * 생활인구는 점수에 넣지 않고(0) 참고값으로만 보여줍니다.
-   * 경쟁 지표의 분모는 학령인구(6~19세)이고,
-   * 생활인구 기준 결과는 "수요 기준 비교"에서 따로 보여줍니다.
+   * 생활인구는 경쟁 지표의 분모로 이미 반영되므로
+   * 점수에는 한 번 더 넣지 않고(0) 참고값으로만 보여줍니다.
+   * (이중 반영 방지. 학령인구가 생기면 분모를 바꾸고
+   *  이 값을 0.1 정도로 올려 규모 지표로 쓸 수 있습니다.)
    */
   livingPopulation: 0,
 } as const;
 
 /**
- * =====================================================
- * 경쟁 지표의 분모 (수요 기준)
- * =====================================================
- *
- * 대표 점수는 학령인구(6~19세, 주민등록)를 분모로 계산합니다.
- * 같은 계산을 분모만 바꿔 두 번 더 하고(생활인구, 10대 방과후 유동인구)
- * 결과를 나란히 보여줍니다. 세 결과를 합치거나 평균내지 않습니다.
+ * 경쟁 지표의 분모(수요 근사치).
+ * 지금은 생활인구. 학령인구 데이터가 생기면 이 함수만 바꾸면 됩니다.
  */
-export type AcademyDemandBasis =
-  | 'schoolAge'
-  | 'living'
-  | 'teenFloating';
-
-/** 대표 점수에 쓰는 수요 기준 */
-export const PRIMARY_DEMAND_BASIS: AcademyDemandBasis =
-  'schoolAge';
-
-export const DEMAND_BASES: {
-  basis: AcademyDemandBasis;
-  label: string;
-  /** "○○ 1,000명당 같은 업종 학원 수"의 ○○ 부분 */
-  denominator: string;
-}[] = [
-  {
-    basis: 'schoolAge',
-    label: '학령인구(6~19세)',
-    denominator: '학령인구(6~19세)',
-  },
-  {
-    basis: 'living',
-    label: '생활인구',
-    denominator: '생활인구',
-  },
-  {
-    basis: 'teenFloating',
-    label: '10대 방과후 유동인구',
-    denominator: '10대 방과후(15~21시) 유동인구',
-  },
-];
-
-function getDemandBase(
-  basis: AcademyDemandBasis,
-  values: {
-    schoolAgePopulation: number;
-    livingPopulation: number;
-    teenAfterSchoolFloating: number;
-  },
-): number {
-  switch (basis) {
-    case 'living':
-      return values.livingPopulation;
-    case 'teenFloating':
-      return values.teenAfterSchoolFloating;
-    default:
-      return values.schoolAgePopulation;
-  }
+function getDemandBase(population: {
+  livingPopulation: number;
+}): number {
+  return population.livingPopulation;
 }
 
 /** 세종 전체 학원 수가 이 값보다 적은 업종은 "참고용"으로 안내합니다. */
@@ -214,16 +164,9 @@ export type AcademyAreaResult = {
   /** 해당 동의 앱 지원 학원 전체 수 (밀집도) */
   totalAcademyCount: number;
 
-  /** 참고값 (비교용 분모 중 하나) */
   livingPopulation: number;
 
-  /** 학령인구(6~19세, 2026년 10월 말 주민등록) */
-  schoolAgePopulation: number;
-
-  /** 10대 방과후(15~21시) 평균 유동인구 (2026년 6월) */
-  teenAfterSchoolFloating: number;
-
-  /** 학령인구 1,000명당 같은 업종 학원 수 (대표 점수 기준) */
+  /** 생활인구 1,000명당 같은 업종 학원 수 */
   competitionDensity: number;
 
   competitionScore: number;
@@ -266,29 +209,15 @@ export async function analyzeAcademyAreas(
     sameCategoryCount: number;
     totalAcademyCount: number;
     livingPopulation: number;
-    schoolAgePopulation: number;
-    teenAfterSchoolFloating: number;
-    /** 대표 점수 기준(학령인구) 경쟁 밀도 */
     competitionDensity: number;
-    /** 수요 기준별 경쟁 밀도 */
-    densities: Record<AcademyDemandBasis, number>;
   };
 
   const bases: Base[] = [];
 
   for (const areaName of areaNames) {
     const population = getPopulationByArea(areaName);
-    const demand = getAcademyDemandByArea(areaName);
 
-    // 분모가 되는 값이 하나라도 없거나 0 이하이면
-    // 경쟁 밀도가 0(=가장 유리)으로 잘못 계산되므로 비교에서 뺍니다.
-    if (
-      !population ||
-      !demand ||
-      !(population.livingPopulation > 0) ||
-      !(demand.schoolAgePopulation > 0) ||
-      !(demand.teenAfterSchoolFloating > 0)
-    ) {
+    if (!population) {
       skippedAreas.push(areaName);
       continue;
     }
@@ -304,34 +233,18 @@ export async function analyzeAcademyAreas(
       totalAcademyCount += value;
     });
 
-    const demandValues = {
-      schoolAgePopulation: demand.schoolAgePopulation,
-      livingPopulation: population.livingPopulation,
-      teenAfterSchoolFloating:
-        demand.teenAfterSchoolFloating,
-    };
-
-    const densityOf = (basis: AcademyDemandBasis) =>
-      (sameCategoryCount /
-        getDemandBase(basis, demandValues)) *
-      1000;
-
-    const densities: Record<AcademyDemandBasis, number> = {
-      schoolAge: densityOf('schoolAge'),
-      living: densityOf('living'),
-      teenFloating: densityOf('teenFloating'),
-    };
+    const livingPopulation = population.livingPopulation;
+    const demandBase = getDemandBase(population);
 
     bases.push({
       areaName,
       sameCategoryCount,
       totalAcademyCount,
-      livingPopulation: population.livingPopulation,
-      schoolAgePopulation: demand.schoolAgePopulation,
-      teenAfterSchoolFloating:
-        demand.teenAfterSchoolFloating,
-      competitionDensity: densities[PRIMARY_DEMAND_BASIS],
-      densities,
+      livingPopulation,
+      competitionDensity:
+        demandBase > 0
+          ? (sameCategoryCount / demandBase) * 1000
+          : 0,
     });
   }
 
@@ -396,84 +309,6 @@ export async function analyzeAcademyAreas(
 
   scored.sort((a, b) => b.total - a.total);
 
-  /**
-   * 수요 기준별 비교 (경쟁 점수의 분모만 바꿔 따로 계산).
-   * 집적 점수와 가중치는 모든 기준에서 같고,
-   * 세 결과를 합치거나 평균내지 않습니다.
-   */
-  const clusterScoreByArea = new Map<string, number>();
-
-  for (const item of scored) {
-    clusterScoreByArea.set(
-      item.item.areaName,
-      item.clusterScore,
-    );
-  }
-
-  const comparisonByArea = new Map<
-    string,
-    DemandComparisonEntry[]
-  >();
-
-  for (const { basis, label } of DEMAND_BASES) {
-    const densityRange = range(
-      bases.map(item => item.densities[basis]),
-    );
-
-    const rows = bases.map(item => {
-      const competitionScore = normalizeMetric(
-        item.densities[basis],
-        densityRange.min,
-        densityRange.max,
-        true,
-      );
-      const suitabilityScore =
-        competitionScore * ACADEMY_WEIGHTS.competition +
-        (clusterScoreByArea.get(item.areaName) ?? 0) *
-          ACADEMY_WEIGHTS.cluster;
-
-      return {
-        item,
-        competitionScore,
-        suitabilityScore,
-      };
-    });
-
-    for (const row of rows) {
-      const higher = rows.filter(
-        other =>
-          other.suitabilityScore >
-          row.suitabilityScore + 1e-9,
-      ).length;
-
-      const entries =
-        comparisonByArea.get(row.item.areaName) ?? [];
-
-      entries.push({
-        basis,
-        label,
-        isPrimary: basis === PRIMARY_DEMAND_BASIS,
-        density: Number(
-          row.item.densities[basis].toFixed(3),
-        ),
-        competitionScore: Number(
-          row.competitionScore.toFixed(1),
-        ),
-        suitabilityScore: Number(
-          row.suitabilityScore.toFixed(1),
-        ),
-        rank: higher + 1,
-      });
-
-      comparisonByArea.set(row.item.areaName, entries);
-    }
-  }
-
-  const primaryDenominator =
-    DEMAND_BASES.find(
-      item => item.basis === PRIMARY_DEMAND_BASIS,
-    )?.denominator ?? '학령인구(6~19세)';
-
   const comparable = bases.length > 1;
 
   const results: AcademyAreaResult[] = scored.map(
@@ -526,7 +361,7 @@ export async function analyzeAcademyAreas(
           `경쟁 수준 (같은 업종 ${category})`,
           ACADEMY_WEIGHTS.competition,
           true,
-          `${primaryDenominator} 1,000명당 같은 업종 학원 수`,
+          '생활인구 1,000명당 같은 업종 학원 수',
           item.competitionDensity,
           competitionScore,
           competitionRange,
@@ -543,7 +378,7 @@ export async function analyzeAcademyAreas(
         ),
         metric(
           'livingPopulation',
-          '생활인구 (참고값, 비교용 분모)',
+          '생활인구 (참고값, 경쟁 지표 분모로 반영)',
           ACADEMY_WEIGHTS.livingPopulation,
           false,
           '명',
@@ -555,8 +390,7 @@ export async function analyzeAcademyAreas(
 
       const notes = [
         '낮음/높음은 이번 비교 집합 안의 상대 평가이며 절대적인 많음/적음 판정이 아님.',
-        '수요는 학령인구(6~19세, 주민등록 주소지 기준)로 근사하며 경쟁 지표의 분모로만 쓰고 별도 점수에는 넣지 않음(이중 반영 방지). 다른 동에 살면서 이 동 학원에 다니는 학생은 반영되지 않음. 학원 수가 많다는 것만으로 수요가 크다고 단정하지 않음.',
-        '수요 기준을 생활인구나 10대 방과후 유동인구로 바꾸면 순위가 달라질 수 있어 "수요 기준 비교"에 함께 표시함. 대표 점수는 학령인구 기준이며 세 결과를 합치거나 평균내지 않음.',
+        '학령인구(학생 수) 데이터는 반영하지 않았고, 수요는 생활인구로 근사함. 생활인구는 경쟁 지표의 분모로 반영되며 별도 점수에는 넣지 않고 참고값으로만 표시함(이중 반영 방지). 학원 수가 많다는 것만으로 수요가 크다고 단정하지 않음.',
         '교육청에 등록된 학원·교습소 중 현재 운영 중인 곳 기준이며, 정원·수강생 수·매출은 평가에 쓰지 않음.',
         '학원 분류는 학원명과 교습과정의 단어로 자동 분류한 것이라 일부 오분류가 있을 수 있음. 앱이 지원하지 않는 학원(바둑·스피치 등)은 집계에서 제외됨.',
         '학원 밀집도가 높다는 것은 학원가가 형성됐다는 신호일 수 있으나, 같은 업종 경쟁이 심하다는 뜻일 수도 있어 단정하지 않음.',
@@ -591,7 +425,7 @@ export async function analyzeAcademyAreas(
           { min: 25, general: '보통', competition: '경쟁 있음' },
           { min: 0, general: '낮음', competition: '경쟁 치열' },
         ],
-        scoreFormula: `경쟁(같은 업종 학원 수/${primaryDenominator} 1,000명) 정규화점수×${ACADEMY_WEIGHTS.competition} + 학원 밀집도 정규화점수×${ACADEMY_WEIGHTS.cluster} (인구 지표는 경쟁 분모로만 반영)`,
+        scoreFormula: `경쟁(같은 업종 학원 수/생활인구 1,000명) 정규화점수×${ACADEMY_WEIGHTS.competition} + 학원 밀집도 정규화점수×${ACADEMY_WEIGHTS.cluster} (생활인구는 경쟁 분모로 반영, 참고값)`,
         totalScore: total,
         metrics,
         scope: {
@@ -599,11 +433,9 @@ export async function analyzeAcademyAreas(
           areaName: item.areaName,
           dongName: item.areaName,
           radius: null,
-          note: `${item.areaName}: ${category} ${item.sameCategoryCount}곳, 앱 지원 학원 전체 ${item.totalAcademyCount}곳, 학령인구(6~19세) ${item.schoolAgePopulation.toLocaleString('ko-KR')}명. 행정동 단위 데이터이며 다른 지역·기간까지 일반화하지 않음.`,
+          note: `${item.areaName}: ${category} ${item.sameCategoryCount}곳, 앱 지원 학원 전체 ${item.totalAcademyCount}곳, 생활인구 ${item.livingPopulation.toLocaleString('ko-KR')}명. 행정동 단위 데이터이며 다른 지역·기간까지 일반화하지 않음.`,
         },
         notes,
-        demandComparison:
-          comparisonByArea.get(item.areaName) ?? [],
       };
 
       return {
@@ -612,9 +444,6 @@ export async function analyzeAcademyAreas(
         sameCategoryCount: item.sameCategoryCount,
         totalAcademyCount: item.totalAcademyCount,
         livingPopulation: item.livingPopulation,
-        schoolAgePopulation: item.schoolAgePopulation,
-        teenAfterSchoolFloating:
-          item.teenAfterSchoolFloating,
         competitionDensity: Number(
           item.competitionDensity.toFixed(3),
         ),

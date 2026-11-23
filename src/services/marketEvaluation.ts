@@ -43,26 +43,7 @@ export type MetricEvaluation = {
   direction: 'higher-is-better' | 'lower-is-better'; label: string;
   comparable: boolean; unit: string;
 };
-/**
- * 학원 분석에서 경쟁 지표의 분모(수요 기준)를 바꿔 본 비교 결과.
- * 대표 점수(evaluation.totalScore)는 그대로이고, 이 값은 비교용입니다.
- */
-export type DemandComparisonEntry = {
-  basis: 'schoolAge' | 'living' | 'teenFloating';
-  /** 화면에 보여줄 이름 */
-  label: string;
-  /** 대표 점수로 쓰인 기준인지 */
-  isPrimary: boolean;
-  /** 분모 1,000명당 같은 업종 학원 수 */
-  density: number;
-  competitionScore: number;
-  suitabilityScore: number;
-  /** 같은 비교 집합 안에서의 순위 (동점이면 같은 순위) */
-  rank: number;
-};
 export type MarketEvaluation = {
-  /** 학원 분석에서만 채워집니다. */
-  demandComparison?: DemandComparisonEntry[];
   version: string; mode: 'suitability' | 'business-recommendation';
   comparisonScope: string; comparisonCount: number; comparisonTargets: string[];
   normalization: string; equalValuePolicy: string; thresholds: { min: number; general: string; competition: string }[];
